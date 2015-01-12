@@ -43,6 +43,10 @@ function connect(s) {
   return s
 
   function filter(packet, enc, cb) {
+    if (packet.cmd !== 'publish') {
+      delete packet.topic
+      delete packet.payload
+    }
     if (packet.cmd !== 'connack') {
       this.push(packet)
     }
@@ -71,6 +75,8 @@ test('connect and connack (minimal)', function(t) {
       , qos: 0
       , retain: false
       , dup: false
+      , topic: null
+      , payload: null
     }, 'successful connack')
     t.end()
   })

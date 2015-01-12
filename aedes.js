@@ -14,7 +14,7 @@ function Aedes(opts) {
   }
 
   opts = opts || {}
-  opts.concurrency = 1000
+  opts.concurrency = 10000
 
   this.mq = opts.mq || mqemitter(opts)
   this.handle = function(conn) {

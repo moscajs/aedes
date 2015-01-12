@@ -24,12 +24,11 @@
     "faucet": "0.0.1",
     "tape": "^3.0.3",
     "through2": "^0.6.3",
+    "mqtt-connection": "^2.1.0",
     "reduplexer": "^1.1.0"
   },
   "dependencies": {
     "mqemitter": "^0.2.1",
-    "mqstreams": "^0.1.0",
-    "mqtt": "^1.0.0-pre.6",
-    "mqtt-connection": "^2.1.0"
+    "mqtt-packet": "^3.0.0"
   }
 }

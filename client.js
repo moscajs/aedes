@@ -1,30 +1,73 @@
 
-var mqtt            = require('mqtt-connection')
-  , parseStream     = mqtt.parseStream
-  , generateStream  = mqtt.generateStream
-  , through         = require('through2')
+var mqtt            = require('mqtt-packet')
 
 module.exports = Client
 
 function Client(broker, conn) {
-  var processor     = through.obj(process)
-
   this.broker       = broker
   this.conn         = conn
-  this.outStream    = generateStream()
-  this.inStream     = conn.pipe(parseStream())
+  this.parser       = mqtt.parser()
   this.connected    = false
+  this._handling    = 0
 
-  processor.client  = this
+  conn.client = this
 
-  this.outStream.pipe(conn)
+  this.parser.on('packet', enqueue)
+  this.parser.client = this
 
-  this.inStream.pipe(processor)
+  this.queue = []
+
+  var that = this
+  var skipNext = false
+  function oneAtATime() {
+    var queue = that.queue
+
+    if (!skipNext && !(queue.length % 1000)) {
+      skipNext = true
+      setImmediate(oneAtATime)
+      return
+    }
+    skipNext = false
+
+    if (queue.length === 0) {
+      skipNext = true
+      read.call(that.conn)
+    } else {
+      process(that, queue.shift(), oneAtATime)
+    }
+  }
+  this._oneAtATime = oneAtATime
+
+  read.call(conn)
 }
 
-function process(packet, enc, done) {
-  var client = this.client
-    , broker = this.client.broker
+function enqueue(packet) {
+  this.client.queue.push(packet)
+}
+
+function read() {
+  var buf     = this.read()
+    , client  = this.client
+
+  if (buf) {
+    client.parser.parse(buf)
+    client._oneAtATime()
+  } else {
+    client.conn.once('readable', read)
+  }
+}
+
+function write(client, packet, done) {
+  var conn = client.conn
+  if (!conn.write(mqtt.generate(packet))) {
+    conn.once('drain', done)
+  } else {
+    done()
+  }
+}
+
+function process(client, packet, done) {
+  var broker = client.broker
 
   if (packet.cmd !== 'connect' && !client.connected) {
     client.conn.destroy()
@@ -34,7 +77,7 @@ function process(packet, enc, done) {
   switch (packet.cmd) {
     case 'connect':
       client.connected = true
-      client.outStream.write({
+      write(client, {
           cmd: 'connack'
         , returnCode: 0
       }, done)
@@ -44,11 +87,7 @@ function process(packet, enc, done) {
       break
     case 'subscribe':
       broker.subscribe(packet, function(packet, cb) {
-        if (!client.outStream.write(packet)) {
-          client.outStream.once('drain', cb)
-        } else {
-          cb()
-        }
+        write(client, packet, cb)
       }, function(err) {
         // TODO handle err?
 
@@ -61,7 +100,7 @@ function process(packet, enc, done) {
               })
           }
 
-        client.outStream.write(response, done)
+        write(client, response, done)
       })
       break
     default:
