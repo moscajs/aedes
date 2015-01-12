@@ -6,14 +6,17 @@ var mqemitter       = require('mqemitter')
 
 module.exports = Aedes
 
-function Aedes() {
+function Aedes(opts) {
   var that = this
 
   if (!(this instanceof Aedes)) {
-    return new Aedes()
+    return new Aedes(opts)
   }
 
-  this.mq = mqemitter()
+  opts = opts || {}
+  opts.concurrency = 1000
+
+  this.mq = opts.mq || mqemitter(opts)
   this.handle = function(conn) {
     new Client(that, conn)
   }

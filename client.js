@@ -44,7 +44,11 @@ function process(packet, enc, done) {
       break
     case 'subscribe':
       broker.subscribe(packet, function(packet, cb) {
-        client.outStream.write(packet, cb)
+        if (!client.outStream.write(packet)) {
+          client.outStream.once('drain', cb)
+        } else {
+          cb()
+        }
       }, function(err) {
         // TODO handle err?
 
