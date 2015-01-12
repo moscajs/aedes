@@ -1,39 +1,41 @@
 
 var mqemitter       = require('mqemitter')
-  , mqtt            = require('mqtt-connection')
-  , parseStream     = mqtt.parseStream
-  , generateStream  = mqtt.generateStream
-  , through         = require('through2')
   , EE              = require('events').EventEmitter
+  , Client          = require('./client')
+  , util            = require('util')
 
-module.exports = aedes
+module.exports = Aedes
 
-function aedes() {
+function Aedes() {
+  var that = this
 
-  var broker = mqemitter()
-    , ee     = new EE()
-
-  ee.broker = broker
-  ee.handle = handle
-
-  return ee
-
-  function handle(conn) {
-    var inStream  = conn.pipe(parseStream())
-      , outStream = generateStream()
-      , client    = through.obj(process)
-
-    client.out = outStream
-
-    outStream.pipe(conn)
-
-    inStream.pipe(client)
+  if (!(this instanceof Aedes)) {
+    return new Aedes()
   }
 
-  function process(packet, enc, done) {
-    this.out.write({
-        cmd: 'connack'
-      , returnCode: 0
-    }, done)
+  this.mq = mqemitter()
+  this.handle = function(conn) {
+    new Client(that, conn)
   }
+}
+
+util.inherits(Aedes, EE)
+
+Aedes.prototype.publish = function(packet, done) {
+  this.mq.emit(packet, done)
+}
+
+Aedes.prototype.subscribe = function(packet, func, done) {
+  var subs = [].concat(packet.subscriptions)
+    , mq   = this.mq
+
+  function subscribe() {
+    if (subs.length === 0) return done()
+
+    var sub = subs.shift()
+    mq.on(sub.topic, func)
+    subscribe() // handle it recursively!
+  }
+
+  subscribe()
 }
