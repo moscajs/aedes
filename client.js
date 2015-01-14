@@ -1,5 +1,7 @@
 
-var mqtt            = require('mqtt-packet')
+var mqtt  = require('mqtt-packet')
+  , EE    = require('events').EventEmitter
+  , util  = require('util')
 
 module.exports = Client
 
@@ -40,10 +42,15 @@ function Client(broker, conn) {
 
   read.call(conn)
 
-  conn.on('error', function(err) {
+  conn.on('error', this.emit.bind(this, 'error'))
+  this.parser.on('error', this.emit.bind(this, 'error'))
+
+  this.on('error', function(err) {
     broker.emit('clientError', that, err)
   })
 }
+
+util.inherits(Client, EE)
 
 function enqueue(packet) {
   this.client.queue.push(packet)
