@@ -39,6 +39,10 @@ function Client(broker, conn) {
   this._oneAtATime = oneAtATime
 
   read.call(conn)
+
+  conn.on('error', function(err) {
+    broker.emit('clientError', that, err)
+  })
 }
 
 function enqueue(packet) {
@@ -59,7 +63,10 @@ function read() {
 
 function write(client, packet, done) {
   var conn = client.conn
-  if (!conn.write(mqtt.generate(packet))) {
+  if (conn._writableState.ended) {
+    conn.emit('error', new Error('connection ended abruptly'))
+    done()
+  } else if (!conn.write(mqtt.generate(packet))) {
     conn.once('drain', done)
   } else {
     done()
@@ -93,7 +100,7 @@ function process(client, packet, done) {
 
         var response = {
               cmd: 'suback'
-            , messageId: 42
+            , messageId: packet.messageId
             , granted: packet.subscriptions.map(function() {
                 // everything subscribed to QoS 0
                 return 0

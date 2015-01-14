@@ -21,7 +21,8 @@ function setup() {
   }
 
   return {
-      inStream: inStream
+      conn: conn
+    , inStream: inStream
     , outStream: outStream
     , broker: broker
   }
@@ -148,6 +149,36 @@ test('subscribe QoS 0', function(t) {
         cmd: 'publish'
       , topic: 'hello'
       , payload: 'world'
+    })
+  })
+})
+
+test('does not die badly on connection exit', function(t) {
+  t.plan(3)
+  var s         = connect(setup())
+
+  s.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 42
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 0
+      }]
+  })
+
+  s.broker.on('clientError', function(client, err) {
+    t.ok(client, 'client is passed')
+    t.ok(err, 'err is passed')
+  })
+
+  s.outStream.on('data', function(packet) {
+    s.conn.end()
+    s.broker.mq.emit({
+      cmd: 'publish'
+      , topic: 'hello'
+      , payload: new Buffer('world')
+    }, function() {
+      t.pass('calls the callback')
     })
   })
 })
