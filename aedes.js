@@ -28,17 +28,12 @@ Aedes.prototype.publish = function(packet, done) {
   this.mq.emit(packet, done)
 }
 
-Aedes.prototype.subscribe = function(packet, func, done) {
-  var subs = [].concat(packet.subscriptions)
-    , mq   = this.mq
+Aedes.prototype.subscribe = function(topic, func, done) {
+  this.mq.on(topic, func)
+  done() // TODO on should accept a third callback
+}
 
-  function subscribe() {
-    if (subs.length === 0) return done()
-
-    var sub = subs.shift()
-    mq.on(sub.topic, func)
-    subscribe() // handle it recursively!
-  }
-
-  subscribe()
+Aedes.prototype.unsubscribe = function(topic, func, done) {
+  this.mq.removeListener(topic, func)
+  done() // TODO on should accept a third callback
 }

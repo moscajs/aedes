@@ -55,6 +55,15 @@ function connect(s) {
   }
 }
 
+function noError(s, t) {
+  s.broker.on('clientError', function(client, err) {
+    console.log(err)
+    t.notOk(err, 'must not error')
+  })
+
+  return s
+}
+
 test('connect and connack (minimal)', function(t) {
 
   var s = setup()
@@ -129,7 +138,7 @@ test('subscribe QoS 0', function(t) {
       }]
   })
 
-  s.outStream.once('data', function(packet, cb) {
+  s.outStream.once('data', function(packet) {
     t.deepEqual(packet, {
         cmd: 'suback'
       , messageId: 42
@@ -140,7 +149,7 @@ test('subscribe QoS 0', function(t) {
       , retain: false
     })
 
-    this.once('data', function(packet, cb) {
+    this.once('data', function(packet) {
       t.deepEqual(packet, expected, 'packet matches')
       t.end()
     })
@@ -179,6 +188,63 @@ test('does not die badly on connection exit', function(t) {
       , payload: new Buffer('world')
     }, function() {
       t.pass('calls the callback')
+    })
+  })
+})
+
+test('unsubscribe', function(t) {
+  t.plan(3)
+
+  var s         = noError(connect(setup()), t)
+
+  s.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 42
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 0
+      }]
+  })
+
+  s.outStream.once('data', function(packet) {
+    t.deepEqual(packet, {
+        cmd: 'suback'
+      , messageId: 42
+      , dup: false
+      , granted: [0]
+      , length: 3
+      , qos: 0
+      , retain: false
+    })
+
+    s.inStream.write({
+        cmd: 'unsubscribe'
+      , messageId: 43
+      , unsubscriptions: ['hello']
+    })
+
+    this.once('data', function(packet) {
+
+      t.deepEqual(packet, {
+          cmd: 'unsuback'
+        , messageId: 43
+        , dup: false
+        , length: 2
+        , qos: 0
+        , retain: false
+      }, 'packet matches')
+
+      this.on('data', function(packet) {
+        t.fail('packet received')
+      })
+
+      s.broker.publish({
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: 'world'
+      }, function() {
+        t.pass('publish finished')
+      })
     })
   })
 })

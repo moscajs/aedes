@@ -6,21 +6,25 @@ var mqtt  = require('mqtt-packet')
 module.exports = Client
 
 function Client(broker, conn) {
-  this.broker       = broker
-  this.conn         = conn
-  this.parser       = mqtt.parser()
-  this.connected    = false
-  this._handling    = 0
+  var that            = this
+  var skipNext        = false
 
-  conn.client = this
+  this.broker         = broker
+  this.conn           = conn
+  this.parser         = mqtt.parser()
+  this.connected      = false
+  this._handling      = 0
+  this.subscriptions  = {}
+
+  conn.client         = this
+
+  this.parser.client  = this
+
+  this.queue          = []
+
 
   this.parser.on('packet', enqueue)
-  this.parser.client = this
 
-  this.queue = []
-
-  var that = this
-  var skipNext = false
   function oneAtATime() {
     var queue = that.queue
 
@@ -46,8 +50,13 @@ function Client(broker, conn) {
   this.parser.on('error', this.emit.bind(this, 'error'))
 
   this.on('error', function(err) {
+    console.log(err)
     broker.emit('clientError', that, err)
   })
+
+  this.deliver = function(packet, cb) {
+    write(that, packet, cb)
+  }
 }
 
 util.inherits(Client, EE)
@@ -81,7 +90,7 @@ function write(client, packet, done) {
 }
 
 function process(client, packet, done) {
-  var broker = client.broker
+  var broker  = client.broker
 
   if (packet.cmd !== 'connect' && !client.connected) {
     client.conn.destroy()
@@ -100,25 +109,79 @@ function process(client, packet, done) {
       broker.publish(packet, done)
       break
     case 'subscribe':
-      broker.subscribe(packet, function(packet, cb) {
-        write(client, packet, cb)
-      }, function(err) {
-        // TODO handle err?
-
-        var response = {
-              cmd: 'suback'
-            , messageId: packet.messageId
-            , granted: packet.subscriptions.map(function() {
-                // everything subscribed to QoS 0
-                return 0
-              })
-          }
-
-        write(client, response, done)
-      })
+      handleSubscribe(client, packet, done)
+      break
+    case 'unsubscribe':
+      handleUnsubscribe(client, packet, done)
       break
     default:
       client.conn.destroy()
-      return
+  }
+}
+
+function handleSubscribe(client, packet, done) {
+  var broker  = client.broker
+    , deliver = client.deliver
+    , subs    = packet.subscriptions
+    , i
+    , length  = subs.length
+    , granted = []
+
+  for (i = 0; i < length; i++) {
+    // everything subscribed to QoS 0
+    granted.push(0)
+    client.subscriptions[subs[i].topic] = subs[i].qos
+    broker.subscribe(subs[i].topic, deliver, subscribeDone)
+  }
+
+  function subscribeDone(err) {
+    // TODO handle err?
+
+    var response = {
+          cmd: 'suback'
+        , messageId: packet.messageId
+        , granted: granted
+      }
+
+    write(client, response, complete)
+  }
+
+  function complete() {
+    length--
+    if (length === 0) {
+      done()
+    }
+  }
+}
+
+function handleUnsubscribe(client, packet, done) {
+  var broker  = client.broker
+    , deliver = client.deliver
+    , subs    = packet.unsubscriptions
+    , i
+    , length  = subs.length
+    , granted = []
+
+  for (i = 0; i < length; i++) {
+    delete client.subscriptions[subs[i]]
+    broker.unsubscribe(subs[i], deliver, unsubscribeDone)
+  }
+
+  function unsubscribeDone(err) {
+    // TODO handle err?
+
+    var response = {
+          cmd: 'unsuback'
+        , messageId: packet.messageId
+      }
+
+    write(client, response, complete)
+  }
+
+  function complete() {
+    length--
+    if (length === 0) {
+      done()
+    }
   }
 }
