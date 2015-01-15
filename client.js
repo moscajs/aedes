@@ -137,6 +137,8 @@ function process(client, packet, done) {
     case 'unsubscribe':
       handleUnsubscribe(client, packet, done)
       break
+    case 'disconnect':
+      client.conn.end()
     default:
       client.conn.destroy()
   }

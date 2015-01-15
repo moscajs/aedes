@@ -276,3 +276,15 @@ test('unsubscribe on disconnect', function(t) {
     })
   })
 })
+
+test('disconnect', function(t) {
+  var s         = noError(connect(setup()), t)
+
+  s.outStream.on('finish', function() {
+    t.end()
+  })
+
+  s.inStream.write({
+    cmd: 'disconnect'
+  })
+})
