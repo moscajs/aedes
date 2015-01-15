@@ -50,9 +50,11 @@ function Client(broker, conn) {
   this.parser.on('error', this.emit.bind(this, 'error'))
 
   this.on('error', function(err) {
-    console.log(err)
     broker.emit('clientError', that, err)
+    that.close()
   })
+
+  this.conn.on('close', this.close.bind(this))
 
   this.deliver = function(packet, cb) {
     write(that, packet, cb)
@@ -60,6 +62,27 @@ function Client(broker, conn) {
 }
 
 util.inherits(Client, EE)
+
+Client.prototype.close = function (done) {
+  var conn = this.conn
+
+  if (this.connected) {
+    doUnsubscribe(this, Object.keys(this.subscriptions), finish)
+  } else {
+    finish()
+  }
+
+  function finish() {
+    if (conn.destroy) {
+      conn.destroy()
+    } else {
+      conn.end()
+    }
+    if (done) {
+      done()
+    }
+  }
+}
 
 function enqueue(packet) {
   this.client.queue.push(packet)
@@ -155,27 +178,25 @@ function handleSubscribe(client, packet, done) {
 }
 
 function handleUnsubscribe(client, packet, done) {
-  var broker  = client.broker
-    , deliver = client.deliver
-    , subs    = packet.unsubscriptions
-    , i
-    , length  = subs.length
-    , granted = []
-
-  for (i = 0; i < length; i++) {
-    delete client.subscriptions[subs[i]]
-    broker.unsubscribe(subs[i], deliver, unsubscribeDone)
-  }
-
-  function unsubscribeDone(err) {
-    // TODO handle err?
-
+  doUnsubscribe(client, packet.unsubscriptions, function() {
     var response = {
           cmd: 'unsuback'
         , messageId: packet.messageId
       }
 
-    write(client, response, complete)
+    write(client, response, done)
+  })
+}
+
+function doUnsubscribe(client, subs, done) {
+  var broker  = client.broker
+    , deliver = client.deliver
+    , i
+    , length  = subs.length
+
+  for (i = 0; i < length; i++) {
+    delete client.subscriptions[subs[i]]
+    broker.unsubscribe(subs[i], deliver, complete)
   }
 
   function complete() {

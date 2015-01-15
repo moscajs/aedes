@@ -162,7 +162,7 @@ test('subscribe QoS 0', function(t) {
   })
 })
 
-test('does not die badly on connection exit', function(t) {
+test('does not die badly on connection error', function(t) {
   t.plan(3)
   var s         = connect(setup())
 
@@ -181,7 +181,7 @@ test('does not die badly on connection exit', function(t) {
   })
 
   s.outStream.on('data', function(packet) {
-    s.conn.end()
+    s.conn._writableState.ended = true
     s.broker.mq.emit({
       cmd: 'publish'
       , topic: 'hello'
@@ -245,6 +245,34 @@ test('unsubscribe', function(t) {
       }, function() {
         t.pass('publish finished')
       })
+    })
+  })
+})
+
+test('unsubscribe on disconnect', function(t) {
+  var s         = noError(connect(setup()), t)
+
+  s.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 42
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 0
+      }]
+  })
+
+  s.outStream.once('data', function(packet) {
+    s.conn.emit('close')
+    s.outStream.on('data', function() {
+      t.fail('should not receive any more messages')
+    })
+    s.broker.mq.emit({
+      cmd: 'publish'
+      , topic: 'hello'
+      , payload: new Buffer('world')
+    }, function() {
+      t.pass('calls the callback')
+      t.end()
     })
   })
 })
