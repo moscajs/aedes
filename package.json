@@ -29,6 +29,9 @@
   },
   "dependencies": {
     "mqemitter": "^0.2.1",
-    "mqtt-packet": "^3.0.0"
+    "mqtt-packet": "^3.0.0",
+    "puid": "^1.0.2",
+    "shortid": "^2.1.3",
+    "uuid": "^2.0.1"
   }
 }

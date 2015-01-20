@@ -98,13 +98,12 @@ test('publish QoS 0', function(t) {
           cmd: 'publish'
         , topic: 'hello'
         , payload: new Buffer('world')
-        , dup: false
-        , length: 12
         , qos: 0
         , retain: false
       }
 
   s.broker.mq.on('hello', function(packet, cb) {
+    expected.id = s.broker.id + '-' + s.broker.counter
     t.deepEqual(packet, expected, 'packet matches')
     cb()
     t.end()
