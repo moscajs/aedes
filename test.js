@@ -87,6 +87,7 @@ test('connect and connack (minimal)', function(t) {
       , dup: false
       , topic: null
       , payload: null
+      , sessionPresent: false
     }, 'successful connack')
     t.end()
   })

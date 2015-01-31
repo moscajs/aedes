@@ -15,7 +15,7 @@ function Aedes(opts) {
   }
 
   opts = opts || {}
-  opts.concurrency = 10000
+  opts.concurrency = 100
 
   this.id = shortid()
   this.counter = 0

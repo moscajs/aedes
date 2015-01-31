@@ -2,6 +2,7 @@
 var mqtt  = require('mqtt-packet')
   , EE    = require('events').EventEmitter
   , util  = require('util')
+  , empty = new Buffer(0)
 
 module.exports = Client
 
@@ -20,38 +21,43 @@ function Client(broker, conn) {
 
   this.parser.client  = this
 
-  this.queue          = []
+  this._parsingBatch  = 1
 
 
   this.parser.on('packet', enqueue)
 
-  function oneAtATime() {
-    var queue = that.queue
+  function nextBatch() {
+    var buf     = empty
+      , client  = that
 
-    if (!skipNext && !(queue.length % 1000)) {
-      skipNext = true
-      setImmediate(oneAtATime)
-      return
-    }
-    skipNext = false
+    that._parsingBatch--;
+    if (that._parsingBatch <= 0) {
+      that._parsingBatch = 0
+      buf = client.conn.read()
 
-    if (queue.length === 0) {
-      skipNext = true
-      read.call(that.conn)
-    } else {
-      process(that, queue.shift(), oneAtATime)
+      if (buf) {
+        client.parser.parse(buf)
+      }
     }
   }
-  this._oneAtATime = oneAtATime
+  this._nextBatch = nextBatch
 
-  read.call(conn)
+  nextBatch()
 
+  conn.on('readable', nextBatch)
   conn.on('error', this.emit.bind(this, 'error'))
   this.parser.on('error', this.emit.bind(this, 'error'))
 
   this.on('error', function(err) {
+    this.conn.removeAllListeners('error')
+    this.conn.on('error', function() {})
+    // hack to clean up the write callbacks in case of error
+    // supports streams2 & streams3, so node 0.10, 0.11, and iojs
+    var state = this.conn._writableState
+    var list = state.getBuffer && state.getBuffer() || state.buffer
+    list.forEach(drainRequest)
     broker.emit('clientError', that, err)
-    that.close()
+    this.close()
   })
 
   this.conn.on('close', this.close.bind(this))
@@ -59,6 +65,10 @@ function Client(broker, conn) {
   this.deliver = function(packet, cb) {
     write(that, packet, cb)
   }
+}
+
+function drainRequest(req) {
+  req.callback()
 }
 
 util.inherits(Client, EE)
@@ -85,31 +95,12 @@ Client.prototype.close = function (done) {
 }
 
 function enqueue(packet) {
-  this.client.queue.push(packet)
-}
-
-function read() {
-  var buf     = this.read()
-    , client  = this.client
-
-  if (buf) {
-    client.parser.parse(buf)
-    client._oneAtATime()
-  } else {
-    client.conn.once('readable', read)
-  }
+  this.client._parsingBatch++;
+  process(this.client, packet, this.client._nextBatch)
 }
 
 function write(client, packet, done) {
-  var conn = client.conn
-  if (conn._writableState.ended) {
-    conn.emit('error', new Error('connection ended abruptly'))
-    done()
-  } else if (!conn.write(mqtt.generate(packet))) {
-    conn.once('drain', done)
-  } else {
-    done()
-  }
+  client.conn.write(mqtt.generate(packet), 'binary', done)
 }
 
 function process(client, packet, done) {
