@@ -32,13 +32,11 @@ Aedes.prototype.publish = function(packet, done) {
 }
 
 Aedes.prototype.subscribe = function(topic, func, done) {
-  this.mq.on(topic, func)
-  done() // TODO on should accept a third callback
+  this.mq.on(topic, func, done)
 }
 
 Aedes.prototype.unsubscribe = function(topic, func, done) {
-  this.mq.removeListener(topic, func)
-  done() // TODO on should accept a third callback
+  this.mq.removeListener(topic, func, done)
 }
 
 function Packet(original, broker) {

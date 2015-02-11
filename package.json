@@ -29,7 +29,7 @@
     "through2": "^0.6.3"
   },
   "dependencies": {
-    "mqemitter": "^0.2.1",
+    "mqemitter": "^0.3.0",
     "mqtt-packet": "^3.0.0",
     "puid": "^1.0.2",
     "shortid": "^2.1.3",
