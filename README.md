@@ -1,6 +1,6 @@
 # Aedes
 
-Barebone MQTT server that can run on any stream.
+Barebone MQTT server that can run on any stream server.
 
 ## Example
 
@@ -13,6 +13,17 @@ server.listen(port, function() {
   console.log('server listening on port', port)
 })
 ```
+
+## Todo
+
+* [x] QoS 0 support
+* [x] Retain messages support
+* [ ] QoS 1 support
+* [ ] QoS 2 support
+* [ ] clean=false support
+* [ ] mongo persistence (external module)
+* [ ] redis persistence (external module)
+* [ ] levelup persistence (external module)
 
 ## License
 
