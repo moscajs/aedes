@@ -1,8 +1,10 @@
 
 var mqemitter   = require('mqemitter')
   , EE          = require('events').EventEmitter
-  , Client      = require('./client')
+  , Client      = require('./lib/client')
   , util        = require('util')
+  , memory      = require('./lib/persistence')
+  , through     = require('through2')
   , shortid     = require('shortid')
 
 module.exports = Aedes
@@ -23,16 +25,41 @@ function Aedes(opts) {
   this.handle = function(conn) {
     new Client(that, conn)
   }
+  this.persistence = opts.persistence || memory()
+  this.persistence.broker = this
 }
 
 util.inherits(Aedes, EE)
 
+function storeRetained(broker, packet, done) {
+  broker.persistence.store(packet, function() {
+    broker.mq.emit(new Packet(packet, broker), done)
+  })
+}
+
 Aedes.prototype.publish = function(packet, done) {
-  this.mq.emit(new Packet(packet, this), done)
+  if (packet.retain) {
+    storeRetained(this, packet, done)
+  } else {
+    this.mq.emit(new Packet(packet, this), done)
+  }
 }
 
 Aedes.prototype.subscribe = function(topic, func, done) {
-  this.mq.on(topic, func, done)
+  var broker = this
+
+  this.mq.on(topic, func, function() {
+    // first do a suback
+    done()
+
+    var stream = broker.persistence.createRetainedStream(topic)
+
+    stream.pipe(through.obj(function(packet, enc, cb) {
+      func(packet, done)
+      cb()
+    }))
+
+  })
 }
 
 Aedes.prototype.unsubscribe = function(topic, func, done) {

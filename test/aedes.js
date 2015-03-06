@@ -5,13 +5,14 @@ var test            = require('tape').test
   , generateStream  = mqtt.generateStream
   , through         = require('through2')
   , reduplexer      = require('reduplexer')
-  , aedes           = require('./')
+  , aedes           = require('../')
 
-function setup() {
-  var broker    = aedes()
-    , inStream  = generateStream()
+function setup(broker) {
+  var inStream  = generateStream()
     , outStream = parseStream()
     , conn      = reduplexer(outStream, inStream)
+
+  broker = broker || aedes()
 
   broker.handle(conn)
 
@@ -286,5 +287,48 @@ test('disconnect', function(t) {
 
   s.inStream.write({
     cmd: 'disconnect'
+  })
+})
+
+test('retain messages', function(t) {
+  var broker      = aedes()
+    , publisher   = connect(setup(broker))
+    , subscriber  = connect(setup(broker))
+    , expected    = {
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: new Buffer('world')
+        , qos: 0
+        , dup: false
+        , length: 12
+        , retain: true
+      }
+
+  publisher.inStream.end({
+      cmd: 'publish'
+    , topic: 'hello'
+    , payload: 'world'
+    , retain: true
+  })
+
+
+  broker.mq.on('hello', function(packet, cb) {
+    subscriber.inStream.write({
+        cmd: 'subscribe'
+      , messageId: 42
+      , subscriptions: [{
+            topic: 'hello'
+          , qos: 0
+        }]
+    })
+  })
+
+  subscriber.outStream.once('data', function(packet) {
+    t.equal(packet.cmd, 'suback')
+
+    subscriber.outStream.once('data', function(packet) {
+      t.deepEqual(packet, expected, 'packet must match')
+      t.end()
+    })
   })
 })

@@ -4,7 +4,7 @@
   "description": "Stream-based MQTT broker",
   "main": "aedes.js",
   "scripts": {
-    "test": "tape test.js | faucet"
+    "test": "tape test/* | faucet"
   },
   "repository": {
     "type": "git",
@@ -21,18 +21,19 @@
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "devDependencies": {
+    "concat-stream": "^1.4.7",
     "faucet": "0.0.1",
     "mqtt": "^1.0.6",
     "mqtt-connection": "^2.1.0",
     "reduplexer": "^1.1.0",
-    "tape": "^3.0.3",
-    "through2": "^0.6.3"
+    "tape": "^3.0.3"
   },
   "dependencies": {
+    "from2": "^1.3.0",
     "mqemitter": "^0.3.0",
     "mqtt-packet": "^3.0.0",
-    "puid": "^1.0.2",
-    "shortid": "^2.1.3",
-    "uuid": "^2.0.1"
+    "qlobber": "^0.5.1",
+    "through2": "^0.6.3",
+    "shortid": "^2.1.3"
   }
 }
