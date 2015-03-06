@@ -27,4 +27,4 @@ server.listen(port, function() {
 
 ## License
 
-ISC
+MIT
