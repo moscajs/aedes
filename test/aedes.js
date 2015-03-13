@@ -332,3 +332,28 @@ test('retain messages', function(t) {
     })
   })
 })
+
+test('publish QoS 1', function(t) {
+  var s         = connect(setup())
+    , expected  = {
+          cmd: 'puback'
+        , messageId: 42
+        , qos: 0
+        , dup: false
+        , length: 2
+        , retain: false
+      }
+
+  s.inStream.write({
+      cmd: 'publish'
+    , topic: 'hello'
+    , payload: 'world'
+    , qos: 1
+    , messageId: 42
+  })
+
+  s.outStream.on('data', function(packet) {
+    t.deepEqual(packet, expected, 'packet must match')
+    t.end()
+  })
+})
