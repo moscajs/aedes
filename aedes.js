@@ -17,12 +17,12 @@ function Aedes(opts) {
   }
 
   opts = opts || {}
-  opts.concurrency = 100
+  opts.concurrency = opts.concurrency || 100
 
   this.id = shortid()
   this.counter = 0
   this.mq = opts.mq || mqemitter(opts)
-  this.handle = function(conn) {
+  this.handle = function handle(conn) {
     new Client(that, conn)
   }
   this.persistence = opts.persistence || memory()
@@ -48,7 +48,7 @@ Aedes.prototype.publish = function(packet, done) {
 Aedes.prototype.subscribe = function(topic, func, done) {
   var broker = this
 
-  this.mq.on(topic, func, function() {
+  this.mq.on(topic, func, function subscribed() {
     // first do a suback
     done()
 
