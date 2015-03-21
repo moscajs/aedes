@@ -5,6 +5,7 @@ var mqemitter   = require('mqemitter')
   , util        = require('util')
   , memory      = require('./lib/persistence')
   , through     = require('through2')
+  , parallel    = require('fastparallel')
   , shortid     = require('shortid')
 
 module.exports = Aedes
@@ -27,21 +28,28 @@ function Aedes(opts) {
   }
   this.persistence = opts.persistence || memory()
   this.persistence.broker = this
+  this._parallel = parallel()
 }
 
 util.inherits(Aedes, EE)
 
-function storeRetained(broker, packet, done) {
-  broker.persistence.store(packet, function() {
-    broker.mq.emit(new Packet(packet, broker), done)
-  })
+function storeRetained(packet, done) {
+  this.persistence.store(packet, done)
+}
+
+function emitPacket(packet, done) {
+  this.mq.emit(packet, done)
 }
 
 Aedes.prototype.publish = function(packet, done) {
+  var p = new Packet(packet, this)
   if (packet.retain) {
-    storeRetained(this, packet, done)
+    this._parallel(this, [
+      storeRetained,
+      emitPacket
+    ], p, done)
   } else {
-    this.mq.emit(new Packet(packet, this), done)
+    this.mq.emit(p, done)
   }
 }
 
