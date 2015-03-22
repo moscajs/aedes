@@ -7,6 +7,7 @@ var mqemitter   = require('mqemitter')
   , through     = require('through2')
   , parallel    = require('fastparallel')
   , shortid     = require('shortid')
+  , Packet      = require('./lib/packet')
 
 module.exports = Aedes
 
@@ -72,14 +73,4 @@ Aedes.prototype.subscribe = function(topic, func, done) {
 
 Aedes.prototype.unsubscribe = function(topic, func, done) {
   this.mq.removeListener(topic, func, done)
-}
-
-function Packet(original, broker) {
-  broker.counter++
-  this.cmd      = 'publish'
-  this.id       = broker.id + '-' + broker.counter
-  this.topic    = original.topic
-  this.payload  = original.payload || new Buffer(0)
-  this.qos      = original.qos || 0
-  this.retain   = original.retain || false
 }

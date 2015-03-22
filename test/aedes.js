@@ -58,7 +58,6 @@ function connect(s) {
 
 function noError(s, t) {
   s.broker.on('clientError', function(client, err) {
-    console.log(err)
     t.notOk(err, 'must not error')
   })
 
@@ -355,5 +354,95 @@ test('publish QoS 1', function(t) {
   s.outStream.on('data', function(packet) {
     t.deepEqual(packet, expected, 'packet must match')
     t.end()
+  })
+})
+
+test('subscribe QoS 1', function(t) {
+  var broker      = aedes()
+    , publisher   = connect(setup(broker))
+    , subscriber  = connect(setup(broker))
+    , expected    = {
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: new Buffer('world')
+        , qos: 1
+        , dup: false
+        , length: 14
+        , retain: false
+      }
+
+  subscriber.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 24
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 1
+      }]
+  })
+
+  subscriber.outStream.once('data', function(packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [1])
+    t.equal(packet.messageId, 24)
+
+    subscriber.outStream.once('data', function(packet) {
+      subscriber.inStream.write({
+          cmd: 'puback'
+        , messageId: packet.messageId
+      })
+      t.notEqual(packet.messageId, 42, 'messageId must differ')
+      delete packet.messageId
+      t.deepEqual(packet, expected, 'packet must match')
+      t.end()
+    })
+
+    publisher.inStream.write({
+        cmd: 'publish'
+      , topic: 'hello'
+      , payload: 'world'
+      , qos: 1
+      , messageId: 42
+    })
+  })
+})
+
+test('subscribe QoS 0, but publish QoS 1', function(t) {
+  var broker      = aedes()
+    , publisher   = connect(setup(broker))
+    , subscriber  = connect(setup(broker))
+    , expected    = {
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: new Buffer('world')
+        , qos: 0
+        , dup: false
+        , length: 12
+        , retain: false
+      }
+
+  subscriber.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 24
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 0
+      }]
+  })
+
+  subscriber.outStream.once('data', function(packet) {
+    t.equal(packet.cmd, 'suback')
+
+    subscriber.outStream.once('data', function(packet) {
+      t.deepEqual(packet, expected, 'packet must match')
+      t.end()
+    })
+
+    publisher.inStream.write({
+        cmd: 'publish'
+      , topic: 'hello'
+      , payload: 'world'
+      , qos: 1
+      , messageId: 42
+    })
   })
 })
