@@ -5,12 +5,14 @@ function abstractPersistence(opts) {
   var test        = opts.test
     , persistence = opts.persistence
 
-  function storeRetained(instance, cb) {
+  function storeRetained(instance, opts, cb) {
+    opts = opts || {}
+
     var packet   = {
             cmd: 'publish'
           , id: 'broker-42'
-          , topic: 'hello/world'
-          , payload: new Buffer('muahah')
+          , topic: opts.topic || 'hello/world'
+          , payload: opts.payload || new Buffer('muahah')
           , qos: 0
           , retain: true
         }
@@ -20,10 +22,10 @@ function abstractPersistence(opts) {
     })
   }
 
-  function matchRetainedWithPattern(t, pattern) {
+  function matchRetainedWithPattern(t, pattern, opts) {
     var instance = persistence()
 
-    storeRetained(instance, function(err, packet) {
+    storeRetained(instance, opts, function(err, packet) {
       t.notOk(err, 'no error')
       var stream = instance.createRetainedStream(pattern)
 
@@ -44,6 +46,44 @@ function abstractPersistence(opts) {
 
   test('look up retained messages with a + pattern', function(t) {
     matchRetainedWithPattern(t, 'hello/+')
+  })
+
+  test('remove retained message', function(t) {
+    var instance = persistence()
+    storeRetained(instance, {}, function(err, packet) {
+      t.notOk(err, 'no error')
+      storeRetained(instance, {
+          payload: new Buffer(0)
+      }, function(err) {
+        t.notOk(err, 'no error')
+
+        var stream = instance.createRetainedStream('#')
+
+        stream.pipe(concat(function(list) {
+          t.deepEqual(list, [], 'must return an empty list')
+          instance.destroy(t.end.bind(t))
+        }))
+      })
+    })
+  })
+
+  test('storing twice a retained message should keep only the last', function(t) {
+    var instance = persistence()
+    storeRetained(instance, {}, function(err, packet) {
+      t.notOk(err, 'no error')
+      storeRetained(instance, {
+          payload: new Buffer('ahah')
+      }, function(err, packet) {
+        t.notOk(err, 'no error')
+
+        var stream = instance.createRetainedStream('#')
+
+        stream.pipe(concat(function(list) {
+          t.deepEqual(list, [packet], 'must return the last packet')
+          instance.destroy(t.end.bind(t))
+        }))
+      })
+    })
   })
 
   test('store and look up subscriptions by client', function(t) {
