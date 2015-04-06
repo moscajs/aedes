@@ -16,7 +16,7 @@ function abstractPersistence(opts) {
           , retain: true
         }
 
-    instance.store(packet, function(err) {
+    instance.storeRetained(packet, function(err) {
       t.notOk(err, 'no error')
       var stream = instance.createRetainedStream('hello/world')
 

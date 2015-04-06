@@ -35,7 +35,7 @@ function Aedes(opts) {
 util.inherits(Aedes, EE)
 
 function storeRetained(packet, done) {
-  this.persistence.store(packet, done)
+  this.persistence.storeRetained(packet, done)
 }
 
 function emitPacket(packet, done) {
