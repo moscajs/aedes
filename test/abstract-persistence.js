@@ -5,9 +5,8 @@ function abstractPersistence(opts) {
   var test        = opts.test
     , persistence = opts.persistence
 
-  test('store and look up retained messages', function(t) {
-    var instance = persistence()
-      , packet   = {
+  function storeRetained(instance, cb) {
+    var packet   = {
             cmd: 'publish'
           , id: 'broker-42'
           , topic: 'hello/world'
@@ -17,14 +16,34 @@ function abstractPersistence(opts) {
         }
 
     instance.storeRetained(packet, function(err) {
+      cb(err, packet)
+    })
+  }
+
+  function matchRetainedWithPattern(t, pattern) {
+    var instance = persistence()
+
+    storeRetained(instance, function(err, packet) {
       t.notOk(err, 'no error')
-      var stream = instance.createRetainedStream('hello/world')
+      var stream = instance.createRetainedStream(pattern)
 
       stream.pipe(concat(function(list) {
         t.deepEqual(list, [packet], 'must return the packet')
         instance.destroy(t.end.bind(t))
       }))
     })
+  }
+
+  test('store and look up retained messages', function(t) {
+    matchRetainedWithPattern(t, 'hello/world')
+  })
+
+  test('look up retained messages with a # pattern', function(t) {
+    matchRetainedWithPattern(t, '#')
+  })
+
+  test('look up retained messages with a + pattern', function(t) {
+    matchRetainedWithPattern(t, 'hello/+')
   })
 
   test('store and look up subscriptions by client', function(t) {
