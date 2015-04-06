@@ -64,8 +64,7 @@ Aedes.prototype.subscribe = function(topic, func, done) {
     var stream = broker.persistence.createRetainedStream(topic)
 
     stream.pipe(through.obj(function(packet, enc, cb) {
-      func(packet, done)
-      cb()
+      func(packet, cb)
     }))
 
   })
