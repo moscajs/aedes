@@ -513,6 +513,74 @@ test('restore QoS 1 subscriptions not clean', function(t) {
   })
 })
 
+test('remove stored subscriptions if connected with clean=true', function(t) {
+  var broker      = aedes()
+    , publisher
+    , subscriber  = connect(setup(broker), { clean: false, clientId: 'abcde' })
+    , publish     = {
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: new Buffer('world')
+        , qos: 1
+        , dup: false
+        , length: 14
+        , retain: false
+      }
+
+  subscriber.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 24
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 1
+      }]
+  })
+
+  subscriber.outStream.once('data', function(packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [1])
+    t.equal(packet.messageId, 24)
+
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' }, function(packet) {
+      t.equal(packet.sessionPresent, false, 'session present is set to false')
+      publisher.inStream.write({
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: 'world'
+        , qos: 1
+        , messageId: 42
+      })
+
+      subscriber.inStream.end()
+
+      subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function(connect) {
+        t.equal(connect.sessionPresent, false, 'session present is set to false')
+        publisher.inStream.write({
+            cmd: 'publish'
+          , topic: 'hello'
+          , payload: 'world'
+          , qos: 1
+          , messageId: 43
+        })
+
+        t.end()
+      })
+
+      subscriber.outStream.once('data', function(packet) {
+        t.fail('publish received')
+      })
+    })
+
+    subscriber.outStream.once('data', function(packet) {
+      t.fail('publish received')
+    })
+  })
+})
+
 test.skip('subscribe QoS 1 not clean', function(t) {
   var broker      = aedes()
     , publisher

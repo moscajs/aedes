@@ -173,6 +173,35 @@ function abstractPersistence(opts) {
       }))
     })
   })
+
+  test('clean subscriptions', function(t) {
+    var instance  = persistence()
+      , client    = { id: 'abcde' }
+      , subs      = [{
+            topic: 'hello'
+          , qos: 1
+        },  {
+            topic: 'matteo'
+          , qos: 1
+        }]
+
+    instance.addSubscriptions(client, subs, function(err) {
+      t.notOk(err, 'no error')
+      instance.cleanSubscriptions(client, function(err) {
+        t.notOk(err, 'no error')
+        var stream = instance.subscriptionsByPattern('hello')
+
+        stream.pipe(concat(function(resubs) {
+          t.deepEqual(resubs, [], 'no subscriptions')
+
+          instance.subscriptionsByClient(client, function(err, resubs) {
+            t.deepEqual(resubs, null, 'no subscriptions')
+            instance.destroy(t.end.bind(t))
+          })
+        }))
+      })
+    })
+  })
 }
 
 module.exports = abstractPersistence
