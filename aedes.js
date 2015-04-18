@@ -6,6 +6,7 @@ var mqemitter   = require('mqemitter')
   , memory      = require('./lib/persistence')
   , through     = require('through2')
   , parallel    = require('fastparallel')
+  , series      = require('fastseries')
   , shortid     = require('shortid')
   , Packet      = require('./lib/packet')
 
@@ -30,6 +31,7 @@ function Aedes(opts) {
   this.persistence = opts.persistence || memory()
   this.persistence.broker = this
   this._parallel = parallel()
+  this._series = series()
 }
 
 util.inherits(Aedes, EE)

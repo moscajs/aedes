@@ -88,78 +88,89 @@ function abstractPersistence(opts) {
 
   test('store and look up subscriptions by client', function(t) {
     var instance  = persistence()
-      , clientId  = 'abcde'
+      , client    = { id: 'abcde' }
       , subs      = [{
             topic: 'hello'
           , qos: 1
-        },  {
+        }, {
+            topic: 'matteo'
+          , qos: 1
+        }, {
+            topic: 'noqos'
+          , qos: 0
+        }]
+
+    instance.addSubscriptions(client, subs, function(err, reClient) {
+      t.equal(reClient, client, 'client must be the same')
+      t.notOk(err, 'no error')
+      instance.subscriptionsByClient(client, function(err, resubs, reReClient) {
+        t.equal(reReClient, client, 'client must be the same')
+        t.notOk(err, 'no error')
+        t.deepEqual(resubs, [{
+            topic: 'hello'
+          , qos: 1
+        }, {
+            topic: 'matteo'
+          , qos: 1
+        }])
+        instance.destroy(t.end.bind(t))
+      })
+    })
+  })
+
+  test('remove subscriptions by client', function(t) {
+    var instance  = persistence()
+      , client    = { id: 'abcde' }
+      , subs      = [{
+            topic: 'hello'
+          , qos: 1
+        }, {
             topic: 'matteo'
           , qos: 1
         }]
 
-    instance.persistSubscriptions(clientId, subs, function(err) {
+    instance.addSubscriptions(client, subs, function(err, reClient) {
       t.notOk(err, 'no error')
-      instance.subscriptionsByClient(clientId, function(err, resubs) {
+      instance.removeSubscriptions(client, ['hello'], function(err, reClient) {
         t.notOk(err, 'no error')
-        t.deepEqual(resubs, subs)
-        instance.destroy(t.end.bind(t))
+        t.equal(reClient, client, 'client must be the same')
+        instance.subscriptionsByClient(client, function(err, resubs, reClient) {
+          t.equal(reClient, client, 'client must be the same')
+          t.notOk(err, 'no error')
+          t.deepEqual(resubs, [{
+              topic: 'matteo'
+            , qos: 1
+          }])
+          instance.destroy(t.end.bind(t))
+        })
       })
     })
   })
 
   test('store and look up subscriptions by pattern', function(t) {
     var instance  = persistence()
-      , clientId  = 'abcde'
+      , client    = { id: 'abcde' }
       , subs      = [{
             topic: 'hello'
           , qos: 1
-        },  {
+        }, {
             topic: 'matteo'
           , qos: 1
         }]
 
-    instance.persistSubscriptions(clientId, subs, function(err) {
+    instance.addSubscriptions(client, subs, function(err) {
       t.notOk(err, 'no error')
       var stream = instance.subscriptionsByPattern('hello')
 
       stream.pipe(concat(function(resubs) {
         t.notOk(err, 'no error')
         t.deepEqual(resubs, [{
-            clientId: clientId
+            clientId: client.id
           , topic: 'hello'
           , qos: 1
         }])
         instance.destroy(t.end.bind(t))
       }))
-    })
-  })
-
-  test('clean subscriptions', function(t) {
-    var instance  = persistence()
-      , clientId  = 'abcde'
-      , subs      = [{
-            topic: 'hello'
-          , qos: 1
-        },  {
-            topic: 'matteo'
-          , qos: 1
-        }]
-
-    instance.persistSubscriptions(clientId, subs, function(err) {
-      t.notOk(err, 'no error')
-      instance.cleanSubscriptions(clientId, function(err) {
-        t.notOk(err, 'no error')
-        var stream = instance.subscriptionsByPattern('hello')
-
-        stream.pipe(concat(function(resubs) {
-          t.deepEqual(resubs, [], 'no subscriptions')
-
-          instance.subscriptionsByClient(clientId, function(err, resubs) {
-            t.deepEqual(resubs, [], 'no subscriptions')
-            instance.destroy(t.end.bind(t))
-          })
-        }))
-      })
     })
   })
 }

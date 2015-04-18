@@ -6,6 +6,7 @@ var test            = require('tape').test
   , through         = require('through2')
   , reduplexer      = require('reduplexer')
   , aedes           = require('../')
+  , clients         = 0
 
 function setup(broker) {
   var inStream  = generateStream()
@@ -29,18 +30,20 @@ function setup(broker) {
   }
 }
 
-function connect(s) {
+function connect(s, opts, connected) {
   s = Object.create(s)
   s.outStream = s.outStream.pipe(through.obj(filter))
 
-  s.inStream.write({
-      cmd: 'connect'
-    , protocolId: 'MQTT'
-    , protocolVersion: 4
-    , clean: true
-    , clientId: 'my-client'
-    , keepalive: 0
-  })
+  opts = opts || {}
+
+  opts.cmd = 'connect'
+  opts.protocolId = 'MQTT'
+  opts.version = 4
+  opts.clean = opts.clean === false ? false : true
+  opts.clientId = opts.clientId || 'my-client-' + clients++
+  opts.keepalive = opts.keepAlive || 0
+
+  s.inStream.write(opts)
 
   return s
 
@@ -51,6 +54,8 @@ function connect(s) {
     }
     if (packet.cmd !== 'connack') {
       this.push(packet)
+    } else if (connected) {
+      connected(packet)
     }
     cb()
   }
@@ -58,6 +63,7 @@ function connect(s) {
 
 function noError(s, t) {
   s.broker.on('clientError', function(client, err) {
+    if (err) throw err
     t.notOk(err, 'must not error')
   })
 
@@ -443,6 +449,125 @@ test('subscribe QoS 0, but publish QoS 1', function(t) {
       , payload: 'world'
       , qos: 1
       , messageId: 42
+    })
+  })
+})
+
+test('restore QoS 1 subscriptions not clean', function(t) {
+  var broker      = aedes()
+    , publisher
+    , subscriber  = connect(setup(broker), { clean: false, clientId: 'abcde' })
+    , expected    = {
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: new Buffer('world')
+        , qos: 1
+        , dup: false
+        , length: 14
+        , retain: false
+      }
+
+  subscriber.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 24
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 1
+      }]
+  })
+
+  subscriber.outStream.once('data', function(packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [1])
+    t.equal(packet.messageId, 24)
+
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function(connect) {
+      t.equal(connect.sessionPresent, true, 'session present is set to true')
+      publisher.inStream.write({
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: 'world'
+        , qos: 1
+        , messageId: 42
+      })
+    })
+
+    publisher.outStream.once('data', function(packet) {
+      t.equal(packet.cmd, 'puback')
+    })
+
+    subscriber.outStream.once('data', function(packet) {
+      subscriber.inStream.write({
+          cmd: 'puback'
+        , messageId: packet.messageId
+      })
+      t.notEqual(packet.messageId, 42, 'messageId must differ')
+      delete packet.messageId
+      t.deepEqual(packet, expected, 'packet must match')
+      t.end()
+    })
+  })
+})
+
+test.skip('subscribe QoS 1 not clean', function(t) {
+  var broker      = aedes()
+    , publisher
+    , subscriber  = connect(setup(broker), { clean: false, clientId: 'abcde' })
+    , expected    = {
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: new Buffer('world')
+        , qos: 1
+        , dup: false
+        , length: 14
+        , retain: false
+      }
+
+  subscriber.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 24
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 1
+      }]
+  })
+
+  subscriber.outStream.once('data', function(packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [1])
+    t.equal(packet.messageId, 24)
+
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    publisher.inStream.write({
+        cmd: 'publish'
+      , topic: 'hello'
+      , payload: 'world'
+      , qos: 1
+      , messageId: 42
+    })
+
+    publisher.outStream.once('data', function(packet) {
+      t.equal(packet.cmd, 'puback')
+
+      subscriber  = connect(setup(broker), { clean: false, clientId: 'abcde' })
+
+      subscriber.outStream.once('data', function(packet) {
+        subscriber.inStream.write({
+            cmd: 'puback'
+          , messageId: packet.messageId
+        })
+        t.notEqual(packet.messageId, 42, 'messageId must differ')
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+        t.end()
+      })
     })
   })
 })
