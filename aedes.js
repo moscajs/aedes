@@ -37,23 +37,56 @@ function Aedes(opts) {
 util.inherits(Aedes, EE)
 
 function storeRetained(packet, done) {
-  this.persistence.storeRetained(packet, done)
+  if (packet.retain) {
+    this.persistence.storeRetained(packet, done)
+  } else {
+    done()
+  }
 }
 
 function emitPacket(packet, done) {
   this.mq.emit(packet, done)
 }
 
+function enqueueOffline(packet, done) {
+  var that      = this
+    , parallel  = this._parallel
+
+  if (packet.qos > 0) {
+    this.persistence.subscriptionsByTopic(packet.topic, function(err, subs) {
+      // TODO handle err
+      // TODO remove callback
+
+      doEnqueues(that, packet, subs, done)
+    })
+  } else {
+    done()
+  }
+}
+
+function doEnqueues(broker, packet, subs, done) {
+  if (subs.length === 0) {
+    done()
+  } else {
+    broker._parallel({
+        packet: packet
+      , broker: broker
+    }, doEnqueue, subs, done)
+  }
+}
+
+function doEnqueue(sub, done) {
+  this.broker.persistence.outgoingEnqueue(sub, this.packet, done)
+}
+
+var publishFuncs = [
+    storeRetained
+  , enqueueOffline
+  , emitPacket
+];
 Aedes.prototype.publish = function(packet, done) {
   var p = new Packet(packet, this)
-  if (packet.retain) {
-    this._parallel(this, [
-      storeRetained,
-      emitPacket
-    ], p, done)
-  } else {
-    this.mq.emit(p, done)
-  }
+  this._series(this, publishFuncs, p, done)
 }
 
 Aedes.prototype.subscribe = function(topic, func, done) {

@@ -110,7 +110,8 @@ test('publish QoS 0', function(t) {
       }
 
   s.broker.mq.on('hello', function(packet, cb) {
-    expected.id = s.broker.id + '-' + s.broker.counter
+    expected.brokerId = s.broker.id
+    expected.brokerCounter = s.broker.counter
     t.deepEqual(packet, expected, 'packet matches')
     cb()
     t.end()
@@ -581,7 +582,7 @@ test('remove stored subscriptions if connected with clean=true', function(t) {
   })
 })
 
-test.skip('subscribe QoS 1 not clean', function(t) {
+test('subscribe QoS 1 not clean', function(t) {
   var broker      = aedes()
     , publisher
     , subscriber  = connect(setup(broker), { clean: false, clientId: 'abcde' })

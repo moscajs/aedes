@@ -1,5 +1,6 @@
 
 var concat = require('concat-stream')
+  , Packet = require('../lib/packet')
 
 function abstractPersistence(opts) {
   var test        = opts.test
@@ -147,11 +148,14 @@ function abstractPersistence(opts) {
     })
   })
 
-  test('store and look up subscriptions by pattern', function(t) {
+  test('store and look up subscriptions by topic', function(t) {
     var instance  = persistence()
       , client    = { id: 'abcde' }
       , subs      = [{
             topic: 'hello'
+          , qos: 1
+        }, {
+            topic: 'hello/#'
           , qos: 1
         }, {
             topic: 'matteo'
@@ -160,17 +164,19 @@ function abstractPersistence(opts) {
 
     instance.addSubscriptions(client, subs, function(err) {
       t.notOk(err, 'no error')
-      var stream = instance.subscriptionsByPattern('hello')
-
-      stream.pipe(concat(function(resubs) {
+      instance.subscriptionsByTopic('hello', function(err, resubs) {
         t.notOk(err, 'no error')
         t.deepEqual(resubs, [{
+            clientId: client.id
+          , topic: 'hello/#'
+          , qos: 1
+        }, {
             clientId: client.id
           , topic: 'hello'
           , qos: 1
         }])
         instance.destroy(t.end.bind(t))
-      }))
+      })
     })
   })
 
@@ -189,17 +195,45 @@ function abstractPersistence(opts) {
       t.notOk(err, 'no error')
       instance.cleanSubscriptions(client, function(err) {
         t.notOk(err, 'no error')
-        var stream = instance.subscriptionsByPattern('hello')
-
-        stream.pipe(concat(function(resubs) {
+        instance.subscriptionsByTopic('hello', function(err, resubs) {
+          t.notOk(err, 'no error')
           t.deepEqual(resubs, [], 'no subscriptions')
 
           instance.subscriptionsByClient(client, function(err, resubs) {
             t.deepEqual(resubs, null, 'no subscriptions')
             instance.destroy(t.end.bind(t))
           })
-        }))
+        })
       })
+    })
+  })
+
+  test('add outgoing packet and stream it', function(t) {
+    var instance  = persistence()
+      , sub       = {
+            clientId: 'abcde'
+          , topic: 'hello'
+          , qos: 1
+        }
+      , packet    = {
+            cmd: 'publish'
+          , topic: 'hello'
+          , payload: new Buffer('world')
+          , qos: 1
+          , dup: false
+          , length: 14
+          , retain: false
+          , brokerId: 'mybroker'
+          , brokerCounter: 42
+        }
+
+    instance.outgoingEnqueue(sub, packet, function(err) {
+      var stream = instance.outgoingStream({ id: sub.clientId })
+
+      stream.pipe(concat(function(list) {
+        t.deepEqual(list, [packet], 'must return the packet')
+        instance.destroy(t.end.bind(t))
+      }))
     })
   })
 }
