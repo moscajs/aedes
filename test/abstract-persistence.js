@@ -226,14 +226,145 @@ function abstractPersistence(opts) {
           , brokerId: 'mybroker'
           , brokerCounter: 42
         }
+      , expected  = {
+            cmd: 'publish'
+          , topic: 'hello'
+          , payload: new Buffer('world')
+          , qos: 1
+          , retain: false
+          , brokerId: 'mybroker'
+          , brokerCounter: 42
+          , messageId: 0
+      }
 
     instance.outgoingEnqueue(sub, packet, function(err) {
       var stream = instance.outgoingStream({ id: sub.clientId })
 
       stream.pipe(concat(function(list) {
-        t.deepEqual(list, [packet], 'must return the packet')
+        t.deepEqual(list, [expected], 'must return the packet')
         instance.destroy(t.end.bind(t))
       }))
+    })
+  })
+
+  test('add outgoing packet and stream it twice', function(t) {
+    var instance  = persistence()
+      , sub       = {
+            clientId: 'abcde'
+          , topic: 'hello'
+          , qos: 1
+        }
+      , packet    = {
+            cmd: 'publish'
+          , topic: 'hello'
+          , payload: new Buffer('world')
+          , qos: 1
+          , dup: false
+          , length: 14
+          , retain: false
+          , brokerId: 'mybroker'
+          , brokerCounter: 42
+          , messageId: 4242
+        }
+      , expected  = {
+            cmd: 'publish'
+          , topic: 'hello'
+          , payload: new Buffer('world')
+          , qos: 1
+          , retain: false
+          , brokerId: 'mybroker'
+          , brokerCounter: 42
+          , messageId: 0
+      }
+
+    instance.outgoingEnqueue(sub, packet, function(err) {
+      var stream = instance.outgoingStream({ id: sub.clientId })
+
+      stream.pipe(concat(function(list) {
+        t.deepEqual(list, [expected], 'must return the packet')
+
+        var stream = instance.outgoingStream({ id: sub.clientId })
+
+        stream.pipe(concat(function(list) {
+          t.deepEqual(list, [expected], 'must return the packet')
+          t.notEqual(list[0], expected, 'packet must be a different object')
+          instance.destroy(t.end.bind(t))
+        }))
+      }))
+    })
+  })
+
+  test('add outgoing packet and update messageId', function(t) {
+    var instance  = persistence()
+      , sub       = {
+            clientId: 'abcde'
+          , topic: 'hello'
+          , qos: 1
+        }
+      , packet    = {
+            cmd: 'publish'
+          , topic: 'hello'
+          , payload: new Buffer('world')
+          , qos: 1
+          , dup: false
+          , length: 14
+          , retain: false
+          , brokerId: 'mybroker'
+          , brokerCounter: 42
+        }
+
+    instance.outgoingEnqueue(sub, packet, function(err) {
+      var updated = new Packet(packet)
+      updated.messageId = 42
+
+      instance.outgoingUpdateMessageId(sub.clientId, updated, function (err) {
+        var stream = instance.outgoingStream({ id: sub.clientId })
+
+        stream.pipe(concat(function(list) {
+          t.deepEqual(list, [updated], 'must return the packet')
+          instance.destroy(t.end.bind(t))
+        }))
+      })
+    })
+  })
+
+  test('add outgoing packet and update messageId, and clear with messageId', function(t) {
+    var instance  = persistence()
+      , sub       = {
+            clientId: 'abcde'
+          , topic: 'hello'
+          , qos: 1
+        }
+      , packet    = {
+            cmd: 'publish'
+          , topic: 'hello'
+          , payload: new Buffer('world')
+          , qos: 1
+          , dup: false
+          , length: 14
+          , retain: false
+          , brokerId: 'mybroker'
+          , brokerCounter: 42
+        }
+
+    instance.outgoingEnqueue(sub, packet, function(err) {
+      var updated = new Packet(packet)
+      updated.messageId = 42
+
+      instance.outgoingUpdateMessageId(sub.clientId, updated, function (err) {
+
+        instance.outgoingClearMessageId(sub.clientId, {
+            cmd: 'puback'
+          , messageId: 42
+        }, function (err) {
+          var stream = instance.outgoingStream({ id: sub.clientId })
+
+          stream.pipe(concat(function(list) {
+            t.deepEqual(list, [], 'must not return the packet')
+            instance.destroy(t.end.bind(t))
+          }))
+        })
+      })
     })
   })
 }

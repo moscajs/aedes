@@ -43,6 +43,7 @@ test('publish QoS 0', function(t) {
         , payload: new Buffer('world')
         , qos: 0
         , retain: false
+        , messageId: 0
       }
 
   s.broker.mq.on('hello', function(packet, cb) {
