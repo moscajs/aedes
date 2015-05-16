@@ -18,9 +18,9 @@ server.listen(port, function() {
 
 * [x] QoS 0 support
 * [x] Retain messages support
-* [ ] QoS 1 support
+* [x] QoS 1 support
 * [ ] QoS 2 support
-* [ ] clean=false support
+* [x] clean=false support
 * [ ] mongo persistence (external module)
 * [ ] redis persistence (external module)
 * [ ] levelup persistence (external module)
