@@ -215,6 +215,9 @@ function abstractPersistence(opts) {
           , topic: 'hello'
           , qos: 1
         }
+      , client    = {
+            id: sub.clientId
+        }
       , packet    = {
             cmd: 'publish'
           , topic: 'hello'
@@ -238,7 +241,7 @@ function abstractPersistence(opts) {
       }
 
     instance.outgoingEnqueue(sub, packet, function(err) {
-      var stream = instance.outgoingStream({ id: sub.clientId })
+      var stream = instance.outgoingStream(client)
 
       stream.pipe(concat(function(list) {
         t.deepEqual(list, [expected], 'must return the packet')
@@ -253,6 +256,9 @@ function abstractPersistence(opts) {
             clientId: 'abcde'
           , topic: 'hello'
           , qos: 1
+        }
+      , client    = {
+            id: sub.clientId
         }
       , packet    = {
             cmd: 'publish'
@@ -278,12 +284,12 @@ function abstractPersistence(opts) {
       }
 
     instance.outgoingEnqueue(sub, packet, function(err) {
-      var stream = instance.outgoingStream({ id: sub.clientId })
+      var stream = instance.outgoingStream(client)
 
       stream.pipe(concat(function(list) {
         t.deepEqual(list, [expected], 'must return the packet')
 
-        var stream = instance.outgoingStream({ id: sub.clientId })
+        var stream = instance.outgoingStream(client)
 
         stream.pipe(concat(function(list) {
           t.deepEqual(list, [expected], 'must return the packet')
@@ -301,6 +307,9 @@ function abstractPersistence(opts) {
           , topic: 'hello'
           , qos: 1
         }
+      , client    = {
+            id: sub.clientId
+        }
       , packet    = {
             cmd: 'publish'
           , topic: 'hello'
@@ -317,8 +326,11 @@ function abstractPersistence(opts) {
       var updated = new Packet(packet)
       updated.messageId = 42
 
-      instance.outgoingUpdateMessageId(sub.clientId, updated, function (err) {
-        var stream = instance.outgoingStream({ id: sub.clientId })
+      instance.outgoingUpdateMessageId(client, updated, function (err, reclient, repacket) {
+        t.equal(reclient, client, 'client matches')
+        t.equal(repacket, repacket, 'packet matches')
+
+        var stream = instance.outgoingStream(client)
 
         stream.pipe(concat(function(list) {
           t.deepEqual(list, [updated], 'must return the packet')
@@ -335,6 +347,9 @@ function abstractPersistence(opts) {
           , topic: 'hello'
           , qos: 1
         }
+      , client    = {
+            id: sub.clientId
+        }
       , packet    = {
             cmd: 'publish'
           , topic: 'hello'
@@ -351,13 +366,13 @@ function abstractPersistence(opts) {
       var updated = new Packet(packet)
       updated.messageId = 42
 
-      instance.outgoingUpdateMessageId(sub.clientId, updated, function (err) {
+      instance.outgoingUpdateMessageId(client, updated, function (err) {
 
-        instance.outgoingClearMessageId(sub.clientId, {
+        instance.outgoingClearMessageId(client, {
             cmd: 'puback'
           , messageId: 42
         }, function (err) {
-          var stream = instance.outgoingStream({ id: sub.clientId })
+          var stream = instance.outgoingStream(client)
 
           stream.pipe(concat(function(list) {
             t.deepEqual(list, [], 'must not return the packet')
