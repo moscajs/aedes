@@ -434,3 +434,68 @@ test('do not resend QoS 1 packets if reconnect is clean', function(t) {
     })
   })
 })
+
+test('do not resend QoS 1 packets at reconnect if puback was received', function(t) {
+  var broker      = aedes()
+    , publisher
+    , subscriber  = connect(setup(broker), { clean: false, clientId: 'abcde' })
+    , expected    = {
+          cmd: 'publish'
+        , topic: 'hello'
+        , payload: new Buffer('world')
+        , qos: 1
+        , dup: false
+        , length: 14
+        , retain: false
+      }
+
+  subscriber.inStream.write({
+      cmd: 'subscribe'
+    , messageId: 24
+    , subscriptions: [{
+          topic: 'hello'
+        , qos: 1
+      }]
+  })
+
+  subscriber.outStream.once('data', function(packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [1])
+    t.equal(packet.messageId, 24)
+
+    publisher = connect(setup(broker))
+
+    publisher.inStream.write({
+        cmd: 'publish'
+      , topic: 'hello'
+      , payload: 'world'
+      , qos: 1
+      , messageId: 42
+    })
+
+    publisher.outStream.once('data', function(packet) {
+      t.equal(packet.cmd, 'puback')
+    })
+
+    subscriber.outStream.once('data', function(packet) {
+      subscriber.inStream.end({
+          cmd: 'puback'
+        , messageId: packet.messageId
+      })
+
+      delete packet.messageId
+      t.deepEqual(packet, expected, 'packet must match')
+
+      subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+
+      subscriber.outStream.once('data', function(packet) {
+        t.fail('this should never happen')
+      })
+
+      // TODO wait all packets to be sent
+      setTimeout(function() {
+        t.end()
+      }, 50)
+    })
+  })
+})
