@@ -2,14 +2,16 @@
 
 Barebone MQTT server that can run on any stream server.
 
+[![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
+
 ## Example
 
 ```js
-var aedes   = require('./aedes')()
-  , server  = require('net').createServer(aedes.handle)
-  , port    = 1883
+var aedes = require('./aedes')()
+var server = require('net').createServer(aedes.handle)
+var port = 1883
 
-server.listen(port, function() {
+server.listen(port, function () {
   console.log('server listening on port', port)
 })
 ```
