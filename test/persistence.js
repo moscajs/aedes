@@ -1,7 +1,7 @@
 
-var test   = require('tape').test
-  , memory = require('../lib/persistence')
-  , abs    = require('./abstract-persistence')
+var test = require('tape').test
+var memory = require('../lib/persistence')
+var abs = require('./abstract-persistence')
 
 abs({
   test: test,

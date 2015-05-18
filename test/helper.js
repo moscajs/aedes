@@ -1,35 +1,34 @@
+var mqtt = require('mqtt-connection')
+var through = require('through2')
+var aedes = require('../')
+var reduplexer = require('reduplexer')
+var parseStream = mqtt.parseStream
+var generateStream = mqtt.generateStream
+var clients = 0
 
-var mqtt            = require('mqtt-connection')
-  , through         = require('through2')
-  , aedes           = require('../')
-  , reduplexer      = require('reduplexer')
-  , parseStream     = mqtt.parseStream
-  , generateStream  = mqtt.generateStream
-  , clients         = 0
-
-function setup(broker) {
-  var inStream  = generateStream()
-    , outStream = parseStream()
-    , conn      = reduplexer(outStream, inStream)
+function setup (broker) {
+  var inStream = generateStream()
+  var outStream = parseStream()
+  var conn = reduplexer(outStream, inStream)
 
   broker = broker || aedes()
 
   broker.handle(conn)
 
-  conn.destroy = function() {
+  conn.destroy = function () {
     inStream.destroy()
     outStream.destroy()
   }
 
   return {
-      conn: conn
-    , inStream: inStream
-    , outStream: outStream
-    , broker: broker
+    conn: conn,
+    inStream: inStream,
+    outStream: outStream,
+    broker: broker
   }
 }
 
-function connect(s, opts, connected) {
+function connect (s, opts, connected) {
   s = Object.create(s)
   s.outStream = s.outStream.pipe(through.obj(filter))
 
@@ -38,7 +37,7 @@ function connect(s, opts, connected) {
   opts.cmd = 'connect'
   opts.protocolId = 'MQTT'
   opts.version = 4
-  opts.clean = opts.clean === false ? false : true
+  opts.clean = !!opts.clean
   opts.clientId = opts.clientId || 'my-client-' + clients++
   opts.keepalive = opts.keepAlive || 0
 
@@ -46,7 +45,7 @@ function connect(s, opts, connected) {
 
   return s
 
-  function filter(packet, enc, cb) {
+  function filter (packet, enc, cb) {
     if (packet.cmd !== 'publish') {
       delete packet.topic
       delete packet.payload
@@ -60,8 +59,8 @@ function connect(s, opts, connected) {
   }
 }
 
-function noError(s, t) {
-  s.broker.on('clientError', function(client, err) {
+function noError (s, t) {
+  s.broker.on('clientError', function (client, err) {
     if (err) throw err
     t.notOk(err, 'must not error')
   })
@@ -70,7 +69,7 @@ function noError(s, t) {
 }
 
 module.exports = {
-    setup: setup
-  , connect: connect
-  , noError: noError
+  setup: setup,
+  connect: connect,
+  noError: noError
 }

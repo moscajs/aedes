@@ -4,8 +4,10 @@
   "description": "Stream-based MQTT broker",
   "main": "aedes.js",
   "scripts": {
+    "lint": "standard",
     "test": "tape test/* | faucet"
   },
+  "pre-commit": ["lint", "test"],
   "repository": {
     "type": "git",
     "url": "git@bitbucket.org:mcollina/aedes.git"
