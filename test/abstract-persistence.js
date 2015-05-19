@@ -342,44 +342,48 @@ function abstractPersistence (opts) {
     })
   })
 
-  test('add outgoing packet and update messageId, and clear with messageId', function (t) {
+  test('add incoming packet, get it, and clear with messageId', function (t) {
     var instance = persistence()
-    var sub = {
-      clientId: 'abcde', topic: 'hello', qos: 1
-    }
     var client = {
-      id: sub.clientId
+      id: 'abcde'
     }
     var packet = {
       cmd: 'publish',
       topic: 'hello',
       payload: new Buffer('world'),
-      qos: 1,
+      qos: 2,
       dup: false,
       length: 14,
       retain: false,
-      brokerId: 'mybroker',
-      brokerCounter: 42
+      messageId: 42
     }
 
-    instance.outgoingEnqueue(sub, packet, function (err) {
+    instance.incomingStorePacket(client, packet, function (err) {
       t.error(err)
-      var updated = new Packet(packet)
-      updated.messageId = 42
 
-      instance.outgoingUpdateMessageId(client, updated, function (err) {
+      instance.incomingGetPacket(client, {
+        messageId: packet.messageId
+      }, function (err, retrieved) {
         t.error(err)
-        instance.outgoingClearMessageId(client, {
-          cmd: 'puback',
-          messageId: 42
-        }, function (err) {
-          t.error(err)
-          var stream = instance.outgoingStream(client)
 
-          stream.pipe(concat(function (list) {
-            t.deepEqual(list, [], 'must not return the packet')
+        // adjusting the objects so they match
+        delete retrieved.brokerCounter
+        delete retrieved.brokerId
+        delete packet.dup
+        delete packet.length
+
+        t.deepEqual(retrieved, packet, 'retrieved packet must be deeply equal')
+        t.notEqual(retrieved, packet, 'retrieved packet must not be the same objet')
+
+        instance.incomingDelPacket(client, retrieved, function (err) {
+          t.error(err)
+
+          instance.incomingGetPacket(client, {
+            messageId: packet.messageId
+          }, function (err, retrieved) {
+            t.ok(err, 'must error')
             instance.destroy(t.end.bind(t))
-          }))
+          })
         })
       })
     })
