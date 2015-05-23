@@ -327,7 +327,7 @@ function abstractPersistence (opts) {
       var updated = new Packet(packet)
       updated.messageId = 42
 
-      instance.outgoingUpdateMessageId(client, updated, function (err, reclient, repacket) {
+      instance.outgoingUpdate(client, updated, function (err, reclient, repacket) {
         t.error(err)
         t.equal(reclient, client, 'client matches')
         t.equal(repacket, repacket, 'packet matches')
@@ -338,6 +338,55 @@ function abstractPersistence (opts) {
           t.deepEqual(list, [updated], 'must return the packet')
           instance.destroy(t.end.bind(t))
         }))
+      })
+    })
+  })
+
+  test('update to pubrel', function (t) {
+    var instance = persistence()
+    var sub = {
+      clientId: 'abcde', topic: 'hello', qos: 1
+    }
+    var client = {
+      id: sub.clientId
+    }
+    var packet = {
+      cmd: 'publish',
+      topic: 'hello',
+      payload: new Buffer('world'),
+      qos: 2,
+      dup: false,
+      length: 14,
+      retain: false,
+      brokerId: 'mybroker',
+      brokerCounter: 42
+    }
+
+    instance.outgoingEnqueue(sub, packet, function (err) {
+      t.error(err)
+      var updated = new Packet(packet)
+      updated.messageId = 42
+
+      instance.outgoingUpdate(client, updated, function (err, reclient, repacket) {
+        t.error(err)
+        t.equal(reclient, client, 'client matches')
+        t.equal(repacket, repacket, 'packet matches')
+
+        var pubrel = {
+          cmd: 'pubrel',
+          messageId: updated.messageId
+        }
+
+        instance.outgoingUpdate(client, pubrel, function (err) {
+          t.error(err)
+
+          var stream = instance.outgoingStream(client)
+
+          stream.pipe(concat(function (list) {
+            t.deepEqual(list, [pubrel], 'must return the packet')
+            instance.destroy(t.end.bind(t))
+          }))
+        })
       })
     })
   })
