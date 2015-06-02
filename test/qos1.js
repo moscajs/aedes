@@ -190,7 +190,7 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
   })
 })
 
-test('subscribe QoS 1 not clean', function (t) {
+test('resend publish on non-clean reconnect QoS 1', function (t) {
   var broker = aedes()
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })

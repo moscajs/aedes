@@ -169,3 +169,106 @@ test('restore QoS 2 subscriptions not clean', function (t) {
     receive(t, subscriber, expected, t.end.bind(t))
   })
 })
+
+test('resend publish on non-clean reconnect QoS 2', function (t) {
+  var broker = aedes()
+  var publisher
+  var opts = { clean: false, clientId: 'abcde' }
+  var subscriber = connect(setup(broker), opts)
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 2,
+    dup: false,
+    length: 14,
+    messageId: 42,
+    retain: false
+  }
+
+  subscribe(t, subscriber, 'hello', 2, function () {
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    publish(t, publisher, expected, function () {
+      subscriber = connect(setup(broker), opts)
+
+      receive(t, subscriber, expected, t.end.bind(t))
+    })
+  })
+})
+
+test('resend pubrel on non-clean reconnect QoS 2', function (t) {
+  var broker = aedes()
+  var publisher
+  var opts = { clean: false, clientId: 'abcde' }
+  var subscriber = connect(setup(broker), opts)
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 2,
+    dup: false,
+    length: 14,
+    messageId: 42,
+    retain: false
+  }
+
+  subscribe(t, subscriber, 'hello', 2, function () {
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    publish(t, publisher, expected, function () {
+      subscriber = connect(setup(broker), opts)
+
+      subscriber.outStream.once('data', function (packet) {
+        t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
+
+        var msgId = packet.messageId
+        delete packet.messageId
+        delete expected.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+
+        subscriber.inStream.write({
+          cmd: 'pubrec',
+          messageId: msgId
+        })
+
+        subscriber.outStream.once('data', function (packet) {
+          t.deepEqual(packet, {
+            cmd: 'pubrel',
+            messageId: msgId,
+            length: 2,
+            qos: 1,
+            retain: false,
+            dup: false
+          }, 'pubrel must match')
+
+          subscriber.inStream.end()
+
+          subscriber = connect(setup(broker), opts)
+
+          subscriber.outStream.once('data', function (packet) {
+            t.deepEqual(packet, {
+              cmd: 'pubrel',
+              messageId: msgId,
+              length: 2,
+              qos: 1,
+              retain: false,
+              dup: false
+            }, 'pubrel must match')
+
+            subscriber.inStream.write({
+              cmd: 'pubcomp',
+              messageId: msgId
+            })
+
+            t.end()
+          })
+        })
+      })
+    })
+  })
+})
