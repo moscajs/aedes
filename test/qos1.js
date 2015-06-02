@@ -3,6 +3,7 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var subscribe = helper.subscribe
 
 test('publish QoS 1', function (t) {
   var s = connect(setup())
@@ -43,20 +44,7 @@ test('subscribe QoS 1', function (t) {
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 1
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [1])
-    t.equal(packet.messageId, 24)
-
+  subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.outStream.once('data', function (packet) {
       subscriber.inStream.write({
         cmd: 'puback',
@@ -92,18 +80,7 @@ test('subscribe QoS 0, but publish QoS 1', function (t) {
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-
+  subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.once('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
       t.end()
@@ -133,20 +110,7 @@ test('restore QoS 1 subscriptions not clean', function (t) {
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 1
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [1])
-    t.equal(packet.messageId, 24)
-
+  subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
     publisher = connect(setup(broker))
@@ -184,19 +148,7 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 1
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [1])
-    t.equal(packet.messageId, 24)
+  subscribe(t, subscriber, 'hello', 1, function () {
 
     subscriber.inStream.end()
 
@@ -252,20 +204,7 @@ test('subscribe QoS 1 not clean', function (t) {
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 1
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [1])
-    t.equal(packet.messageId, 24)
-
+  subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
     publisher = connect(setup(broker))
@@ -311,20 +250,7 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 1
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [1])
-    t.equal(packet.messageId, 24)
-
+  subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
     publisher = connect(setup(broker))
@@ -372,20 +298,7 @@ test('do not resend QoS 1 packets if reconnect is clean', function (t) {
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 1
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [1])
-    t.equal(packet.messageId, 24)
-
+  subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
     publisher = connect(setup(broker))
@@ -429,20 +342,7 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 1
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [1])
-    t.equal(packet.messageId, 24)
-
+  subscribe(t, subscriber, 'hello', 1, function () {
     publisher = connect(setup(broker))
 
     publisher.inStream.write({

@@ -3,6 +3,7 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var subscribe = helper.subscribe
 
 function publish (t, s, packet, done) {
   var msgId = packet.messageId
@@ -41,6 +42,39 @@ function publish (t, s, packet, done) {
   })
 }
 
+function receive (t, subscriber, expected, done) {
+  subscriber.outStream.once('data', function (packet) {
+    t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
+
+    var msgId = packet.messageId
+    delete packet.messageId
+    delete expected.messageId
+    t.deepEqual(packet, expected, 'packet must match')
+
+    subscriber.inStream.write({
+      cmd: 'pubrec',
+      messageId: msgId
+    })
+
+    subscriber.outStream.once('data', function (packet) {
+      subscriber.inStream.write({
+        cmd: 'pubcomp',
+        messageId: msgId
+      })
+      t.deepEqual(packet, {
+        cmd: 'pubrel',
+        messageId: msgId,
+        length: 2,
+        qos: 1,
+        retain: false,
+        dup: false
+      }, 'pubrel must match')
+
+      done()
+    })
+  })
+}
+
 test('publish QoS 2', function (t) {
   var s = connect(setup())
   var packet = {
@@ -68,51 +102,10 @@ test('subscribe QoS 2', function (t) {
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 2
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [2])
-    t.equal(packet.messageId, 24)
-
+  subscribe(t, subscriber, 'hello', 2, function () {
     publish(t, publisher, toPublish)
 
-    subscriber.outStream.once('data', function (packet) {
-      t.notEqual(packet.messageId, 42, 'messageId must differ')
-
-      var msgId = packet.messageId
-      delete packet.messageId
-      delete toPublish.messageId
-      t.deepEqual(packet, toPublish, 'packet must match')
-
-      subscriber.inStream.write({
-        cmd: 'pubrec',
-        messageId: msgId
-      })
-
-      subscriber.outStream.once('data', function (packet) {
-        subscriber.inStream.write({
-          cmd: 'pubcomp',
-          messageId: msgId
-        })
-        t.deepEqual(packet, {
-          cmd: 'pubrel',
-          messageId: msgId,
-          length: 2,
-          qos: 1,
-          retain: false,
-          dup: false
-        }, 'pubrel must match')
-        t.end()
-      })
-    })
+    receive(t, subscriber, toPublish, t.end.bind(t))
   })
 })
 
@@ -130,18 +123,7 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
     retain: false
   }
 
-  subscriber.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }]
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-
+  subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.once('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
       t.end()
@@ -156,5 +138,34 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
       messageId: 42,
       dup: false
     })
+  })
+})
+
+test('restore QoS 2 subscriptions not clean', function (t) {
+  var broker = aedes()
+  var publisher
+  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 2,
+    dup: false,
+    length: 14,
+    messageId: 42,
+    retain: false
+  }
+
+  subscribe(t, subscriber, 'hello', 2, function () {
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
+      t.equal(connect.sessionPresent, true, 'session present is set to true')
+      publish(t, publisher, expected)
+    })
+
+    receive(t, subscriber, expected, t.end.bind(t))
   })
 })

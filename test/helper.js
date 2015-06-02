@@ -68,8 +68,27 @@ function noError (s, t) {
   return s
 }
 
+function subscribe (t, subscriber, topic, qos, done) {
+  subscriber.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: topic,
+      qos: qos
+    }]
+  })
+
+  subscriber.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [qos])
+    t.equal(packet.messageId, 24)
+    done(null, packet)
+  })
+}
+
 module.exports = {
   setup: setup,
   connect: connect,
-  noError: noError
+  noError: noError,
+  subscribe: subscribe
 }
