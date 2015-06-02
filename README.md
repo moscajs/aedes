@@ -21,7 +21,7 @@ server.listen(port, function () {
 * [x] QoS 0 support
 * [x] Retain messages support
 * [x] QoS 1 support
-* [ ] QoS 2 support
+* [x] QoS 2 support
 * [x] clean=false support
 * [ ] Keep alive support
 * [ ] Will messages must survive crash
