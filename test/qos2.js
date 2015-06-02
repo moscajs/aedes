@@ -115,3 +115,46 @@ test('subscribe QoS 2', function (t) {
     })
   })
 })
+
+test('subscribe QoS 0, but publish QoS 2', function (t) {
+  var broker = aedes()
+  var publisher = connect(setup(broker))
+  var subscriber = connect(setup(broker))
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 0,
+    dup: false,
+    length: 12,
+    retain: false
+  }
+
+  subscriber.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: 'hello',
+      qos: 0
+    }]
+  })
+
+  subscriber.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'suback')
+
+    subscriber.outStream.once('data', function (packet) {
+      t.deepEqual(packet, expected, 'packet must match')
+      t.end()
+    })
+
+    publish(t, publisher, {
+      cmd: 'publish',
+      topic: 'hello',
+      payload: new Buffer('world'),
+      qos: 2,
+      retain: false,
+      messageId: 42,
+      dup: false
+    })
+  })
+})
