@@ -1,3 +1,4 @@
+'use strict'
 
 var test = require('tape').test
 var memory = require('../lib/persistence')

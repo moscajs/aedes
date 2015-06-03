@@ -1,3 +1,5 @@
+'use strict'
+
 var mqemitter = require('mqemitter')
 var EE = require('events').EventEmitter
 var Client = require('./lib/client')

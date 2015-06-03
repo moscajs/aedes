@@ -1,3 +1,5 @@
+'use strict'
+
 var aedes = require('./aedes')(),
   server = require('net').createServer(aedes.handle),
   port = 1883

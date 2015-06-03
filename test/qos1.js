@@ -1,3 +1,5 @@
+'use strict'
+
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')

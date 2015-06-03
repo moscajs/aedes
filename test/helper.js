@@ -1,3 +1,5 @@
+'use strict'
+
 var mqtt = require('mqtt-connection')
 var through = require('through2')
 var aedes = require('../')

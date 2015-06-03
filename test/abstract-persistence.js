@@ -1,3 +1,5 @@
+'use strict'
+
 var concat = require('concat-stream')
 var Packet = require('../lib/packet')
 
