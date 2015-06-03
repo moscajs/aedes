@@ -3,7 +3,7 @@
 var mqtt = require('mqtt-connection')
 var through = require('through2')
 var aedes = require('../')
-var reduplexer = require('reduplexer')
+var duplexify = require('duplexify')
 var parseStream = mqtt.parseStream
 var generateStream = mqtt.generateStream
 var clients = 0
@@ -11,16 +11,11 @@ var clients = 0
 function setup (broker) {
   var inStream = generateStream()
   var outStream = parseStream()
-  var conn = reduplexer(outStream, inStream)
+  var conn = duplexify(outStream, inStream)
 
   broker = broker || aedes()
 
   broker.handle(conn)
-
-  conn.destroy = function () {
-    inStream.destroy()
-    outStream.destroy()
-  }
 
   return {
     conn: conn,

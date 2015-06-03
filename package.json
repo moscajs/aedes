@@ -7,7 +7,10 @@
     "lint": "standard",
     "test": "tape test/* | faucet"
   },
-  "pre-commit": ["lint", "test"],
+  "pre-commit": [
+    "lint",
+    "test"
+  ],
   "repository": {
     "type": "git",
     "url": "git@bitbucket.org:mcollina/aedes.git"
@@ -24,13 +27,15 @@
   "license": "MIT",
   "devDependencies": {
     "concat-stream": "^1.4.7",
+    "duplexify": "^3.4.1",
     "faucet": "0.0.1",
     "mqtt": "^1.0.6",
     "mqtt-connection": "^2.1.0",
-    "reduplexer": "^1.1.0",
-    "tape": "^3.0.3"
+    "standard": "^4.0.1",
+    "tape": "^4.0.0"
   },
   "dependencies": {
+    "end-of-stream": "^1.1.0",
     "fastparallel": "^1.0.0",
     "fastseries": "^1.0.1",
     "from2": "^1.3.0",

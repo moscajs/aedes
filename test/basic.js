@@ -200,13 +200,6 @@ test('retain messages', function (t) {
     retain: true
   }
 
-  publisher.inStream.end({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world',
-    retain: true
-  })
-
   broker.mq.on('hello', function (packet, cb) {
     subscribe(t, subscriber, 'hello', 0, function () {
       subscriber.outStream.once('data', function (packet) {
@@ -215,4 +208,6 @@ test('retain messages', function (t) {
       })
     })
   })
+
+  publisher.inStream.write(expected)
 })
