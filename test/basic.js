@@ -6,6 +6,7 @@ var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
 var noError = helper.noError
+var subscribe = helper.subscribe
 
 test('connect and connack (minimal)', function (t) {
   var s = setup()
@@ -73,27 +74,8 @@ test('subscribe QoS 0', function (t) {
     retain: false
   }
 
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 42,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }]
-  })
-
-  s.outStream.once('data', function (packet) {
-    t.deepEqual(packet, {
-      cmd: 'suback',
-      messageId: 42,
-      dup: false,
-      granted: [0],
-      length: 3,
-      qos: 0,
-      retain: false
-    })
-
-    this.once('data', function (packet) {
+  subscribe(t, s, 'hello', 0, function () {
+    s.outStream.once('data', function (packet) {
       t.deepEqual(packet, expected, 'packet matches')
       t.end()
     })
@@ -137,37 +119,18 @@ test('does not die badly on connection error', function (t) {
 })
 
 test('unsubscribe', function (t) {
-  t.plan(3)
+  t.plan(5)
 
   var s = noError(connect(setup()), t)
 
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 42,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }]
-  })
-
-  s.outStream.once('data', function (packet) {
-    t.deepEqual(packet, {
-      cmd: 'suback',
-      messageId: 42,
-      dup: false,
-      granted: [0],
-      length: 3,
-      qos: 0,
-      retain: false
-    })
-
+  subscribe(t, s, 'hello', 0, function () {
     s.inStream.write({
       cmd: 'unsubscribe',
       messageId: 43,
       unsubscriptions: ['hello']
     })
 
-    this.once('data', function (packet) {
+    s.outStream.once('data', function (packet) {
       t.deepEqual(packet, {
         cmd: 'unsuback',
         messageId: 43,
@@ -177,7 +140,7 @@ test('unsubscribe', function (t) {
         retain: false
       }, 'packet matches')
 
-      this.on('data', function (packet) {
+      s.outStream.on('data', function (packet) {
         t.fail('packet received')
       })
 
@@ -195,16 +158,7 @@ test('unsubscribe', function (t) {
 test('unsubscribe on disconnect', function (t) {
   var s = noError(connect(setup()), t)
 
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 42,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }]
-  })
-
-  s.outStream.once('data', function (packet) {
+  subscribe(t, s, 'hello', 0, function () {
     s.conn.emit('close')
     s.outStream.on('data', function () {
       t.fail('should not receive any more messages')
@@ -254,22 +208,11 @@ test('retain messages', function (t) {
   })
 
   broker.mq.on('hello', function (packet, cb) {
-    subscriber.inStream.write({
-      cmd: 'subscribe',
-      messageId: 42,
-      subscriptions: [{
-        topic: 'hello',
-        qos: 0
-      }]
-    })
-  })
-
-  subscriber.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'suback')
-
-    subscriber.outStream.once('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
-      t.end()
+    subscribe(t, subscriber, 'hello', 0, function () {
+      subscriber.outStream.once('data', function (packet) {
+        t.deepEqual(packet, expected, 'packet must match')
+        t.end()
+      })
     })
   })
 })
