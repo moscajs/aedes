@@ -24,7 +24,9 @@ server.listen(port, function () {
 * [x] QoS 2 support
 * [x] clean=false support
 * [ ] Keep alive support
-* [ ] Will messages must survive crash
+* [x] Will messages must survive crash
+* [ ] Authentication
+* [ ] Mosca events
 * [ ] Disconnect other clients with the same client.id
 * [ ] mongo persistence (external module)
 * [ ] redis persistence (external module)
