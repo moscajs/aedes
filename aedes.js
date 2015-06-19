@@ -54,11 +54,19 @@ function Aedes (opts) {
     }, noop)
   }
 
+  function deleteOldBrokers (broker) {
+    if (that.brokers[broker] + 3 * opts.heartbeatInterval < Date.now()) {
+      delete that.brokers[broker]
+    }
+  }
+
   this._clearWillInterval = setInterval(function () {
+    Object.keys(that.brokers).forEach(deleteOldBrokers)
+
     that.persistence
       .streamWill(that.brokers)
       .pipe(bulk.obj(receiveWills))
-  }, opts.heartbeatInterval * 3)
+  }, opts.heartbeatInterval * 4)
 
   function receiveWills (chunks, done) {
     that._parallel(that, checkAndPublish, chunks, done)
