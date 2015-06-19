@@ -10,6 +10,7 @@ var parallel = require('fastparallel')
 var series = require('fastseries')
 var shortid = require('shortid')
 var Packet = require('./lib/packet')
+var bulk = require('bulk-write-stream')
 
 module.exports = Aedes
 
@@ -22,6 +23,7 @@ function Aedes (opts) {
 
   opts = opts || {}
   opts.concurrency = opts.concurrency || 100
+  opts.heartbeatInterval = opts.heartbeatInterval || 15000
 
   this.id = shortid()
   this.counter = 0
@@ -38,6 +40,51 @@ function Aedes (opts) {
   this.persistence.broker = this
   this._parallel = parallel()
   this._series = series()
+
+  this.clients = {}
+  this.brokers = {}
+
+  var hearbeatTopic = '$SYS/' + that.id + '/heartbeat'
+  this._heartbeatInterval = setInterval(heartbeat, opts.hearbeatInterval)
+
+  function heartbeat () {
+    that.publish({
+      topic: hearbeatTopic,
+      payload: new Buffer(that.id)
+    }, noop)
+
+    that.persistence.streamWill().pipe(bulk.obj(receiveWills))
+  }
+
+  function receiveWills (chunks, done) {
+    that._parallel(that, checkAndPublish, chunks, done)
+  }
+
+  function checkAndPublish (will, done) {
+    if (!that.brokers[will.brokerId]) {
+      that.brokers[will.brokerId] = Date.now()
+    }
+
+    if (that.brokers[will.brokerId] + 3 * opts.heartbeatInterval < Date.now()) {
+      // randomize this, so that multiple brokers
+      // do not publish the same wills at the same time
+      that.publish(will, function (err) {
+        if (err) {
+          return done(err)
+        }
+
+        that.persistence.delWill({
+          id: will.clientId
+        }, done)
+      })
+    } else {
+      done()
+    }
+  }
+
+  this.mq.on('$SYS/+/hearbeat', function storeBroker (packet, done) {
+    that.brokers[packet.payload.toString()] = Date.now()
+  })
 }
 
 util.inherits(Aedes, EE)
@@ -106,8 +153,10 @@ Aedes.prototype.subscribe = function (topic, func, done) {
   var broker = this
 
   this.mq.on(topic, func, function subscribed () {
-    // first do a suback
-    done()
+    if (done) {
+      // first do a suback
+      done()
+    }
 
     var stream = broker.persistence.createRetainedStream(topic)
 
@@ -120,3 +169,22 @@ Aedes.prototype.subscribe = function (topic, func, done) {
 Aedes.prototype.unsubscribe = function (topic, func, done) {
   this.mq.removeListener(topic, func, done)
 }
+
+Aedes.prototype.registerClient = function (client) {
+  this.clients[client.id] = client
+}
+
+Aedes.prototype.unregisterClient = function (client) {
+  delete this.clients[client.id]
+}
+
+function closeClient (client, cb) {
+  this.clients[client].close(cb)
+}
+
+Aedes.prototype.close = function (cb) {
+  clearInterval(this._heartbeatInterval)
+  this._parallel(this, closeClient, Object.keys(this.clients), cb || noop)
+}
+
+function noop () {}

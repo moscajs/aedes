@@ -4,6 +4,8 @@ var test = require('tape').test
 var helper = require('./helper')
 var setup = helper.setup
 var connect = helper.connect
+var aedes = require('../')
+var memory = require('../lib/persistence')
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -31,4 +33,47 @@ test('delivers a will', function (t) {
   })
 
   s.conn.destroy()
+})
+
+test('delivers old will in case of a crash', function (t) {
+  t.plan(7)
+  var persistence = memory()
+  var will = {
+    topic: 'mywill',
+    payload: new Buffer('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  persistence.putWill({
+    id: 'anotherBroker'
+  }, {
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    var broker = aedes({
+      persistence: persistence,
+      heartbeatInterval: 10 // ms, so that the will check happens fast!
+    })
+    var start = Date.now()
+
+    broker.mq.on('mywill', check)
+
+    function check (packet, cb) {
+      broker.mq.removeListener('mywill', check)
+      t.ok(Date.now() - start >= 30, 'the will needs to be emitted after 30 ms')
+      t.equal(packet.topic, will.topic, 'topic matches')
+      t.deepEqual(packet.payload, will.payload, 'payload matches')
+      t.equal(packet.qos, will.qos, 'qos matches')
+      t.equal(packet.retain, will.retain, 'retain matches')
+      broker.mq.on('mywill', function (packet) {
+        t.fail('the will must be delivered only once')
+      })
+      setTimeout(function () {
+        broker.close(t.pass.bind(t, 'server closes'))
+      }, 15)
+      cb()
+    }
+  })
 })

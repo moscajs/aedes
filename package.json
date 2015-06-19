@@ -38,8 +38,10 @@
     "tape": "^4.0.0"
   },
   "dependencies": {
+    "fastfall": "^1.0.0",
+    "bulk-write-stream": "^1.0.0",
     "end-of-stream": "^1.1.0",
-    "fastparallel": "^1.0.0",
+    "fastparallel": "^1.5.2",
     "fastseries": "^1.0.1",
     "from2": "^1.3.0",
     "mqemitter": "^0.4.0",

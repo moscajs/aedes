@@ -17,6 +17,10 @@ function setup (broker) {
 
   broker.handle(conn)
 
+  setTimeout(function () {
+    broker.close()
+  }, 200)
+
   return {
     conn: conn,
     inStream: inStream,

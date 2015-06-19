@@ -2,6 +2,7 @@
 
 var concat = require('concat-stream')
 var Packet = require('../lib/packet')
+var through = require('through2')
 
 function abstractPersistence (opts) {
   var test = opts.test
@@ -437,6 +438,75 @@ function abstractPersistence (opts) {
           })
         })
       })
+    })
+  })
+
+  test('store, fetch and delete will message', function (t) {
+    var instance = persistence()
+    var broker = {
+      id: 'mybrokerId'
+    }
+    var client = {
+      id: '12345'
+    }
+    var expected = {
+      topic: 'hello/died',
+      payload: new Buffer('muahahha'),
+      qos: 0,
+      retain: true
+    }
+
+    instance.putWill(broker, client, expected, function (err, c) {
+      t.error(err, 'no error')
+      t.equal(c, client, 'client matches')
+      instance.getWill(client, function (err, packet, c) {
+        t.error(err, 'no error')
+        t.deepEqual(packet, expected, 'will matches')
+        t.equal(c, client, 'client matches')
+        instance.delWill(client, function (err, packet, c) {
+          t.error(err, 'no error')
+          t.deepEqual(packet, expected, 'will matches')
+          t.equal(c, client, 'client matches')
+          instance.getWill(client, function (err, packet, c) {
+            t.error(err, 'no error')
+            t.notOk(packet, 'no will after del')
+            t.equal(c, client, 'client matches')
+            t.end()
+          })
+        })
+      })
+    })
+  })
+
+  test('stream all will messages', function (t) {
+    var instance = persistence()
+    var broker = {
+      id: 'mybrokerId'
+    }
+    var client = {
+      id: '12345'
+    }
+    var toWrite = {
+      topic: 'hello/died',
+      payload: new Buffer('muahahha'),
+      qos: 0,
+      retain: true
+    }
+
+    instance.putWill(broker, client, toWrite, function (err, c) {
+      t.error(err, 'no error')
+      t.equal(c, client, 'client matches')
+      instance.streamWill().pipe(through.obj(function (chunk, enc, cb) {
+        t.deepEqual(chunk, {
+          clientId: client.id,
+          brokerId: broker.id,
+          topic: 'hello/died',
+          payload: new Buffer('muahahha'),
+          qos: 0,
+          retain: true
+        }, 'packet matches')
+        t.end()
+      }))
     })
   })
 }

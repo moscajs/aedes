@@ -3,6 +3,7 @@
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var eos = require('end-of-stream')
 var setup = helper.setup
 var connect = helper.connect
 var noError = helper.noError
@@ -210,4 +211,16 @@ test('retain messages', function (t) {
   })
 
   publisher.inStream.write(expected)
+})
+
+test('closes', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var client = noError(connect(setup(broker)))
+  eos(client.conn, t.pass.bind('client closes'))
+
+  broker.close(function (err) {
+    t.error(err, 'no error')
+  })
 })
