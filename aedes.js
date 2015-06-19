@@ -23,7 +23,7 @@ function Aedes (opts) {
 
   opts = opts || {}
   opts.concurrency = opts.concurrency || 100
-  opts.heartbeatInterval = opts.heartbeatInterval || 15000
+  opts.heartbeatInterval = opts.heartbeatInterval || 60000
 
   this.id = shortid()
   this.counter = 0
@@ -52,20 +52,25 @@ function Aedes (opts) {
       topic: hearbeatTopic,
       payload: new Buffer(that.id)
     }, noop)
-
-    that.persistence.streamWill().pipe(bulk.obj(receiveWills))
   }
+
+  this._clearWillInterval = setInterval(function () {
+    that.persistence
+      .streamWill(that.brokers)
+      .pipe(bulk.obj(receiveWills))
+  }, opts.heartbeatInterval * 3)
 
   function receiveWills (chunks, done) {
     that._parallel(that, checkAndPublish, chunks, done)
   }
 
   function checkAndPublish (will, done) {
-    if (!that.brokers[will.brokerId]) {
-      that.brokers[will.brokerId] = Date.now()
-    }
+    var needsPublishing =
+      !that.brokers[will.brokerId] ||
+      that.brokers[will.brokerId] + 3 * opts.heartbeatInterval <
+      Date.now()
 
-    if (that.brokers[will.brokerId] + 3 * opts.heartbeatInterval < Date.now()) {
+    if (needsPublishing) {
       // randomize this, so that multiple brokers
       // do not publish the same wills at the same time
       that.publish(will, function (err) {
@@ -184,6 +189,7 @@ function closeClient (client, cb) {
 
 Aedes.prototype.close = function (cb) {
   clearInterval(this._heartbeatInterval)
+  clearInterval(this._clearWillInterval)
   this._parallel(this, closeClient, Object.keys(this.clients), cb || noop)
 }
 

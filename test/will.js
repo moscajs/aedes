@@ -52,9 +52,10 @@ test('delivers old will in case of a crash', function (t) {
   }, will, function (err) {
     t.error(err, 'no error')
 
+    var interval = 10 // ms, so that the will check happens fast!
     var broker = aedes({
       persistence: persistence,
-      heartbeatInterval: 10 // ms, so that the will check happens fast!
+      heartbeatInterval: interval
     })
     var start = Date.now()
 
@@ -62,7 +63,7 @@ test('delivers old will in case of a crash', function (t) {
 
     function check (packet, cb) {
       broker.mq.removeListener('mywill', check)
-      t.ok(Date.now() - start >= 30, 'the will needs to be emitted after 30 ms')
+      t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
       t.equal(packet.topic, will.topic, 'topic matches')
       t.deepEqual(packet.payload, will.payload, 'payload matches')
       t.equal(packet.qos, will.qos, 'qos matches')

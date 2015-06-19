@@ -509,6 +509,56 @@ function abstractPersistence (opts) {
       }))
     })
   })
+
+  test('stream all will message for unknown brokers', function (t) {
+    var instance = persistence()
+    var broker = {
+      id: 'mybrokerId'
+    }
+    var anotherBroker = {
+      id: 'anotherBroker'
+    }
+    var client = {
+      id: '42'
+    }
+    var anotherClient = {
+      id: '24'
+    }
+    var toWrite1 = {
+      topic: 'hello/died42',
+      payload: new Buffer('muahahha'),
+      qos: 0,
+      retain: true
+    }
+    var toWrite2 = {
+      topic: 'hello/died24',
+      payload: new Buffer('muahahha'),
+      qos: 0,
+      retain: true
+    }
+
+    instance.putWill(broker, client, toWrite1, function (err, c) {
+      t.error(err, 'no error')
+      t.equal(c, client, 'client matches')
+      instance.putWill(anotherBroker, anotherClient, toWrite2, function (err, c) {
+        t.error(err, 'no error')
+        t.equal(c, anotherClient, 'client matches')
+        instance.streamWill({
+          'anotherBroker': Date.now()
+        }).pipe(through.obj(function (chunk, enc, cb) {
+          t.deepEqual(chunk, {
+            clientId: client.id,
+            brokerId: broker.id,
+            topic: 'hello/died42',
+            payload: new Buffer('muahahha'),
+            qos: 0,
+            retain: true
+          }, 'packet matches')
+          t.end()
+        }))
+      })
+    })
+  })
 }
 
 module.exports = abstractPersistence
