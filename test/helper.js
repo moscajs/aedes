@@ -8,7 +8,7 @@ var parseStream = mqtt.parseStream
 var generateStream = mqtt.generateStream
 var clients = 0
 
-function setup (broker) {
+function setup (broker, autoClose) {
   var inStream = generateStream()
   var outStream = parseStream()
   var conn = duplexify(outStream, inStream)
@@ -17,9 +17,11 @@ function setup (broker) {
 
   broker.handle(conn)
 
-  setTimeout(function () {
-    broker.close()
-  }, 200)
+  if (autoClose === undefined || autoClose) {
+    setTimeout(function () {
+      broker.close()
+    }, autoClose || 200)
+  }
 
   return {
     conn: conn,
@@ -40,7 +42,7 @@ function connect (s, opts, connected) {
   opts.version = 4
   opts.clean = !!opts.clean
   opts.clientId = opts.clientId || 'my-client-' + clients++
-  opts.keepalive = opts.keepAlive || 0
+  opts.keepalive = opts.keepalive || 0
 
   s.inStream.write(opts)
 
