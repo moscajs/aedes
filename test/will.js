@@ -45,9 +45,11 @@ test('delivers old will in case of a crash', function (t) {
     retain: false
   }
 
-  persistence.putWill({
+  persistence.broker = {
     id: 'anotherBroker'
-  }, {
+  }
+
+  persistence.putWill({
     id: 'myClientId42'
   }, will, function (err) {
     t.error(err, 'no error')
@@ -76,5 +78,25 @@ test('delivers old will in case of a crash', function (t) {
       }, 15)
       cb()
     }
+  })
+})
+
+test.only('store the will in the persistence', function (t) {
+  var opts = {
+    clientId: 'abcde'
+  }
+
+  // willConnect populates opts with a will
+  var s = willConnect(setup(), opts)
+
+  s.broker.persistence.getWill({
+    id: opts.clientId
+  }, function (err, packet) {
+    t.error(err, 'no error')
+    t.deepEqual(packet.topic, opts.will.topic, 'will topic matches')
+    t.deepEqual(packet.payload, opts.will.payload, 'will payload matches')
+    t.deepEqual(packet.qos, opts.will.qos, 'will qos matches')
+    t.deepEqual(packet.retain, opts.will.retain, 'will retain matches')
+    t.end()
   })
 })

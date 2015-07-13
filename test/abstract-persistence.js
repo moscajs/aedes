@@ -456,7 +456,9 @@ function abstractPersistence (opts) {
       retain: true
     }
 
-    instance.putWill(broker, client, expected, function (err, c) {
+    instance.broker = broker
+
+    instance.putWill(client, expected, function (err, c) {
       t.error(err, 'no error')
       t.equal(c, client, 'client matches')
       instance.getWill(client, function (err, packet, c) {
@@ -493,7 +495,9 @@ function abstractPersistence (opts) {
       retain: true
     }
 
-    instance.putWill(broker, client, toWrite, function (err, c) {
+    instance.broker = broker
+
+    instance.putWill(client, toWrite, function (err, c) {
       t.error(err, 'no error')
       t.equal(c, client, 'client matches')
       instance.streamWill().pipe(through.obj(function (chunk, enc, cb) {
@@ -537,10 +541,13 @@ function abstractPersistence (opts) {
       retain: true
     }
 
-    instance.putWill(broker, client, toWrite1, function (err, c) {
+    instance.broker = broker
+
+    instance.putWill(client, toWrite1, function (err, c) {
       t.error(err, 'no error')
       t.equal(c, client, 'client matches')
-      instance.putWill(anotherBroker, anotherClient, toWrite2, function (err, c) {
+      instance.broker = anotherBroker
+      instance.putWill(anotherClient, toWrite2, function (err, c) {
         t.error(err, 'no error')
         t.equal(c, anotherClient, 'client matches')
         instance.streamWill({
