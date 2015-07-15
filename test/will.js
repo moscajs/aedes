@@ -81,7 +81,7 @@ test('delivers old will in case of a crash', function (t) {
   })
 })
 
-test.only('store the will in the persistence', function (t) {
+test('store the will in the persistence', function (t) {
   var opts = {
     clientId: 'abcde'
   }
