@@ -30,6 +30,7 @@ server.listen(port, function () {
 * [ ] Wait a CONNECT packet only for X seconds
 * [ ] Support a CONNECT packet without a username
 * [ ] Disconnect other clients with the same client.id
+* [ ] Support counting the number of offline clients and subscriptions
 * [ ] move the persistence in a separate module
 * [ ] mongo persistence (external module)
 * [ ] redis persistence (external module)
