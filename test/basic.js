@@ -224,3 +224,31 @@ test('closes', function (t) {
     t.error(err, 'no error')
   })
 })
+
+test('connect without a clientId for MQTT 3.1.1', function (t) {
+  var s = setup()
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    keepalive: 0
+  })
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 0,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'successful connack')
+
+    t.end()
+  })
+})

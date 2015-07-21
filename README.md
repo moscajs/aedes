@@ -28,7 +28,7 @@ server.listen(port, function () {
 * [ ] Authentication
 * [ ] Mosca events
 * [ ] Wait a CONNECT packet only for X seconds
-* [ ] Support a CONNECT packet without a username
+* [x] Support a CONNECT packet without a clientId
 * [ ] Disconnect other clients with the same client.id
 * [ ] Support counting the number of offline clients and subscriptions
 * [ ] move the persistence in a separate module
