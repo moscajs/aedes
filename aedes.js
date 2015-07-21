@@ -201,4 +201,8 @@ Aedes.prototype.close = function (cb) {
   this._parallel(this, closeClient, Object.keys(this.clients), cb || noop)
 }
 
+Aedes.prototype.authenticate = function (client, username, password, callback) {
+  callback(null, true)
+}
+
 function noop () {}
