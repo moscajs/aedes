@@ -205,4 +205,8 @@ Aedes.prototype.authenticate = function (client, username, password, callback) {
   callback(null, true)
 }
 
+Aedes.prototype.authorizePublish = function (client, packet, callback) {
+  callback(null)
+}
+
 function noop () {}

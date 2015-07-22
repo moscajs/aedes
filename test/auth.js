@@ -130,3 +130,71 @@ test('authenticate errors', function (t) {
     keepalive: 0
   })
 })
+
+test('authorize publish', function (t) {
+  t.plan(3)
+
+  var s = connect(setup())
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 0,
+    retain: false,
+    length: 12,
+    dup: false
+  }
+
+  s.broker.authorizePublish = function (client, packet, cb) {
+    t.ok(client, 'client exists')
+    t.deepEqual(packet, expected, 'packet matches')
+    cb()
+  }
+
+  s.broker.mq.on('hello', function (packet, cb) {
+    expected.brokerId = s.broker.id
+    expected.brokerCounter = s.broker.counter
+    expected.messageId = 0
+    delete expected.dup
+    delete expected.length
+    t.deepEqual(packet, expected, 'packet matches')
+    cb()
+  })
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world'
+  })
+})
+
+test('do not authorize publish', function (t) {
+  t.plan(3)
+
+  var s = connect(setup())
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 0,
+    retain: false,
+    length: 12,
+    dup: false
+  }
+
+  s.broker.authorizePublish = function (client, packet, cb) {
+    t.ok(client, 'client exists')
+    t.deepEqual(packet, expected, 'packet matches')
+    cb(new Error('auth negated'))
+  }
+
+  eos(s.conn, function () {
+    t.pass('ended')
+  })
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world'
+  })
+})
