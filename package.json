@@ -34,6 +34,7 @@
     "faucet": "0.0.1",
     "mqtt": "^1.0.6",
     "mqtt-connection": "^2.1.0",
+    "pre-commit": "^1.0.10",
     "standard": "^4.0.1",
     "tape": "^4.0.0"
   },
