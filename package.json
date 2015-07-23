@@ -5,7 +5,8 @@
   "main": "aedes.js",
   "scripts": {
     "lint": "standard",
-    "test": "tape test/*.js test/*/*.js | faucet"
+    "test": "tape test/*.js test/*/*.js | faucet",
+    "ci": "npm run lint; npm run test"
   },
   "pre-commit": [
     "lint",
