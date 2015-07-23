@@ -3,11 +3,10 @@
 var test = require('tape').test
 var Client = require('../lib/client')
 var helper = require('./helper')
-var aedes = require('../')
 var eos = require('end-of-stream')
 var setup = helper.setup
+var subscribe = helper.subscribe
 var connect = helper.connect
-var noError = helper.noError
 
 test('authenticate successfully a client with username and password', function (t) {
   t.plan(4)
@@ -196,5 +195,52 @@ test('do not authorize publish', function (t) {
     cmd: 'publish',
     topic: 'hello',
     payload: 'world'
+  })
+})
+
+test('authorize subscribe', function (t) {
+  t.plan(5)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.ok(client, 'client exists')
+    t.deepEqual(sub, {
+      topic: 'hello',
+      qos: 0
+    }, 'topic matches')
+    cb(null, sub)
+  }
+
+  subscribe(t, s, 'hello', 0)
+})
+
+test('negate subscription', function (t) {
+  t.plan(5)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.ok(client, 'client exists')
+    t.deepEqual(sub, {
+      topic: 'hello',
+      qos: 0
+    }, 'topic matches')
+    cb(null, null)
+  }
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: 'hello',
+      qos: 0
+    }]
+  })
+
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [128])
+    t.equal(packet.messageId, 24)
   })
 })

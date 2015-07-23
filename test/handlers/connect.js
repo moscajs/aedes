@@ -20,7 +20,7 @@ test('reject clients with no clientId running on MQTT 3.1', function (t) {
 
   handleConnect(client, {
     protocolVersion: 3,
-    protocolId: 'MQIsdp',
+    protocolId: 'MQIsdp'
   }, function (err) {
     t.error(err, 'no error in callback')
   })

@@ -85,7 +85,10 @@ function subscribe (t, subscriber, topic, qos, done) {
     t.equal(packet.cmd, 'suback')
     t.deepEqual(packet.granted, [qos])
     t.equal(packet.messageId, 24)
-    done(null, packet)
+
+    if (done) {
+      done(null, packet)
+    }
   })
 }
 

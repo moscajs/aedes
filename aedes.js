@@ -209,4 +209,8 @@ Aedes.prototype.authorizePublish = function (client, packet, callback) {
   callback(null)
 }
 
+Aedes.prototype.authorizeSubscribe = function (client, sub, cb) {
+  cb(null, sub)
+}
+
 function noop () {}
