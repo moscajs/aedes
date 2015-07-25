@@ -25,7 +25,7 @@ server.listen(port, function () {
 * [x] clean=false support
 * [x] Keep alive support
 * [x] Will messages must survive crash
-* [ ] Authentication
+* [x] Authentication
 * [ ] Mosca events
 * [ ] Wait a CONNECT packet only for X seconds
 * [x] Support a CONNECT packet without a clientId
