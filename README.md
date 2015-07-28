@@ -29,7 +29,7 @@ server.listen(port, function () {
 * [ ] Mosca events
 * [ ] Wait a CONNECT packet only for X seconds
 * [x] Support a CONNECT packet without a clientId
-* [ ] Disconnect other clients with the same client.id
+* [x] Disconnect other clients with the same client.id
 * [ ] Support counting the number of offline clients and subscriptions
 * [ ] move the persistence in a separate module
 * [ ] mongo persistence (external module)

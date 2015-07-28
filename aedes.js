@@ -98,6 +98,17 @@ function Aedes (opts) {
   this.mq.on('$SYS/+/hearbeat', function storeBroker (packet, done) {
     that.brokers[packet.payload.toString()] = Date.now()
   })
+
+  this.mq.on('$SYS/+/new/clients', function closeSameClients (packet, done) {
+    var serverId = packet.topic.split('/')[1]
+    var clientId = packet.payload.toString()
+
+    if (that.clients[clientId] && serverId !== that.id) {
+      that.clients[clientId].close()
+    }
+
+    done()
+  })
 }
 
 util.inherits(Aedes, EE)
@@ -184,7 +195,14 @@ Aedes.prototype.unsubscribe = function (topic, func, done) {
 }
 
 Aedes.prototype.registerClient = function (client) {
+  if (this.clients[client.id]) {
+    this.clients[client.id].close()
+  }
   this.clients[client.id] = client
+  this.mq.emit({
+    topic: '$SYS/' + this.id + '/new/clients',
+    payload: new Buffer(client.id)
+  })
 }
 
 Aedes.prototype.unregisterClient = function (client) {

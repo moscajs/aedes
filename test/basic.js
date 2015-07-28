@@ -252,3 +252,65 @@ test('connect without a clientId for MQTT 3.1.1', function (t) {
     t.end()
   })
 })
+
+test('disconnect another client with the same clientId', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var c1 = connect(setup(broker), {
+    clientId: 'abcde'
+  }, function () {
+    eos(c1.conn, function () {
+      t.pass('first client disconnected')
+    })
+
+    connect(setup(broker), {
+      clientId: 'abcde'
+    }, function () {
+      t.pass('second client connected')
+
+      // setImmediate needed because eos
+      // will happen at the next tick
+      setImmediate(t.end.bind(t))
+    })
+  })
+})
+
+test('disconnect if another broker connects the same client', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var c1 = connect(setup(broker), {
+    clientId: 'abcde'
+  }, function () {
+    eos(c1.conn, function () {
+      t.pass('first client disconnected')
+    })
+
+    broker.mq.emit({
+      topic: '$SYS/anotherBroker/new/clients',
+      payload: new Buffer('abcde')
+    }, function () {
+      t.pass('published')
+
+      // setImmediate needed because eos
+      // will happen at the next tick
+      setImmediate(t.end.bind(t))
+    })
+  })
+})
+
+test('publish to $SYS/broker/new/clients', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+
+  broker.mq.on('$SYS/' + broker.id + '/new/clients', function (packet, done) {
+    t.equal(packet.payload.toString(), 'abcde', 'clientId matches')
+    done()
+  })
+
+  connect(setup(broker), {
+    clientId: 'abcde'
+  })
+})
