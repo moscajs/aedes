@@ -44,12 +44,14 @@ function Aedes (opts) {
   this.brokers = {}
 
   var hearbeatTopic = '$SYS/' + that.id + '/heartbeat'
-  this._heartbeatInterval = setInterval(heartbeat, opts.hearbeatInterval)
+  this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
+
+  var bufId = new Buffer(that.id, 'utf8')
 
   function heartbeat () {
     that.publish({
       topic: hearbeatTopic,
-      payload: new Buffer(that.id)
+      payload: bufId
     }, noop)
   }
 
