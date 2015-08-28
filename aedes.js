@@ -108,6 +108,9 @@ function Aedes (opts) {
 
     done()
   })
+
+  // metadata
+  this.connectedClients = 0
 }
 
 util.inherits(Aedes, EE)
@@ -194,9 +197,20 @@ Aedes.prototype.unsubscribe = function (topic, func, done) {
 }
 
 Aedes.prototype.registerClient = function (client) {
+  var that = this
   if (this.clients[client.id]) {
-    this.clients[client.id].close()
+    // moving out so we wait for this, so we don't
+    // unregister a good client
+    this.clients[client.id].close(function () {
+      that._finishRegisterClient(client)
+    })
+  } else {
+    this._finishRegisterClient(client)
   }
+}
+
+Aedes.prototype._finishRegisterClient = function (client) {
+  this.connectedClients++
   this.clients[client.id] = client
   this.mq.emit({
     topic: '$SYS/' + this.id + '/new/clients',
@@ -205,6 +219,7 @@ Aedes.prototype.registerClient = function (client) {
 }
 
 Aedes.prototype.unregisterClient = function (client) {
+  this.connectedClients--
   delete this.clients[client.id]
 }
 
