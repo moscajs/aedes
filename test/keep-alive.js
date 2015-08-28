@@ -3,6 +3,7 @@
 var eos = require('end-of-stream')
 var test = require('tape').test
 var helper = require('./helper')
+var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
 var noError = helper.noError
@@ -50,6 +51,21 @@ test('supports keep alive disconnections after a pingreq', function (t) {
 
   eos(s.conn, function () {
     t.ok(Date.now() >= start + 1500, 'waits 1 and a half the keepalive timeout')
+    t.pass('ended')
+  })
+})
+
+test('disconnect if a connect does not arrive in time', function (t) {
+  t.plan(2)
+  t.timeoutAfter(200)
+
+  var s = setup(aedes({
+    connectTimeout: 50
+  }))
+  var start = Date.now()
+
+  eos(s.conn, function () {
+    t.ok(Date.now() >= start + 50, 'waits waitConnectTimeout before ending')
     t.pass('ended')
   })
 })

@@ -21,12 +21,15 @@ function Aedes (opts) {
     return new Aedes(opts)
   }
 
+  // TODO replace with extend
   opts = opts || {}
   opts.concurrency = opts.concurrency || 100
-  opts.heartbeatInterval = opts.heartbeatInterval || 60000
+  opts.heartbeatInterval = opts.heartbeatInterval || 60000 // 1 minute
+  opts.connectTimeout = opts.connectTimeout || 30000 // 30 secs
 
   this.id = shortid()
   this.counter = 0
+  this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
   this.handle = function handle (conn) {
     // return, just to please standard
