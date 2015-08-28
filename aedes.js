@@ -33,10 +33,6 @@ function Aedes (opts) {
   this.mq = opts.mq || mqemitter(opts)
   this.handle = function handle (conn) {
     // return, just to please standard
-    // in theory we should store these
-    // unconnected client somewhere,
-    // and if they don't send a CONNECT
-    // packet, kill them
     return new Client(that, conn)
   }
   this.persistence = opts.persistence || memory()
