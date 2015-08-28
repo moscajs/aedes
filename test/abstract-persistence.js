@@ -211,6 +211,42 @@ function abstractPersistence (opts) {
     })
   })
 
+  test('store and count subscriptions', function (t) {
+    var instance = persistence()
+    var client = { id: 'abcde' }
+    var subs = [{
+      topic: 'hello',
+      qos: 1
+    }, {
+      topic: 'matteo',
+      qos: 1
+    }, {
+      topic: 'noqos',
+      qos: 0
+    }]
+
+    instance.addSubscriptions(client, subs, function (err, reClient) {
+      t.equal(reClient, client, 'client must be the same')
+      t.error(err, 'no error')
+
+      instance.countSubscriptions(function (err, count) {
+        t.error(err, 'no error')
+        t.equal(count, 2, 'two subscriptions added')
+
+        instance.removeSubscriptions(client, ['hello'], function (err, reClient) {
+          t.error(err, 'no error')
+
+          instance.countSubscriptions(function (err, count) {
+            t.error(err, 'no error')
+            t.equal(count, 1, 'two subscriptions added')
+
+            instance.destroy(t.end.bind(t))
+          })
+        })
+      })
+    })
+  })
+
   test('add outgoing packet and stream it', function (t) {
     var instance = persistence()
     var sub = {
