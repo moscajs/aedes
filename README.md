@@ -31,7 +31,7 @@ server.listen(port, function () {
 * [x] Support a CONNECT packet without a clientId
 * [x] Disconnect other clients with the same client.id
 * [ ] Write docs
-* [ ] Support counting the number of offline clients and subscriptions
+* [x] Support counting the number of offline clients and subscriptions
 * [ ] move the persistence in a separate module
 * [ ] mongo persistence (external module)
 * [ ] redis persistence (external module)

@@ -229,16 +229,18 @@ function abstractPersistence (opts) {
       t.equal(reClient, client, 'client must be the same')
       t.error(err, 'no error')
 
-      instance.countSubscriptions(function (err, count) {
+      instance.countOffline(function (err, subsCount, clientsCount) {
         t.error(err, 'no error')
-        t.equal(count, 2, 'two subscriptions added')
+        t.equal(subsCount, 2, 'two subscriptions added')
+        t.equal(clientsCount, 1, 'one client added')
 
         instance.removeSubscriptions(client, ['hello'], function (err, reClient) {
           t.error(err, 'no error')
 
-          instance.countSubscriptions(function (err, count) {
+          instance.countOffline(function (err, subsCount, clientsCount) {
             t.error(err, 'no error')
-            t.equal(count, 1, 'two subscriptions added')
+            t.equal(subsCount, 1, 'two subscriptions added')
+            t.equal(clientsCount, 1, 'one client added')
 
             instance.destroy(t.end.bind(t))
           })
