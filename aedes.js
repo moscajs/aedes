@@ -216,8 +216,8 @@ Aedes.prototype._finishRegisterClient = function (client) {
   this.clients[client.id] = client
   this.mq.emit({
     topic: '$SYS/' + this.id + '/new/clients',
-    payload: new Buffer(client.id)
-  })
+    payload: new Buffer(client.id, 'utf8')
+  }, noop)
 }
 
 Aedes.prototype.unregisterClient = function (client) {
