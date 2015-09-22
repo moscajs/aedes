@@ -24,6 +24,10 @@ function publish () {
 
 client.on('connect', publish)
 
+client.on('offline', function () {
+  console.log('offline')
+})
+
 client.on('error', function () {
   console.log('reconnect!')
   client.stream.end()

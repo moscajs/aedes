@@ -43,14 +43,14 @@ function Aedes (opts) {
   this.clients = {}
   this.brokers = {}
 
-  var hearbeatTopic = '$SYS/' + that.id + '/heartbeat'
+  var heartbeatTopic = '$SYS/' + that.id + '/heartbeat'
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
 
   var bufId = new Buffer(that.id, 'utf8')
 
   function heartbeat () {
     that.publish({
-      topic: hearbeatTopic,
+      topic: heartbeatTopic,
       payload: bufId
     }, noop)
   }
@@ -96,8 +96,9 @@ function Aedes (opts) {
     }
   }
 
-  this.mq.on('$SYS/+/hearbeat', function storeBroker (packet, done) {
+  this.mq.on('$SYS/+/heartbeat', function storeBroker (packet, done) {
     that.brokers[packet.payload.toString()] = Date.now()
+    done()
   })
 
   this.mq.on('$SYS/+/new/clients', function closeSameClients (packet, done) {
@@ -105,10 +106,10 @@ function Aedes (opts) {
     var clientId = packet.payload.toString()
 
     if (that.clients[clientId] && serverId !== that.id) {
-      that.clients[clientId].close()
+      that.clients[clientId].close(done)
+    } else {
+      done()
     }
-
-    done()
   })
 
   // metadata
@@ -214,7 +215,7 @@ Aedes.prototype.registerClient = function (client) {
 Aedes.prototype._finishRegisterClient = function (client) {
   this.connectedClients++
   this.clients[client.id] = client
-  this.mq.emit({
+  this.publish({
     topic: '$SYS/' + this.id + '/new/clients',
     payload: new Buffer(client.id, 'utf8')
   }, noop)
