@@ -57,9 +57,9 @@ function connect (s, opts, connected) {
     // using nextTick to wait for connected to be fired
     // setup also needs to return first
     if (packet.cmd !== 'connack') {
-      process.nextTick(this.push.bind(this, packet))
+      setImmediate(this.push.bind(this, packet))
     } else if (connected) {
-      process.nextTick(connected, packet)
+      setImmediate(connected, packet)
     }
     cb()
   }
