@@ -151,7 +151,6 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
   subscribe(t, subscriber, 'hello', 1, function () {
-
     subscriber.inStream.end()
 
     publisher = connect(setup(broker))

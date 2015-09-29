@@ -53,10 +53,13 @@ function connect (s, opts, connected) {
       delete packet.topic
       delete packet.payload
     }
+
+    // using nextTick to wait for connected to be fired
+    // setup also needs to return first
     if (packet.cmd !== 'connack') {
-      this.push(packet)
+      process.nextTick(this.push.bind(this, packet))
     } else if (connected) {
-      connected(packet)
+      process.nextTick(connected, packet)
     }
     cb()
   }
