@@ -54,7 +54,7 @@ function connect (s, opts, connected) {
       delete packet.payload
     }
 
-    // using nextTick to wait for connected to be fired
+    // using setImmediate to wait for connected to be fired
     // setup also needs to return first
     if (packet.cmd !== 'connack') {
       setImmediate(this.push.bind(this, packet))
