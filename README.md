@@ -71,7 +71,7 @@ Events:
 
 -------------------------------------------------------
 <a name="handle"></a>
-### handle(duplex)
+### instance.handle(duplex)
 
 Handle the given duplex as a MQTT connection.
 
@@ -82,7 +82,7 @@ var server = require('net').createServer(aedes.handle)
 
 -------------------------------------------------------
 <a name="subscribe"></a>
-### subscribe(topic, func(packet, cb), done)
+### instance.subscribe(topic, func(packet, cb), done)
 
 After `done` is called, every time [publish](#publish) is invoked on the
 instance (and on any other connected instances) with a matching `topic` the `func` function will be called. It also support retained messages lookup.
@@ -93,7 +93,7 @@ It supports backpressure.
 
 -------------------------------------------------------
 <a name="publish"></a>
-### publish(packet, done)
+### instance.publish(packet, done)
 
 Publish the given packet to subscribed clients and functions. A packet
 must be valid for [mqtt-packet](http://npm.im/mqtt-packet).
@@ -102,13 +102,13 @@ It supports backpressure.
 
 -------------------------------------------------------
 <a name="unsubscribe"></a>
-### unsubscribe(topic, func(packet, cb), done)
+### instance.unsubscribe(topic, func(packet, cb), done)
 
 The reverse of [subscribe](#subscribe).
 
 -------------------------------------------------------
 <a name="authenticate"></a>
-### authenticate(client, username, password, done(err, successful))
+### instance.authenticate(client, username, password, done(err, successful))
 
 It will be called when a new client connects. Ovverride to supply custom
 authentication logic.
@@ -121,7 +121,7 @@ instance.authenticate = function (client, username, password, callback) {
 
 -------------------------------------------------------
 <a name="authorizePublish"></a>
-### authorizePublish(client, packet, done(err))
+### instance.authorizePublish(client, packet, done(err))
 
 It will be called when a client publishes a message. Ovverride to supply custom
 authorization logic.
@@ -142,7 +142,7 @@ instance.authorizePublish = function (client, packet, callback) {
 
 -------------------------------------------------------
 <a name="authorizeSubscribe"></a>
-### authorizeSubscribe(client, pattern, done(err, pattern))
+### instance.authorizeSubscribe(client, pattern, done(err, pattern))
 
 It will be called when a client publishes a message. Ovverride to supply custom
 authorization logic.
@@ -164,7 +164,7 @@ instance.authorizeSubscribe = function (client, sub, cb) {
 
 -------------------------------------------------------
 <a name="close"></a>
-### close([cb])
+### instance.close([cb])
 
 Disconnects all clients.
 
