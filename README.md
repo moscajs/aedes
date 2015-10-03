@@ -176,10 +176,21 @@ Classes for all connected clients.
 
 Events:
 
-* `error`, in case something bad happends
+* `error`, in case something bad happended
 
 -------------------------------------------------------
-<a name="close"></a>
+<a name="clientpublish"></a>
+### client#publish(message, [callback])
+
+Publish the given `message` to this client. QoS 1 and 2 are fully
+respected, while the retained flag is not.
+
+`message` is a [PUBLISH](https://github.com/mqttjs/mqtt-packet#publish) packet.
+
+`callback`  will be called when the message has been sent, but not acked.
+
+-------------------------------------------------------
+<a name="clientclose"></a>
 ### client#close([cb])
 
 Disconnects the client
@@ -201,6 +212,7 @@ Disconnects the client
 * [x] Disconnect other clients with the same client.id
 * [x] Write docs
 * [x] Support counting the number of offline clients and subscriptions
+* [ ] Performance optimizations for QoS 1 and Qos 2
 * [ ] Add `client#publish()` and `client#subscribe()`
 * [ ] move the persistence in a separate module
 * [ ] mongo persistence (external module)
