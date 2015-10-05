@@ -29,3 +29,44 @@ test('count connected clients', function (t) {
     t.equal(broker.connectedClients, 1, 'one connected clients')
   })
 })
+
+test('call published method', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+
+  broker.published = function (packet, client, done) {
+    t.equal(packet.topic, 'hello', 'topic matches')
+    t.equal(packet.payload.toString(), 'world', 'payload matches')
+    t.equal(client, null, 'no client')
+    broker.close()
+    done()
+  }
+
+  broker.publish({
+    topic: 'hello',
+    payload: new Buffer('world')
+  }, function (err) {
+    t.error(err, 'no error')
+  })
+})
+
+test('emit publish event', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+
+  broker.on('publish', function (packet, client) {
+    t.equal(packet.topic, 'hello', 'topic matches')
+    t.equal(packet.payload.toString(), 'world', 'payload matches')
+    t.equal(client, null, 'no client')
+    broker.close()
+  })
+
+  broker.publish({
+    topic: 'hello',
+    payload: new Buffer('world')
+  }, function (err) {
+    t.error(err, 'no error')
+  })
+})
