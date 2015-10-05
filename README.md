@@ -45,6 +45,8 @@ server.listen(port, function () {
   * <a href="#authorizeSubscribe"><code>instance.<b>authorizeSubscribe()</b></code></a>
   * <a href="#close"><code>instance.<b>close()</b></code></a>
   * <a href="#client"><code><b>Client</b></code></a>
+  * <a href="#clientpublish"><code>client.<b>publish()</b></code></a>
+  * <a href="#clientsubscribe"><code>client.<b>subscribe()</b></code></a>
   * <a href="#clientClose"><code>client.<b>close()</b></code></a>
 
 -------------------------------------------------------
@@ -176,10 +178,37 @@ Classes for all connected clients.
 
 Events:
 
-* `error`, in case something bad happends
+* `error`, in case something bad happended
 
 -------------------------------------------------------
-<a name="close"></a>
+<a name="clientpublish"></a>
+### client#publish(message, [callback])
+
+Publish the given `message` to this client. QoS 1 and 2 are fully
+respected, while the retained flag is not.
+
+`message` is a [PUBLISH](https://github.com/mqttjs/mqtt-packet#publish) packet.
+
+`callback`  will be called when the message has been sent, but not acked.
+
+-------------------------------------------------------
+<a name="clientsubscribes"></a>
+### client#subscribe(subscriptions, [callback])
+
+Subscribe the client to the list of topics.
+
+`subscription` can be:
+
+1. a single object in the format `{ topic: topic, qos: qos }`
+2. an array of the above
+3. a full [subscribe
+   packet](https://github.com/mqttjs/mqtt-packet#subscribe),
+specifying a `messageId` will send suback to the client.
+
+`callback`  will be called when the subscription is completed.
+
+-------------------------------------------------------
+<a name="clientclose"></a>
 ### client#close([cb])
 
 Disconnects the client
@@ -201,7 +230,8 @@ Disconnects the client
 * [x] Disconnect other clients with the same client.id
 * [x] Write docs
 * [x] Support counting the number of offline clients and subscriptions
-* [ ] Add `client#publish()` and `client#subscribe()`
+* [ ] Performance optimizations for QoS 1 and Qos 2
+* [x] Add `client#publish()` and `client#subscribe()`
 * [ ] move the persistence in a separate module
 * [ ] mongo persistence (external module)
 * [ ] redis persistence (external module)
