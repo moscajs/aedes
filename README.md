@@ -77,6 +77,11 @@ Events:
 * `publish`: when a new packet is published, arguments:
   1. `packet`
   2. `client`
+* `subscribe`: when a client subscribes to a topic, arguments:
+  1. `subscriptions`, as defined in the `subscriptions` property of the
+     [SUBSCRIBE](https://github.com/mqttjs/mqtt-packet#publish)
+packet.
+  2. `client`
 
 -------------------------------------------------------
 <a name="handle"></a>

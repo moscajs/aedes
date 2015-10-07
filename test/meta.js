@@ -5,6 +5,7 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var subscribe = helper.subscribe
 
 test('count connected clients', function (t) {
   t.plan(4)
@@ -68,5 +69,24 @@ test('emit publish event', function (t) {
     payload: new Buffer('world')
   }, function (err) {
     t.error(err, 'no error')
+  })
+})
+
+test('emit subscribe event', function (t) {
+  t.plan(6)
+
+  var broker = aedes()
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  broker.on('subscribe', function (subscriptions, client) {
+    t.deepEqual(subscriptions, [{
+      topic: 'hello',
+      qos: 0
+    }], 'topic matches')
+    t.equal(client.id, 'abcde', 'client matches')
+  })
+
+  subscribe(t, s, 'hello', 0, function () {
+    t.pass('subscribe completed')
   })
 })
