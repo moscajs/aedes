@@ -77,9 +77,14 @@ Events:
 * `publish`: when a new packet is published, arguments:
   1. `packet`
   2. `client`
-* `subscribe`: when a client subscribes to a topic, arguments:
+* `subscribe`: when a client sends a SUBSCRIBE, arguments:
   1. `subscriptions`, as defined in the `subscriptions` property of the
-     [SUBSCRIBE](https://github.com/mqttjs/mqtt-packet#publish)
+     [SUBSCRIBE](https://github.com/mqttjs/mqtt-packet#subscribe)
+packet.
+  2. `client`
+* `unsubscribe`: when a client sends a UNSUBSCRIBE, arguments:
+  1. `unsubscriptions`, as defined in the `subscriptions` property of the
+     [UNSUBSCRIBE](https://github.com/mqttjs/mqtt-packet#unsubscribe)
 packet.
   2. `client`
 

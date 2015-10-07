@@ -90,3 +90,29 @@ test('emit subscribe event', function (t) {
     t.pass('subscribe completed')
   })
 })
+
+test('emit unsubscribe event', function (t) {
+  t.plan(6)
+
+  var broker = aedes()
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  broker.on('unsubscribe', function (unsubscriptions, client) {
+    t.deepEqual(unsubscriptions, [
+      'hello'
+    ], 'unsubscription matches')
+    t.equal(client.id, 'abcde', 'client matches')
+  })
+
+  subscribe(t, s, 'hello', 0, function () {
+    s.inStream.write({
+      cmd: 'unsubscribe',
+      messageId: 43,
+      unsubscriptions: ['hello']
+    })
+
+    s.outStream.once('data', function (packet) {
+      t.pass('subscribe completed')
+    })
+  })
+})
