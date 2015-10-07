@@ -222,7 +222,7 @@ Aedes.prototype.registerClient = function (client) {
 Aedes.prototype._finishRegisterClient = function (client) {
   this.connectedClients++
   this.clients[client.id] = client
-  this.emit('newClient', client)
+  this.emit('client', client)
   this.publish({
     topic: '$SYS/' + this.id + '/new/clients',
     payload: new Buffer(client.id, 'utf8')
@@ -232,6 +232,7 @@ Aedes.prototype._finishRegisterClient = function (client) {
 Aedes.prototype.unregisterClient = function (client) {
   this.connectedClients--
   delete this.clients[client.id]
+  this.emit('clientDisconnect', client)
 }
 
 function closeClient (client, cb) {

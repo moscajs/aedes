@@ -116,3 +116,34 @@ test('emit unsubscribe event', function (t) {
     })
   })
 })
+
+test('emit clientDisconnect event', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+
+  broker.on('clientDisconnect', function (client) {
+    t.equal(client.id, 'abcde', 'client matches')
+  })
+
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  s.inStream.end({
+    cmd: 'disconnect'
+  })
+  s.outStream.resume()
+})
+
+test('emits client', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+
+  broker.on('client', function (client) {
+    t.equal(client.id, 'abcde', 'clientId matches')
+  })
+
+  connect(setup(broker), {
+    clientId: 'abcde'
+  })
+})

@@ -71,6 +71,8 @@ Events:
 
 * `client`: when a new [Client](#client) connects, arguments:
   1. `client`
+* `clientDisconnect`: when a [Client](#client) disconnects, arguments:
+  1. `client`
 * `clientError`: when a [Client](#client) errors, arguments:
   1. `client`
   2. `err`
