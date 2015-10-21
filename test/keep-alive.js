@@ -6,9 +6,10 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var subscribe = helper.subscribe
 var noError = helper.noError
 
-test.skip('supports pingreq/pingresp', function (t) {
+test('supports pingreq/pingresp', function (t) {
   t.plan(1)
 
   var s = noError(connect(setup()))
