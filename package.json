@@ -47,7 +47,7 @@
     "fastseries": "^1.0.1",
     "from2": "^2.1.0",
     "mqemitter": "^0.5.0",
-    "mqtt-packet": "^3.0.0",
+    "mqtt-packet": "^4.0.0",
     "pump": "^1.0.0",
     "qlobber": "^0.5.1",
     "retimer": "^1.0.0",
