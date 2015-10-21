@@ -6,7 +6,6 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
-var subscribe = helper.subscribe
 var noError = helper.noError
 
 test('supports pingreq/pingresp', function (t) {
