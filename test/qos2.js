@@ -34,7 +34,7 @@ function publish (t, s, packet, done) {
         length: 2,
         dup: false,
         retain: false,
-        qos: 2
+        qos: 0
       }, 'pubcomp must match')
 
       if (done) {
