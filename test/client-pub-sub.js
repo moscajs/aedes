@@ -20,7 +20,7 @@ test('publish direct to a single client QoS 0', function (t) {
     retain: false
   }
 
-  broker.on('newClient', function (client) {
+  broker.on('client', function (client) {
     client.publish({
       topic: 'hello',
       payload: new Buffer('world'),
@@ -51,7 +51,7 @@ test('publish direct to a single client QoS 1', function (t) {
     retain: false
   }
 
-  broker.on('newClient', function (client) {
+  broker.on('client', function (client) {
     client.publish({
       topic: 'hello',
       payload: new Buffer('world'),
@@ -91,7 +91,7 @@ test('offline message support for direct publish', function (t) {
     clientId: 'abcde'
   }
 
-  broker.once('newClient', function (client) {
+  broker.once('client', function (client) {
     client.publish({
       topic: 'hello',
       payload: new Buffer('world'),
@@ -132,7 +132,7 @@ test('subscribe a client programmatically', function (t) {
     retain: false
   }
 
-  broker.on('newClient', function (client) {
+  broker.on('client', function (client) {
     client.subscribe({
       topic: 'hello',
       qos: 0
@@ -170,7 +170,7 @@ test('subscribe a client programmatically multiple topics', function (t) {
     retain: false
   }
 
-  broker.on('newClient', function (client) {
+  broker.on('client', function (client) {
     client.subscribe([{
       topic: 'hello',
       qos: 0
@@ -211,7 +211,7 @@ test('subscribe a client programmatically with full packet', function (t) {
     retain: false
   }
 
-  broker.on('newClient', function (client) {
+  broker.on('client', function (client) {
     client.subscribe({
       subscriptions: [{
         topic: 'hello',

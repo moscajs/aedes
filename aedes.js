@@ -119,48 +119,45 @@ function Aedes (opts) {
 
 util.inherits(Aedes, EE)
 
-function storeRetained (packet, done) {
+function storeRetained (_, done) {
+  var packet = this.packet
   if (packet.retain) {
-    this.persistence.storeRetained(packet, done)
+    this.broker.persistence.storeRetained(packet, done)
   } else {
     done()
   }
 }
 
-function emitPacket (packet, done) {
-  this.mq.emit(packet, done)
+function emitPacket (_, done) {
+  this.broker.mq.emit(this.packet, done)
 }
 
-function enqueueOffline (packet, done) {
+function enqueueOffline (_, done) {
   var that = this
+  var packet = this.packet
 
   if (packet.qos > 0) {
-    this.persistence.subscriptionsByTopic(packet.topic, function (err, subs) {
+    this.broker.persistence.subscriptionsByTopic(packet.topic, function (err, subs) {
       if (err) {
         // is this really recoverable?
         // let's just error the whole aedes
-        that.emit('error', err)
+        that.broker.emit('error', err)
       }
       // TODO remove callback
 
-      doEnqueues(that, packet, subs, done)
+      doEnqueues(that, subs, done)
     })
   } else {
     done()
   }
 }
 
-function EnqueuedStatus (packet, broker) {
-  this.packet = packet
-  this.broker = broker
-}
-
-function doEnqueues (broker, packet, subs, done) {
+function doEnqueues (status, subs, done) {
   if (subs.length === 0) {
     done()
   } else {
-    broker._parallel(
-      new EnqueuedStatus(packet, broker),
+    status.broker._parallel(
+      status,
       doEnqueue, subs, done)
   }
 }
@@ -169,14 +166,24 @@ function doEnqueue (sub, done) {
   this.broker.persistence.outgoingEnqueue(sub, this.packet, done)
 }
 
+function callPublished (_, done) {
+  this.broker.published(this.packet, this.client, done)
+  this.broker.emit('publish', this.packet, this.client)
+}
+
 var publishFuncs = [
   storeRetained,
   enqueueOffline,
-  emitPacket
+  emitPacket,
+  callPublished
 ]
-Aedes.prototype.publish = function (packet, done) {
+Aedes.prototype.publish = function (packet, client, done) {
+  if (typeof client === 'function') {
+    done = client
+    client = null
+  }
   var p = new Packet(packet, this)
-  this._series(this, publishFuncs, p, done)
+  this._series(new PublishState(this, client, p), publishFuncs, null, done)
 }
 
 Aedes.prototype.subscribe = function (topic, func, done) {
@@ -216,7 +223,7 @@ Aedes.prototype.registerClient = function (client) {
 Aedes.prototype._finishRegisterClient = function (client) {
   this.connectedClients++
   this.clients[client.id] = client
-  this.emit('newClient', client)
+  this.emit('client', client)
   this.publish({
     topic: '$SYS/' + this.id + '/new/clients',
     payload: new Buffer(client.id, 'utf8')
@@ -226,6 +233,7 @@ Aedes.prototype._finishRegisterClient = function (client) {
 Aedes.prototype.unregisterClient = function (client) {
   this.connectedClients--
   delete this.clients[client.id]
+  this.emit('clientDisconnect', client)
 }
 
 function closeClient (client, cb) {
@@ -248,6 +256,16 @@ Aedes.prototype.authorizePublish = function (client, packet, callback) {
 
 Aedes.prototype.authorizeSubscribe = function (client, sub, cb) {
   cb(null, sub)
+}
+
+Aedes.prototype.published = function (packet, client, done) {
+  done(null)
+}
+
+function PublishState (broker, client, packet) {
+  this.broker = broker
+  this.client = client
+  this.packet = packet
 }
 
 function noop () {}

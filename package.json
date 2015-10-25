@@ -44,7 +44,7 @@
     "end-of-stream": "^1.1.0",
     "fastfall": "^1.0.0",
     "fastparallel": "^2.0.0",
-    "fastseries": "^1.0.1",
+    "fastseries": "^1.5.0",
     "from2": "^2.1.0",
     "mqemitter": "^0.5.0",
     "mqtt-packet": "^4.0.0",

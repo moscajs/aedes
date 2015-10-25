@@ -314,17 +314,3 @@ test('publish to $SYS/broker/new/clients', function (t) {
     clientId: 'abcde'
   })
 })
-
-test('emits newClient', function (t) {
-  t.plan(1)
-
-  var broker = aedes()
-
-  broker.on('newClient', function (client) {
-    t.equal(client.id, 'abcde', 'clientId matches')
-  })
-
-  connect(setup(broker), {
-    clientId: 'abcde'
-  })
-})

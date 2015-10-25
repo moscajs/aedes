@@ -5,6 +5,7 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var subscribe = helper.subscribe
 
 test('count connected clients', function (t) {
   t.plan(4)
@@ -27,5 +28,122 @@ test('count connected clients', function (t) {
   // the next tick
   process.nextTick(function () {
     t.equal(broker.connectedClients, 1, 'one connected clients')
+  })
+})
+
+test('call published method', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+
+  broker.published = function (packet, client, done) {
+    t.equal(packet.topic, 'hello', 'topic matches')
+    t.equal(packet.payload.toString(), 'world', 'payload matches')
+    t.equal(client, null, 'no client')
+    broker.close()
+    done()
+  }
+
+  broker.publish({
+    topic: 'hello',
+    payload: new Buffer('world')
+  }, function (err) {
+    t.error(err, 'no error')
+  })
+})
+
+test('emit publish event', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+
+  broker.on('publish', function (packet, client) {
+    t.equal(packet.topic, 'hello', 'topic matches')
+    t.equal(packet.payload.toString(), 'world', 'payload matches')
+    t.equal(client, null, 'no client')
+    broker.close()
+  })
+
+  broker.publish({
+    topic: 'hello',
+    payload: new Buffer('world')
+  }, function (err) {
+    t.error(err, 'no error')
+  })
+})
+
+test('emit subscribe event', function (t) {
+  t.plan(6)
+
+  var broker = aedes()
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  broker.on('subscribe', function (subscriptions, client) {
+    t.deepEqual(subscriptions, [{
+      topic: 'hello',
+      qos: 0
+    }], 'topic matches')
+    t.equal(client.id, 'abcde', 'client matches')
+  })
+
+  subscribe(t, s, 'hello', 0, function () {
+    t.pass('subscribe completed')
+  })
+})
+
+test('emit unsubscribe event', function (t) {
+  t.plan(6)
+
+  var broker = aedes()
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  broker.on('unsubscribe', function (unsubscriptions, client) {
+    t.deepEqual(unsubscriptions, [
+      'hello'
+    ], 'unsubscription matches')
+    t.equal(client.id, 'abcde', 'client matches')
+  })
+
+  subscribe(t, s, 'hello', 0, function () {
+    s.inStream.write({
+      cmd: 'unsubscribe',
+      messageId: 43,
+      unsubscriptions: ['hello']
+    })
+
+    s.outStream.once('data', function (packet) {
+      t.pass('subscribe completed')
+    })
+  })
+})
+
+test('emit clientDisconnect event', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+
+  broker.on('clientDisconnect', function (client) {
+    t.equal(client.id, 'abcde', 'client matches')
+  })
+
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  s.inStream.end({
+    cmd: 'disconnect'
+  })
+  s.outStream.resume()
+})
+
+test('emits client', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+
+  broker.on('client', function (client) {
+    t.equal(client.id, 'abcde', 'clientId matches')
+  })
+
+  connect(setup(broker), {
+    clientId: 'abcde'
   })
 })

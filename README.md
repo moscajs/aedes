@@ -43,6 +43,7 @@ server.listen(port, function () {
   * <a href="#authenticate"><code>instance.<b>authenticate()</b></code></a>
   * <a href="#authorizePublish"><code>instance.<b>authorizePublish()</b></code></a>
   * <a href="#authorizeSubscribe"><code>instance.<b>authorizeSubscribe()</b></code></a>
+  * <a href="#published"><code>instance.<b>published()</b></code></a>
   * <a href="#close"><code>instance.<b>close()</b></code></a>
   * <a href="#client"><code><b>Client</b></code></a>
   * <a href="#clientpublish"><code>client.<b>publish()</b></code></a>
@@ -68,8 +69,26 @@ Options:
 
 Events:
 
-* `client`: when a new [Client](#client) connects
-* `clientError`: when a [Client](#client) errors
+* `client`: when a new [Client](#client) connects, arguments:
+  1. `client`
+* `clientDisconnect`: when a [Client](#client) disconnects, arguments:
+  1. `client`
+* `clientError`: when a [Client](#client) errors, arguments:
+  1. `client`
+  2. `err`
+* `publish`: when a new packet is published, arguments:
+  1. `packet`
+  2. `client`
+* `subscribe`: when a client sends a SUBSCRIBE, arguments:
+  1. `subscriptions`, as defined in the `subscriptions` property of the
+     [SUBSCRIBE](https://github.com/mqttjs/mqtt-packet#subscribe)
+packet.
+  2. `client`
+* `unsubscribe`: when a client sends a UNSUBSCRIBE, arguments:
+  1. `unsubscriptions`, as defined in the `subscriptions` property of the
+     [UNSUBSCRIBE](https://github.com/mqttjs/mqtt-packet#unsubscribe)
+packet.
+  2. `client`
 
 -------------------------------------------------------
 <a name="handle"></a>
@@ -163,6 +182,13 @@ instance.authorizeSubscribe = function (client, sub, cb) {
   callback(null, sub)
 }
 ```
+-------------------------------------------------------
+<a name="published"></a>
+### instance.published(packet, client, done())
+
+It will be after a message is published.
+`client` will be null for internal messages.
+Ovverride to supply custom authorization logic.
 
 -------------------------------------------------------
 <a name="close"></a>
