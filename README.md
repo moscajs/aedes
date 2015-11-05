@@ -250,13 +250,13 @@ Disconnects the client
 * [x] Keep alive support
 * [x] Will messages must survive crash
 * [x] Authentication
-* [ ] Mosca events
+* [x] Events
 * [x] Wait a CONNECT packet only for X seconds
 * [x] Support a CONNECT packet without a clientId
 * [x] Disconnect other clients with the same client.id
 * [x] Write docs
 * [x] Support counting the number of offline clients and subscriptions
-* [ ] Performance optimizations for QoS 1 and Qos 2
+* [x] Performance optimizations for QoS 1 and Qos 2
 * [x] Add `client#publish()` and `client#subscribe()`
 * [ ] move the persistence in a separate module
 * [ ] mongo persistence (external module)
