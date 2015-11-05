@@ -11,6 +11,7 @@ var series = require('fastseries')
 var shortid = require('shortid')
 var Packet = require('./lib/packet')
 var bulk = require('bulk-write-stream')
+var reusify = require('reusify')
 
 module.exports = Aedes
 
@@ -40,6 +41,7 @@ function Aedes (opts) {
   this.persistence.broker = this
   this._parallel = parallel()
   this._series = series()
+  this._enqueuers = reusify(DoEnqueues)
 
   this.clients = {}
   this.brokers = {}
@@ -83,7 +85,7 @@ function Aedes (opts) {
     if (needsPublishing) {
       // randomize this, so that multiple brokers
       // do not publish the same wills at the same time
-      that.publish(will, function (err) {
+      that.publish(will, function publishWill (err) {
         if (err) {
           return done(err)
         }
@@ -133,32 +135,46 @@ function emitPacket (_, done) {
 }
 
 function enqueueOffline (_, done) {
-  var that = this
   var packet = this.packet
 
-  if (packet.qos > 0) {
-    this.broker.persistence.subscriptionsByTopic(packet.topic, function (err, subs) {
-      if (err) {
-        // is this really recoverable?
-        // let's just error the whole aedes
-        that.broker.emit('error', err)
-      }
-      // TODO remove callback
+  var enqueuer = this.broker._enqueuers.get()
 
-      doEnqueues(that, subs, done)
-    })
-  } else {
-    done()
-  }
+  enqueuer.complete = done
+  enqueuer.status = this
+
+  this.broker.persistence.subscriptionsByTopic(
+    packet.topic,
+    enqueuer.done
+  )
 }
 
-function doEnqueues (status, subs, done) {
-  if (subs.length === 0) {
-    done()
-  } else {
-    status.broker._parallel(
-      status,
-      doEnqueue, subs, done)
+function DoEnqueues () {
+  this.next = null
+  this.status = null
+  this.complete = null
+
+  var that = this
+
+  this.done = function doneEnqueue (err, subs) {
+    var status = that.status
+    var broker = status.broker
+
+    if (err) {
+      // is this really recoverable?
+      // let's just error the whole aedes
+      broker.emit('error', err)
+    } else {
+      var complete = that.complete
+
+      that.status = null
+      that.complete = null
+
+      broker._parallel(
+        status,
+        doEnqueue, subs, complete)
+
+      broker._enqueuers.release(that)
+    }
   }
 }
 
@@ -171,7 +187,12 @@ function callPublished (_, done) {
   this.broker.emit('publish', this.packet, this.client)
 }
 
-var publishFuncs = [
+var publishFuncsSimple = [
+  storeRetained,
+  emitPacket,
+  callPublished
+]
+var publishFuncsQoS = [
   storeRetained,
   enqueueOffline,
   emitPacket,
@@ -183,6 +204,10 @@ Aedes.prototype.publish = function (packet, client, done) {
     client = null
   }
   var p = new Packet(packet, this)
+  var publishFuncs = publishFuncsSimple
+  if (p.qos > 0) {
+    publishFuncs = publishFuncsQoS
+  }
   this._series(new PublishState(this, client, p), publishFuncs, null, done)
 }
 
@@ -197,7 +222,7 @@ Aedes.prototype.subscribe = function (topic, func, done) {
 
     var stream = broker.persistence.createRetainedStream(topic)
 
-    stream.pipe(through.obj(function (packet, enc, cb) {
+    stream.pipe(through.obj(function sendRetained (packet, enc, cb) {
       func(packet, cb)
     }))
   })
@@ -212,7 +237,7 @@ Aedes.prototype.registerClient = function (client) {
   if (this.clients[client.id]) {
     // moving out so we wait for this, so we don't
     // unregister a good client
-    this.clients[client.id].close(function () {
+    this.clients[client.id].close(function closeClient () {
       that._finishRegisterClient(client)
     })
   } else {

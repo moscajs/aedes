@@ -343,6 +343,21 @@ function abstractPersistence (opts) {
     })
   })
 
+  function enqueueAndUpdate (t, instance, client, sub, packet, messageId, callback) {
+    instance.outgoingEnqueue(sub, packet, function (err) {
+      t.error(err)
+      var updated = new Packet(packet)
+      updated.messageId = messageId
+
+      instance.outgoingUpdate(client, updated, function (err, reclient, repacket) {
+        t.error(err)
+        t.equal(reclient, client, 'client matches')
+        t.equal(repacket, repacket, 'packet matches')
+        callback(updated)
+      })
+    })
+  }
+
   test('add outgoing packet and update messageId', function (t) {
     var instance = persistence()
     var sub = {
@@ -363,22 +378,59 @@ function abstractPersistence (opts) {
       brokerCounter: 42
     }
 
-    instance.outgoingEnqueue(sub, packet, function (err) {
-      t.error(err)
-      var updated = new Packet(packet)
-      updated.messageId = 42
+    enqueueAndUpdate(t, instance, client, sub, packet, 42, function (updated) {
+      var stream = instance.outgoingStream(client)
 
-      instance.outgoingUpdate(client, updated, function (err, reclient, repacket) {
-        t.error(err)
-        t.equal(reclient, client, 'client matches')
-        t.equal(repacket, repacket, 'packet matches')
+      stream.pipe(concat(function (list) {
+        t.deepEqual(list, [updated], 'must return the packet')
+        instance.destroy(t.end.bind(t))
+      }))
+    })
+  })
 
-        var stream = instance.outgoingStream(client)
+  test('add 2 outgoing packet and clear messageId', function (t) {
+    var instance = persistence()
+    var sub = {
+      clientId: 'abcde', topic: 'hello', qos: 1
+    }
+    var client = {
+      id: sub.clientId
+    }
+    var packet1 = {
+      cmd: 'publish',
+      topic: 'hello',
+      payload: new Buffer('world'),
+      qos: 1,
+      dup: false,
+      length: 14,
+      retain: false,
+      brokerId: 'mybroker',
+      brokerCounter: 42
+    }
+    var packet2 = {
+      cmd: 'publish',
+      topic: 'hello',
+      payload: new Buffer('matteo'),
+      qos: 1,
+      dup: false,
+      length: 14,
+      retain: false,
+      brokerId: 'mybroker',
+      brokerCounter: 43
+    }
 
-        stream.pipe(concat(function (list) {
-          t.deepEqual(list, [updated], 'must return the packet')
-          instance.destroy(t.end.bind(t))
-        }))
+    enqueueAndUpdate(t, instance, client, sub, packet1, 42, function (updated1) {
+      enqueueAndUpdate(t, instance, client, sub, packet2, 43, function (updated2) {
+        instance.outgoingClearMessageId(client, updated1, function (err) {
+          t.error(err)
+
+          var stream = instance.outgoingStream(client)
+
+          stream.pipe(concat(function (list) {
+            t.deepEqual(list, [updated2], 'must return the packet')
+            instance.destroy(t.end.bind(t))
+          }))
+        })
       })
     })
   })
