@@ -78,7 +78,8 @@ Events:
   2. `err`
 * `publish`: when a new packet is published, arguments:
   1. `packet`
-  2. `client`
+  2. `client`, it will be null if the message is published using
+     [`publish`](#publish).
 * `subscribe`: when a client sends a SUBSCRIBE, arguments:
   1. `subscriptions`, as defined in the `subscriptions` property of the
      [SUBSCRIBE](https://github.com/mqttjs/mqtt-packet#subscribe)

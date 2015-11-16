@@ -52,23 +52,50 @@ test('call published method', function (t) {
   })
 })
 
-test('emit publish event', function (t) {
-  t.plan(4)
+test('call published method with client', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+
+  broker.published = function (packet, client, done) {
+    // for internal messages, client will be null
+    if (client) {
+      t.equal(packet.topic, 'hello', 'topic matches')
+      t.equal(packet.payload.toString(), 'world', 'payload matches')
+      broker.close()
+      done()
+    }
+  }
+
+  var s = connect(setup(broker))
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world')
+  })
+})
+
+test('emit publish event with client', function (t) {
+  t.plan(2)
 
   var broker = aedes()
 
   broker.on('publish', function (packet, client) {
-    t.equal(packet.topic, 'hello', 'topic matches')
-    t.equal(packet.payload.toString(), 'world', 'payload matches')
-    t.equal(client, null, 'no client')
-    broker.close()
+    // for internal messages, client will be null
+    if (client) {
+      t.equal(packet.topic, 'hello', 'topic matches')
+      t.equal(packet.payload.toString(), 'world', 'payload matches')
+      broker.close()
+    }
   })
 
-  broker.publish({
+  var s = connect(setup(broker))
+
+  s.inStream.write({
+    cmd: 'publish',
     topic: 'hello',
     payload: new Buffer('world')
-  }, function (err) {
-    t.error(err, 'no error')
   })
 })
 
