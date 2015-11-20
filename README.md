@@ -145,7 +145,7 @@ instance.authenticate = function (client, username, password, callback) {
 <a name="authorizePublish"></a>
 ### instance.authorizePublish(client, packet, done(err))
 
-It will be called when a client publishes a message. Ovverride to supply custom
+It will be called when a client publishes a message. Override to supply custom
 authorization logic.
 
 ```js
@@ -166,18 +166,18 @@ instance.authorizePublish = function (client, packet, callback) {
 <a name="authorizeSubscribe"></a>
 ### instance.authorizeSubscribe(client, pattern, done(err, pattern))
 
-It will be called when a client publishes a message. Ovverride to supply custom
+It will be called when a client publishes a message. Override to supply custom
 authorization logic.
 
 ```js
 instance.authorizeSubscribe = function (client, sub, cb) {
-  if (sub === 'aaaa') {
+  if (sub.topic === 'aaaa') {
     return cb(new Error('wrong topic'))
   }
 
-  if (sub === 'bbb') {
+  if (sub.topic === 'bbb') {
     // overwrites subscription
-    sub = '42'
+    sub.qos = sub.qos + 128
   }
 
   callback(null, sub)
