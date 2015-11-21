@@ -24,11 +24,12 @@ test('delivers a will', function (t) {
   // willConnect populates opts with a will
   var s = willConnect(setup(), opts)
 
-  s.broker.mq.on('mywill', function (packet) {
+  s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
     t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
     t.equal(packet.qos, opts.will.qos, 'qos matches')
     t.equal(packet.retain, opts.will.retain, 'retain matches')
+    cb()
     t.end()
   })
 
