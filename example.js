@@ -10,7 +10,6 @@ server.listen(port, function () {
 
 aedes.on('clientError', function (client, err) {
   console.log('client error', client.id, err.message)
-  throw err
 })
 
 aedes.on('publish', function (packet, client) {
