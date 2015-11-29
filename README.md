@@ -1,4 +1,4 @@
-# Aedes&nbsp;&nbsp;[![Build Status](https://travis-ci.org/mcollina/aedes.png)](https://travis-ci.org/mcollina/aedes)
+# Aedes&nbsp;&nbsp;[![Build Status](https://travis-ci.org/mcollina/aedes.svg)](https://travis-ci.org/mcollina/aedes)
 
 Barebone MQTT server that can run on any stream server.
 
