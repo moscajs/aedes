@@ -2,7 +2,7 @@
 
 // To be used with cpuprofilify http://npm.im/cpuprofilify
 
-var aedes = require('./aedes')()
+var aedes = require('../')()
 var server = require('net').createServer(aedes.handle)
 var port = 1883
 
