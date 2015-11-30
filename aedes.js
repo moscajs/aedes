@@ -2,16 +2,16 @@
 
 var mqemitter = require('mqemitter')
 var EE = require('events').EventEmitter
-var Client = require('./lib/client')
 var util = require('util')
-var memory = require('./lib/persistence')
+var memory = require('aedes-persistence')
 var through = require('through2')
 var parallel = require('fastparallel')
 var series = require('fastseries')
 var shortid = require('shortid')
-var Packet = require('./lib/packet')
+var Packet = require('aedes-packet')
 var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
+var Client = require('./lib/client')
 
 module.exports = Aedes
 
