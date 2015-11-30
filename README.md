@@ -46,6 +46,8 @@ server.listen(port, function () {
   * <a href="#published"><code>instance.<b>published()</b></code></a>
   * <a href="#close"><code>instance.<b>close()</b></code></a>
   * <a href="#client"><code><b>Client</b></code></a>
+  * <a href="#clientid"><code>client.<b>id</b></code></a>
+  * <a href="#clientclean"><code>client.<b>clean</b></code></a>
   * <a href="#clientpublish"><code>client.<b>publish()</b></code></a>
   * <a href="#clientsubscribe"><code>client.<b>subscribe()</b></code></a>
   * <a href="#clientClose"><code>client.<b>close()</b></code></a>
@@ -206,6 +208,19 @@ Classes for all connected clients.
 Events:
 
 * `error`, in case something bad happended
+
+-------------------------------------------------------
+<a name="clientid"></a>
+### client#id
+
+The id of the client, as specified by the CONNECT packet.
+
+-------------------------------------------------------
+<a name="clientclean"></a>
+### client#client
+
+`true` if the client connected (CONNECT) with `clean: true`, `false`
+otherwise. Check the MQTT spec for what this means.
 
 -------------------------------------------------------
 <a name="clientpublish"></a>
