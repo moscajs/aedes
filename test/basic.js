@@ -314,3 +314,39 @@ test('publish to $SYS/broker/new/clients', function (t) {
     clientId: 'abcde'
   })
 })
+
+test('restore QoS 0 subscriptions not clean', function (t) {
+  var broker = aedes()
+  var publisher
+  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 0,
+    dup: false,
+    length: 12,
+    retain: false
+  }
+
+  subscribe(t, subscriber, 'hello', 0, function () {
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
+      t.equal(connect.sessionPresent, true, 'session present is set to true')
+      publisher.inStream.write({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world',
+        qos: 0
+      })
+    })
+
+    subscriber.outStream.once('data', function (packet) {
+      t.deepEqual(packet, expected, 'packet must match')
+      t.end()
+    })
+  })
+})

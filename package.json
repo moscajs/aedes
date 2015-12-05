@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "aedes-packet": "^1.0.0",
-    "aedes-persistence": "^1.0.0",
+    "aedes-persistence": "^1.0.1",
     "bulk-write-stream": "^1.0.0",
     "end-of-stream": "^1.1.0",
     "fastfall": "^1.0.0",
