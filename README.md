@@ -23,7 +23,7 @@ npm install aedes --save
 <a name="example"></a>
 ## Example
 ```js
-var aedes = require('./aedes')()
+var aedes = require('aedes')()
 var server = require('net').createServer(aedes.handle)
 var port = 1883
 
