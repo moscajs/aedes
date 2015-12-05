@@ -14,6 +14,10 @@ aedes.on('clientError', function (client, err) {
 
 aedes.on('publish', function (packet, client) {
   if (client) {
-    console.log('client', client.id)
+    console.log('message from client', client.id)
   }
+})
+
+aedes.on('client', function (client) {
+  console.log('new client', client.id)
 })
