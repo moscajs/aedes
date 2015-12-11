@@ -30,7 +30,9 @@
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "devDependencies": {
+    "compute-mode": "^1.0.0",
     "concat-stream": "^1.4.7",
+    "convert-hrtime": "^1.0.0",
     "duplexify": "^3.4.1",
     "faucet": "0.0.1",
     "mqtt": "^1.0.6",
