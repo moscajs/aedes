@@ -1,4 +1,4 @@
-# Aedes&nbsp;&nbsp;[![Build Status](https://travis-ci.org/mcollina/aedes.svg)](https://travis-ci.org/mcollina/aedes)
+# Aedes&nbsp;&nbsp;[![Build Status](https://travis-ci.org/mcollina/aedes.svg)](https://travis-ci.org/mcollina/aedes)&nbsp;[![Coverage Status](https://coveralls.io/repos/mcollina/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/mcollina/aedes?branch=master)
 
 Barebone MQTT server that can run on any stream server.
 
