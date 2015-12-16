@@ -6,7 +6,9 @@
   "scripts": {
     "lint": "standard",
     "test": "tape test/*.js test/*/*.js | faucet",
-    "ci": "npm run lint; npm run test"
+    "ci": "npm run lint; npm run coverage",
+    "istanbul": "istanbul cover tape test/*.js test/*/*.js",
+    "coverage": "npm run istanbul; cat coverage/lcov.info | coveralls"
   },
   "pre-commit": [
     "lint",
@@ -33,8 +35,10 @@
     "compute-mode": "^1.0.0",
     "concat-stream": "^1.4.7",
     "convert-hrtime": "^1.0.0",
+    "coveralls": "^2.11.6",
     "duplexify": "^3.4.1",
     "faucet": "0.0.1",
+    "istanbul": "^0.4.1",
     "mqtt": "^1.0.6",
     "mqtt-connection": "^2.1.0",
     "pre-commit": "^1.0.10",
