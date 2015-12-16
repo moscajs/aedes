@@ -141,6 +141,7 @@ function enqueueOffline (_, done) {
 
   enqueuer.complete = done
   enqueuer.status = this
+  enqueuer.topic = packet.topic
 
   this.broker.persistence.subscriptionsByTopic(
     packet.topic,
@@ -152,6 +153,7 @@ function DoEnqueues () {
   this.next = null
   this.status = null
   this.complete = null
+  this.topic = null
 
   var that = this
 
@@ -166,8 +168,13 @@ function DoEnqueues () {
     } else {
       var complete = that.complete
 
+      if (that.topic.indexOf('$SYS') === 0) {
+        subs = subs.filter(removeSharp)
+      }
+
       that.status = null
       that.complete = null
+      that.topic = null
 
       broker._parallel(
         status,
@@ -176,6 +183,10 @@ function DoEnqueues () {
       broker._enqueuers.release(that)
     }
   }
+}
+
+function removeSharp (sub) {
+  return sub.topic !== '#'
 }
 
 function doEnqueue (sub, done) {
