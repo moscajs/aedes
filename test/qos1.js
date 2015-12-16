@@ -194,7 +194,8 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
 test('resend publish on non-clean reconnect QoS 1', function (t) {
   var broker = aedes()
   var publisher
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var opts = { clean: false, clientId: 'abcde' }
+  var subscriber = connect(setup(broker), opts)
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -221,7 +222,7 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
     publisher.outStream.once('data', function (packet) {
       t.equal(packet.cmd, 'puback')
 
-      subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+      subscriber = connect(setup(broker), opts)
 
       subscriber.outStream.once('data', function (packet) {
         subscriber.inStream.write({
