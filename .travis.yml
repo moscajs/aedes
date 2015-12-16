@@ -2,12 +2,12 @@ language: node_js
 node_js:
   - "0.10"
   - "0.12"
-  - iojs-v1
-  - iojs-v2
-  - iojs-v3
   - "4.0"
   - "4.1"
   - "4.2"
+  - "5.0"
+  - "5.1"
+  - "5.2"
 script:
   - npm run ci
 cache:
