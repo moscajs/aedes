@@ -277,8 +277,9 @@ Disconnects the client
 * [x] Add `client#publish()` and `client#subscribe()`
 * [x] move the persistence in a separate module
 * [ ] mongo persistence (external module)
-* [ ] redis persistence (external module)
+* [x] redis persistence ([external module](http://npm.im/aedes-persistence-redis))
 * [ ] levelup persistence (external module)
+* [ ] cluster support (external module)
 
 ## Acknowledgements
 
