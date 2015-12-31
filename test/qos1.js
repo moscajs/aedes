@@ -381,3 +381,77 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
     })
   })
 })
+
+test('deliver QoS 1 retained messages', function (t) {
+  var broker = aedes()
+  var publisher = connect(setup(broker))
+  var subscriber = connect(setup(broker))
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 1,
+    dup: false,
+    length: 14,
+    retain: true
+  }
+
+  publisher.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 42,
+    retain: true
+  })
+
+  publisher.outStream.on('data', function (packet) {
+    subscribe(t, subscriber, 'hello', 1, function () {
+      subscriber.outStream.once('data', function (packet) {
+        subscriber.inStream.write({
+          cmd: 'puback',
+          messageId: packet.messageId
+        })
+        t.notEqual(packet.messageId, 42, 'messageId must differ')
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+        t.end()
+      })
+    })
+  })
+})
+
+test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
+  var broker = aedes()
+  var publisher = connect(setup(broker))
+  var subscriber = connect(setup(broker))
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 0,
+    dup: false,
+    length: 12,
+    retain: true
+  }
+
+  broker.mq.on('hello', function (msg, cb) {
+    cb()
+
+    subscribe(t, subscriber, 'hello', 1, function () {
+      subscriber.outStream.once('data', function (packet) {
+        t.deepEqual(packet, expected, 'packet must match')
+        t.end()
+      })
+    })
+  })
+
+  publisher.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 0,
+    messageId: 42,
+    retain: true
+  })
+})

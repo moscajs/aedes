@@ -110,7 +110,7 @@ var server = require('net').createServer(aedes.handle)
 ### instance.subscribe(topic, func(packet, cb), done)
 
 After `done` is called, every time [publish](#publish) is invoked on the
-instance (and on any other connected instances) with a matching `topic` the `func` function will be called. It also support retained messages lookup.
+instance (and on any other connected instances) with a matching `topic` the `func` function will be called.
 
 `func` needs to call `cb` after receiving the message.
 

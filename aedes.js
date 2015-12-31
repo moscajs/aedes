@@ -4,7 +4,6 @@ var mqemitter = require('mqemitter')
 var EE = require('events').EventEmitter
 var util = require('util')
 var memory = require('aedes-persistence')
-var through = require('through2')
 var parallel = require('fastparallel')
 var series = require('fastseries')
 var shortid = require('shortid')
@@ -223,20 +222,7 @@ Aedes.prototype.publish = function (packet, client, done) {
 }
 
 Aedes.prototype.subscribe = function (topic, func, done) {
-  var broker = this
-
-  this.mq.on(topic, func, function subscribed () {
-    if (done) {
-      // first do a suback
-      done()
-    }
-
-    var stream = broker.persistence.createRetainedStream(topic)
-
-    stream.pipe(through.obj(function sendRetained (packet, enc, cb) {
-      func(packet, cb)
-    }))
-  })
+  this.mq.on(topic, func, done)
 }
 
 Aedes.prototype.unsubscribe = function (topic, func, done) {
