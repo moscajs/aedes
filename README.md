@@ -278,7 +278,7 @@ Disconnects the client
 * [x] move the persistence in a separate module
 * [ ] mongo persistence (external module)
 * [x] redis persistence ([external module](http://npm.im/aedes-persistence-redis))
-* [ ] levelup persistence (external module)
+* [x] leveldb persistence ([external module](http://npm.im/aedes-persistence-level))
 * [ ] cluster support (external module)
 
 ## Acknowledgements
