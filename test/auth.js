@@ -3,6 +3,7 @@
 var test = require('tape').test
 var Client = require('../lib/client')
 var helper = require('./helper')
+var aedes = require('../')
 var eos = require('end-of-stream')
 var setup = helper.setup
 var subscribe = helper.subscribe
@@ -242,5 +243,76 @@ test('negate subscription', function (t) {
     t.equal(packet.cmd, 'suback')
     t.deepEqual(packet.granted, [128])
     t.equal(packet.messageId, 24)
+  })
+})
+
+test('failed authentication does not disconnect other client with same clientId', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var s = setup(broker)
+  var s0 = setup(broker)
+
+  broker.authenticate = function (client, username, password, cb) {
+    cb(null, password.toString() === 'right')
+  }
+
+  s0.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    username: 'my username',
+    password: 'right',
+    keepalive: 0
+  })
+
+  s0.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 0,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'successful connack')
+
+    s.inStream.write({
+      cmd: 'connect',
+      protocolId: 'MQTT',
+      protocolVersion: 4,
+      clean: true,
+      clientId: 'my-client',
+      username: 'my username',
+      password: 'wrong',
+      keepalive: 0
+    })
+  })
+
+  var removeEos = eos(s0.outStream, function () {
+    t.fail('ended before time')
+  })
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 5,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'unsuccessful connack')
+  })
+
+  eos(s.outStream, function () {
+    t.pass('ended')
+    removeEos()
   })
 })
