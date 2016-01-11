@@ -455,3 +455,62 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
     retain: true
   })
 })
+
+test('remove stored subscriptions after unsubscribe', function (t) {
+  var broker = aedes()
+  var publisher
+  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+
+  subscribe(t, subscriber, 'hello', 1, function () {
+    subscriber.inStream.write({
+      cmd: 'unsubscribe',
+      messageId: 43,
+      unsubscriptions: ['hello']
+    })
+
+    subscriber.outStream.once('data', function (packet) {
+      t.deepEqual(packet, {
+        cmd: 'unsuback',
+        messageId: 43,
+        dup: false,
+        length: 2,
+        qos: 0,
+        retain: false
+      }, 'packet matches')
+
+      subscriber.inStream.end()
+
+      publisher = connect(setup(broker))
+
+      subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (packet) {
+        t.equal(packet.sessionPresent, false, 'session present is set to false')
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 1,
+          messageId: 42
+        })
+
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 1,
+          messageId: 43
+        }, function () {
+          subscriber.inStream.end()
+          t.end()
+        })
+
+        subscriber.outStream.once('data', function (packet) {
+          t.fail('publish received')
+        })
+      })
+
+      subscriber.outStream.once('data', function (packet) {
+        t.fail('publish received')
+      })
+    })
+  })
+})
