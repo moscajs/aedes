@@ -350,3 +350,35 @@ test('restore QoS 0 subscriptions not clean', function (t) {
     })
   })
 })
+
+test('double sub does not double deliver', function (t) {
+  var s = connect(setup())
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    dup: false,
+    length: 12,
+    qos: 0,
+    retain: false
+  }
+
+  subscribe(t, s, 'hello', 0, function () {
+    subscribe(t, s, 'hello', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.deepEqual(packet, expected, 'packet matches')
+        s.outStream.on('data', function () {
+          t.fail('double deliver')
+        })
+        // wait for a tick, so it will double deliver
+        setImmediate(t.end.bind(t))
+      })
+
+      s.broker.mq.emit({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world'
+      })
+    })
+  })
+})

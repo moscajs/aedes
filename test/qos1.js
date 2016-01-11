@@ -514,3 +514,34 @@ test('remove stored subscriptions after unsubscribe', function (t) {
     })
   })
 })
+
+test('upgrade a QoS 0 subscription to QoS 1', function (t) {
+  var s = connect(setup())
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 1,
+    length: 14,
+    retain: false,
+    dup: false
+  }
+
+  subscribe(t, s, 'hello', 0, function () {
+    subscribe(t, s, 'hello', 1, function () {
+      s.outStream.once('data', function (packet) {
+        t.ok(packet.messageId, 'has messageId')
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet matches')
+        t.end()
+      })
+
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world',
+        qos: 1
+      })
+    })
+  })
+})

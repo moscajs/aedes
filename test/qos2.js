@@ -274,3 +274,41 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
     })
   })
 })
+
+test('publish after disconnection', function (t) {
+  var broker = aedes()
+  var publisher = connect(setup(broker))
+  var subscriber = connect(setup(broker))
+  var toPublish = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 2,
+    messageId: 42,
+    dup: false,
+    length: 14,
+    retain: false
+  }
+  var toPublish2 = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('worl2'),
+    qos: 2,
+    messageId: 43,
+    dup: false,
+    length: 14,
+    retain: false
+  }
+
+  subscribe(t, subscriber, 'hello', 2, function () {
+    publish(t, publisher, toPublish)
+
+    receive(t, subscriber, toPublish, function () {
+      publish(t, publisher, toPublish2, t.end.bind(t))
+
+      subscriber.outStream.once('data', function (packet) {
+        console.log(packet)
+      })
+    })
+  })
+})
