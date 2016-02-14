@@ -156,6 +156,29 @@ test('unsubscribe', function (t) {
   })
 })
 
+test('unsubscribe without subscribe', function (t) {
+  t.plan(1)
+
+  var s = noError(connect(setup()), t)
+
+  s.inStream.write({
+    cmd: 'unsubscribe',
+    messageId: 43,
+    unsubscriptions: ['hello']
+  })
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'unsuback',
+      messageId: 43,
+      dup: false,
+      length: 2,
+      qos: 0,
+      retain: false
+    }, 'packet matches')
+  })
+})
+
 test('unsubscribe on disconnect', function (t) {
   var s = noError(connect(setup()), t)
 
