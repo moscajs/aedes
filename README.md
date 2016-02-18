@@ -235,7 +235,7 @@ respected, while the retained flag is not.
 `callback`  will be called when the message has been sent, but not acked.
 
 -------------------------------------------------------
-<a name="clientsubscribes"></a>
+<a name="clientsubscribe"></a>
 ### client#subscribe(subscriptions, [callback])
 
 Subscribe the client to the list of topics.
