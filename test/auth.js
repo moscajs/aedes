@@ -48,7 +48,7 @@ test('authenticate successfully a client with username and password', function (
 })
 
 test('authenticate unsuccessfully a client with username and password', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   var s = setup()
 
@@ -74,6 +74,7 @@ test('authenticate unsuccessfully a client with username and password', function
   })
 
   eos(s.outStream, function () {
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
     t.pass('ended')
   })
 
