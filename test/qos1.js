@@ -545,3 +545,29 @@ test('upgrade a QoS 0 subscription to QoS 1', function (t) {
     })
   })
 })
+
+test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
+  var s = connect(setup())
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 0,
+    length: 12,
+    retain: false,
+    dup: false
+  }
+
+  subscribe(t, s, 'hello', 1, function () {
+    s.outStream.once('data', function (packet) {
+      t.deepEqual(packet, expected, 'packet matches')
+      t.end()
+    })
+    s.broker.publish({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 0
+    })
+  })
+})
