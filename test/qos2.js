@@ -111,6 +111,36 @@ test('subscribe QoS 2', function (t) {
   })
 })
 
+test('call published method with client with QoS 2', function (t) {
+  t.plan(10)
+
+  var broker = aedes()
+  var publisher = connect(setup(broker))
+  var subscriber = connect(setup(broker))
+  var toPublish = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 2,
+    messageId: 42,
+    dup: false,
+    length: 14,
+    retain: false
+  }
+
+  broker.published = function (packet, client, cb) {
+    t.ok(client, 'client must be passed to published method')
+
+    cb()
+  }
+
+  subscribe(t, subscriber, 'hello', 2, function () {
+    publish(t, publisher, toPublish)
+
+    receive(t, subscriber, toPublish, t.pass.bind(t))
+  })
+})
+
 test('subscribe QoS 0, but publish QoS 2', function (t) {
   var broker = aedes()
   var publisher = connect(setup(broker))
