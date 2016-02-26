@@ -11,7 +11,7 @@ var Packet = require('aedes-packet')
 var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
 var Client = require('./lib/client')
-var _ = require('lodash')
+var xtend = require('xtend')
 
 module.exports = Aedes
 
@@ -19,10 +19,10 @@ var defaultOptions = {
   concurrency: 100,
   heartbeatInterval: 60000, // 1 minute
   connectTimeout: 30000, // 30 secs
-  authenticate: function (client, username, password, callback) { callback(null, true) },
-  authorizePublish: function (client, packet, callback) { callback(null) },
-  authorizeSubscribe: function (client, sub, callback) { callback(null, sub) },
-  published: function (packet, client, callback) { callback(null) }
+  authenticate: defaultAuthenticate,
+  authorizePublish: defaultAuthorizePublish,
+  authorizeSubscribe: defaultAuthorizeSubscribe,
+  published: defaultPublished
 }
 
 function Aedes (opts) {
@@ -32,7 +32,7 @@ function Aedes (opts) {
     return new Aedes(opts)
   }
 
-  opts = _.defaults(opts || {}, defaultOptions)
+  opts = xtend(defaultOptions, opts)
 
   this.id = shortid()
   this.counter = 0
@@ -278,6 +278,22 @@ Aedes.prototype.close = function (cb) {
   clearInterval(this._heartbeatInterval)
   clearInterval(this._clearWillInterval)
   this._parallel(this, closeClient, Object.keys(this.clients), cb || noop)
+}
+
+function defaultAuthenticate (client, username, password, callback) {
+  callback(null, true)
+}
+
+function defaultAuthorizePublish (client, packet, callback) {
+  callback(null)
+}
+
+function defaultAuthorizeSubscribe (client, sub, callback) {
+  callback(null, sub)
+}
+
+function defaultPublished (packet, client, callback) {
+  callback(null)
 }
 
 function PublishState (broker, client, packet) {

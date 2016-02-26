@@ -54,7 +54,6 @@
     "fastparallel": "^2.0.0",
     "fastseries": "^1.5.0",
     "from2": "^2.1.0",
-    "lodash": "^4.5.1",
     "mqemitter": "^1.0.0",
     "mqtt-packet": "^4.0.0",
     "pump": "^1.0.0",
@@ -63,6 +62,7 @@
     "reusify": "^1.0.0",
     "shortid": "^2.1.3",
     "through2": "^2.0.0",
-    "uuid": "^2.0.1"
+    "uuid": "^2.0.1",
+    "xtend": "^4.0.1"
   }
 }
