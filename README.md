@@ -69,6 +69,14 @@ Options:
   `60000` milliseconds.
 * `connectTimeout`: the max number of milliseconds to wait for the CONNECT
   packet to arrive, defaults to `30000` milliseconds.
+* `authenticate`: function used to authenticate clients, see
+  [instance.authenticate()](#authenticate).
+* `authorizePublish`: function used to authorize PUBLISH packets, see
+  [instance.authorizePublish()](#authorizePublish).
+* `authorizeSubscribe`: function used to authorize SUBSCRIBE packets, see
+  [instance.authorizeSubscribe()](#authorizeSubscribe).
+* `published`: function called when a new packet is published, see
+  [instance.published()](#published).
 
 Events:
 
