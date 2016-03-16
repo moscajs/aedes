@@ -73,6 +73,38 @@ test('publish direct to a single client QoS 1', function (t) {
   })
 })
 
+test('emit a `delivered` event on PUBACK for QoS 1', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var messageId
+
+  broker.on('client', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: new Buffer('world'),
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+
+  broker.once('delivered', function (packet, client) {
+    t.equal(packet.messageId, messageId)
+    t.pass('got the delivered event')
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    messageId = packet.messageId
+    s.inStream.write({
+      cmd: 'puback',
+      messageId: packet.messageId
+    })
+  })
+})
+
 test('offline message support for direct publish', function (t) {
   t.plan(2)
 
