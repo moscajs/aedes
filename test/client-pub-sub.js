@@ -105,6 +105,45 @@ test('emit a `deliver` event on PUBACK for QoS 1', function (t) {
   })
 })
 
+test('emit a `deliver` event on PUBCOMP for QoS 2', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var messageId
+
+  broker.on('client', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: new Buffer('world'),
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+
+  broker.once('deliver', function (packet, client) {
+    t.equal(packet.messageId, messageId)
+    t.pass('got the deliver event')
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.on('data', function (packet) {
+    if (packet.cmd === 'publish') {
+      s.inStream.write({
+        cmd: 'pubrec',
+        messageId: packet.messageId
+      })
+    } else {
+      messageId = packet.messageId
+      s.inStream.write({
+        cmd: 'pubcomp',
+        messageId: packet.messageId
+      })
+    }
+  })
+})
+
 test('offline message support for direct publish', function (t) {
   t.plan(2)
 
