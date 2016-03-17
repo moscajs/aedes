@@ -91,6 +91,9 @@ Events:
   1. `packet`
   2. `client`, it will be null if the message is published using
      [`publish`](#publish).
+* `deliver`: when a packet published to a client is delivered successfully, arguments:
+  1. `packet`
+  2. `client`
 * `subscribe`: when a client sends a SUBSCRIBE, arguments:
   1. `subscriptions`, as defined in the `subscriptions` property of the
      [SUBSCRIBE](https://github.com/mqttjs/mqtt-packet#subscribe)
