@@ -115,7 +115,7 @@ test('emit a `deliver` event on PUBCOMP for QoS 2', function (t) {
     client.publish({
       topic: 'hello',
       payload: new Buffer('world'),
-      qos: 1
+      qos: 2
     }, function (err) {
       t.error(err, 'no error')
     })
