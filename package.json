@@ -1,6 +1,6 @@
 {
   "name": "aedes",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Stream-based MQTT broker",
   "main": "aedes.js",
   "scripts": {
