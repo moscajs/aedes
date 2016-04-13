@@ -7,8 +7,8 @@
     "lint": "standard",
     "test": "tape test/*.js test/*/*.js | faucet",
     "ci": "npm run lint; npm run coverage",
-    "istanbul": "istanbul cover tape test/*.js test/*/*.js",
-    "coverage": "npm run istanbul; cat coverage/lcov.info | coveralls"
+    "coverage": "istanbul cover tape test/*.js test/*/*.js",
+    "coveralls": "cat coverage/lcov.info | coveralls"
   },
   "pre-commit": [
     "lint",
