@@ -73,7 +73,7 @@ test('publish direct to a single client QoS 1', function (t) {
   })
 })
 
-test('emit a `deliver` event on PUBACK for QoS 1', function (t) {
+test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   t.plan(3)
 
   var broker = aedes()
@@ -89,9 +89,9 @@ test('emit a `deliver` event on PUBACK for QoS 1', function (t) {
     })
   })
 
-  broker.once('deliver', function (packet, client) {
+  broker.once('ack', function (packet, client) {
     t.equal(packet.messageId, messageId)
-    t.pass('got the deliver event')
+    t.pass('got the ack event')
   })
 
   var s = connect(setup(broker))
@@ -105,7 +105,7 @@ test('emit a `deliver` event on PUBACK for QoS 1', function (t) {
   })
 })
 
-test('emit a `deliver` event on PUBCOMP for QoS 2', function (t) {
+test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
   t.plan(3)
 
   var broker = aedes()
@@ -121,9 +121,9 @@ test('emit a `deliver` event on PUBCOMP for QoS 2', function (t) {
     })
   })
 
-  broker.once('deliver', function (packet, client) {
+  broker.once('ack', function (packet, client) {
     t.equal(packet.messageId, messageId)
-    t.pass('got the deliver event')
+    t.pass('got the ack event')
   })
 
   var s = connect(setup(broker))
