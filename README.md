@@ -91,7 +91,7 @@ Events:
   1. `packet`
   2. `client`, it will be null if the message is published using
      [`publish`](#publish).
-* `deliver`: when a packet published to a client is delivered successfully, arguments:
+* `ack`: when a packet published to a client is delivered successfully with QoS 1 or QoS 2, arguments:
   1. `packet`
   2. `client`
 * `subscribe`: when a client sends a SUBSCRIBE, arguments:
