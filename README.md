@@ -60,8 +60,12 @@ Creates a new instance of Aedes.
 
 Options:
 
-* `mq`: an instance of [MQEmitter](http://npm.im/mqemitter).
-* `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence).
+* `mq`: an instance of [MQEmitter](http://npm.im/mqemitter),
+  such as [MQEmitterRedis](http://npm.im/mqemitter-redis)
+  or [MQEmitterMongoDB](http://npm.im/mqemitter-mongodb)
+* `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence),
+  such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis)
+  or [aedes-persistence-mongodb](http://npm.im/aedes-persistence-mongodb)
 * `concurrency`: the max number of messages delivered concurrently,
   defaults to `100`.
 * `heartbeatInterval`: the interval at which the broker heartbeat is
@@ -287,7 +291,7 @@ Disconnects the client
 * [x] Performance optimizations for QoS 1 and Qos 2
 * [x] Add `client#publish()` and `client#subscribe()`
 * [x] move the persistence in a separate module
-* [ ] mongo persistence (external module)
+* [x] mongo persistence ([external module](http://npm.im/aedes-persistence-mongodb))
 * [x] redis persistence ([external module](http://npm.im/aedes-persistence-redis))
 * [x] leveldb persistence ([external module](http://npm.im/aedes-persistence-level))
 * [ ] cluster support (external module)
