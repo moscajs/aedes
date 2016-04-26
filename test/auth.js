@@ -415,3 +415,90 @@ test('set authentication method in config options', function (t) {
     keepalive: 0
   })
 })
+test('change a topic name inside authorizeForward method', function (t) {
+  t.plan(3)
+
+  var broker = aedes({
+    authorizeForward: function (client, packet, cb) {
+      packet.payload = new Buffer('another-world')
+      cb(null)
+    }
+  })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('another-world'),
+    dup: false,
+    length: 20,
+    qos: 0,
+    retain: false
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello',
+        payload: new Buffer('world'),
+        qos: 0
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
+
+test('change a topic name inside authorizeForward method QOS 1', function (t) {
+  t.plan(3)
+
+  var broker = aedes({
+    authorizeForward: function (client, packet, cb) {
+      packet.payload = new Buffer('another-world')
+      packet.messageId = 2
+      cb(null)
+    }
+  })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('another-world'),
+    dup: false,
+    length: 22,
+    qos: 1,
+    retain: false,
+    messageId: 2
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello',
+        payload: new Buffer('world'),
+        qos: 1
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
