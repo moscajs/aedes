@@ -209,18 +209,20 @@ instance.authorizeSubscribe = function (client, sub, cb) {
 
 It will be called when a client is set to recieve a message. Override to supply custom
 authorization logic.
+In order to completely pre
 
 ```js
-instance.authorizeForward = function (clientId, packet, callback) {
+instance.authorizeForward = function (clientId, packet) {
   if (packet.topic === 'aaaa' && clientId === "I should not see this") {
-    return callback(new Error('client not allowed to recieve mesages on this topic'))
+    return null
+    // also works with return undefined
   }
 
   if (packet.topic === 'bbb') {
     packet.payload = new Buffer('overwrite packet payload')
   }
 
-  callback(null)
+  return packet
 }
 ```
 
