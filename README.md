@@ -43,6 +43,7 @@ server.listen(port, function () {
   * <a href="#authenticate"><code>instance.<b>authenticate()</b></code></a>
   * <a href="#authorizePublish"><code>instance.<b>authorizePublish()</b></code></a>
   * <a href="#authorizeSubscribe"><code>instance.<b>authorizeSubscribe()</b></code></a>
+  * <a href="#authorizeForward"><code>instance.<b>authorizeForward()</b></code></a>
   * <a href="#published"><code>instance.<b>published()</b></code></a>
   * <a href="#close"><code>instance.<b>close()</b></code></a>
   * <a href="#client"><code><b>Client</b></code></a>
