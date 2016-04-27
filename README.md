@@ -206,7 +206,7 @@ instance.authorizeSubscribe = function (client, sub, cb) {
 ```
 -------------------------------------------------------
 <a name="authorizeForward"></a>
-### instance.authorizeForward(clientId, packet, done(err))
+### instance.authorizeForward(clientId, packet)
 
 It will be called when a client is set to recieve a message. Override to supply custom
 authorization logic.
