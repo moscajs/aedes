@@ -43,6 +43,7 @@ server.listen(port, function () {
   * <a href="#authenticate"><code>instance.<b>authenticate()</b></code></a>
   * <a href="#authorizePublish"><code>instance.<b>authorizePublish()</b></code></a>
   * <a href="#authorizeSubscribe"><code>instance.<b>authorizeSubscribe()</b></code></a>
+  * <a href="#authorizeForward"><code>instance.<b>authorizeForward()</b></code></a>
   * <a href="#published"><code>instance.<b>published()</b></code></a>
   * <a href="#close"><code>instance.<b>close()</b></code></a>
   * <a href="#client"><code><b>Client</b></code></a>
@@ -79,6 +80,8 @@ Options:
   [instance.authorizePublish()](#authorizePublish).
 * `authorizeSubscribe`: function used to authorize SUBSCRIBE packets, see
   [instance.authorizeSubscribe()](#authorizeSubscribe).
+* `authorizeForward`: function used to authorize forwarded packets, see
+  [instance.authorizeForward()](#authorizeForward).
 * `published`: function called when a new packet is published, see
   [instance.published()](#published).
 
@@ -201,6 +204,29 @@ instance.authorizeSubscribe = function (client, sub, cb) {
   callback(null, sub)
 }
 ```
+-------------------------------------------------------
+<a name="authorizeForward"></a>
+### instance.authorizeForward(clientId, packet)
+
+It will be called when a client is set to recieve a message. Override to supply custom
+authorization logic.
+In order to completely pre
+
+```js
+instance.authorizeForward = function (clientId, packet) {
+  if (packet.topic === 'aaaa' && clientId === "I should not see this") {
+    return null
+    // also works with return undefined
+  }
+
+  if (packet.topic === 'bbb') {
+    packet.payload = new Buffer('overwrite packet payload')
+  }
+
+  return packet
+}
+```
+
 -------------------------------------------------------
 <a name="published"></a>
 ### instance.published(packet, client, done())

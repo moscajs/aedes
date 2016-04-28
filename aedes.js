@@ -22,6 +22,7 @@ var defaultOptions = {
   authenticate: defaultAuthenticate,
   authorizePublish: defaultAuthorizePublish,
   authorizeSubscribe: defaultAuthorizeSubscribe,
+  authorizeForward: defaultAuthorizeForward,
   published: defaultPublished
 }
 
@@ -52,6 +53,7 @@ function Aedes (opts) {
   this.authenticate = opts.authenticate
   this.authorizePublish = opts.authorizePublish
   this.authorizeSubscribe = opts.authorizeSubscribe
+  this.authorizeForward = opts.authorizeForward
   this.published = opts.published
 
   this.clients = {}
@@ -290,6 +292,10 @@ function defaultAuthorizePublish (client, packet, callback) {
 
 function defaultAuthorizeSubscribe (client, sub, callback) {
   callback(null, sub)
+}
+
+function defaultAuthorizeForward (client, packet) {
+  return packet
 }
 
 function defaultPublished (packet, client, callback) {
