@@ -460,8 +460,9 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
     t.deepEqual(packet, expected, 'packet matches')
   })
 })
+
 test('prevent publish in QoS1 mode', function (t) {
-  t.plan(1)
+  t.plan(2)
 
   var broker = aedes({
     authorizeForward: function (client, packet, cb) {
@@ -480,6 +481,39 @@ test('prevent publish in QoS1 mode', function (t) {
         topic: 'hello',
         payload: new Buffer('world'),
         qos: 1
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.fail('Should have not recieved this packet')
+  })
+})
+
+test('prevent publish in QoS0 mode', function (t) {
+  t.plan(1)
+
+  var broker = aedes({
+    authorizeForward: function (client, packet, cb) {
+      return null
+    }
+  })
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello',
+        payload: new Buffer('world'),
+        qos: 0
       }, function (err) {
         t.error(err, 'no error')
       })
