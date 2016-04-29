@@ -81,7 +81,7 @@ test('subscribe QoS 0', function (t) {
       t.end()
     })
 
-    s.broker.mq.emit({
+    s.broker.publish({
       cmd: 'publish',
       topic: 'hello',
       payload: 'world'
@@ -109,7 +109,7 @@ test('does not die badly on connection error', function (t) {
 
   s.outStream.on('data', function (packet) {
     s.conn._writableState.ended = true
-    s.broker.mq.emit({
+    s.broker.publish({
       cmd: 'publish',
       topic: 'hello',
       payload: new Buffer('world')
@@ -187,7 +187,7 @@ test('unsubscribe on disconnect', function (t) {
     s.outStream.on('data', function () {
       t.fail('should not receive any more messages')
     })
-    s.broker.mq.emit({
+    s.broker.publish({
       cmd: 'publish',
       topic: 'hello',
       payload: new Buffer('world')
@@ -310,7 +310,7 @@ test('disconnect if another broker connects the same client', function (t) {
       t.pass('first client disconnected')
     })
 
-    broker.mq.emit({
+    broker.publish({
       topic: '$SYS/anotherBroker/new/clients',
       payload: new Buffer('abcde')
     }, function () {
@@ -397,7 +397,39 @@ test('double sub does not double deliver', function (t) {
         setImmediate(t.end.bind(t))
       })
 
-      s.broker.mq.emit({
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world'
+      })
+    })
+  })
+})
+
+test('overlapping sub does not double deliver', function (t) {
+  var s = connect(setup())
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    dup: false,
+    length: 12,
+    qos: 0,
+    retain: false
+  }
+
+  subscribe(t, s, 'hello', 0, function () {
+    subscribe(t, s, 'hello/#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.deepEqual(packet, expected, 'packet matches')
+        s.outStream.on('data', function () {
+          t.fail('double deliver')
+        })
+        // wait for a tick, so it will double deliver
+        setImmediate(t.end.bind(t))
+      })
+
+      s.broker.publish({
         cmd: 'publish',
         topic: 'hello',
         payload: 'world'
