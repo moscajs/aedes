@@ -438,10 +438,14 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
   broker.mq.on('hello', function (msg, cb) {
     cb()
 
-    subscribe(t, subscriber, 'hello', 1, function () {
-      subscriber.outStream.once('data', function (packet) {
-        t.deepEqual(packet, expected, 'packet must match')
-        t.end()
+    // defer this or it will receive the message which
+    // is being published
+    setImmediate(function () {
+      subscribe(t, subscriber, 'hello', 1, function () {
+        subscriber.outStream.once('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+          t.end()
+        })
       })
     })
   })

@@ -224,11 +224,17 @@ test('retain messages', function (t) {
     retain: true
   }
 
-  broker.mq.on('hello', function (packet, cb) {
-    subscribe(t, subscriber, 'hello', 0, function () {
-      subscriber.outStream.once('data', function (packet) {
-        t.deepEqual(packet, expected, 'packet must match')
-        t.end()
+  broker.subscribe('hello', function (packet, cb) {
+    cb()
+
+    // defer this or it will receive the message which
+    // is being published
+    setImmediate(function () {
+      subscribe(t, subscriber, 'hello', 0, function () {
+        subscriber.outStream.once('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+          t.end()
+        })
       })
     })
   })
