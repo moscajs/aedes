@@ -198,12 +198,25 @@ instance.authorizeSubscribe = function (client, sub, cb) {
 
   if (sub.topic === 'bbb') {
     // overwrites subscription
-    sub.qos = sub.qos + 128
+    sub.qos = sub.qos + 2
   }
 
   callback(null, sub)
 }
 ```
+
+To negate a subscription, set the subscription to `null`:
+
+```js
+instance.authorizeSubscribe = function (client, sub, cb) {
+  if (sub.topic === 'aaaa') {
+    sub = null
+  }
+
+  callback(null, sub)
+}
+```
+
 -------------------------------------------------------
 <a name="authorizeForward"></a>
 ### instance.authorizeForward(clientId, packet)
