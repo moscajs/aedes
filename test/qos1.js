@@ -641,3 +641,58 @@ test('not clean and retain messages with QoS 1', function (t) {
     })
   })
 })
+
+test('subscribe and publish QoS 1 in parallel', function (t) {
+  var broker = aedes()
+  var s = connect(setup(broker))
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 1,
+    dup: false,
+    length: 14,
+    retain: false
+  }
+
+  broker.on('clientError', function (client, err) {
+    console.log(err.stack)
+    // t.fail('no client error')
+  })
+
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'puback')
+    t.equal(packet.messageId, 42, 'messageId must match differ')
+    s.outStream.once('data', function (packet) {
+      s.inStream.write({
+        cmd: 'puback',
+        messageId: packet.messageId
+      })
+      delete packet.messageId
+      t.deepEqual(packet, expected, 'packet must match')
+      s.outStream.once('data', function (packet) {
+        t.equal(packet.cmd, 'suback')
+        t.deepEqual(packet.granted, [1])
+        t.equal(packet.messageId, 24)
+        t.end()
+      })
+    })
+  })
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: 'hello',
+      qos: 1
+    }]
+  })
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 42
+  })
+})
