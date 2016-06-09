@@ -443,3 +443,45 @@ test('overlapping sub does not double deliver', function (t) {
     })
   })
 })
+
+test('avoid wrong deduping of retain messages', function (t) {
+  var broker = aedes()
+  var publisher = connect(setup(broker))
+  var subscriber = connect(setup(broker))
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 0,
+    dup: false,
+    length: 12,
+    retain: true
+  }
+
+  broker.subscribe('hello', function (packet, cb) {
+    cb()
+    // subscribe and publish another topic
+    subscribe(t, subscriber, 'hello2', 0, function () {
+      cb()
+
+      publisher.inStream.write({
+        cmd: 'publish',
+        topic: 'hello2',
+        payload: new Buffer('world'),
+        qos: 0,
+        dup: false
+      })
+
+      subscriber.outStream.once('data', function (packet) {
+        subscribe(t, subscriber, 'hello', 0, function () {
+          subscriber.outStream.once('data', function (packet) {
+            t.deepEqual(packet, expected, 'packet must match')
+            t.end()
+          })
+        })
+      })
+    })
+  })
+
+  publisher.inStream.write(expected)
+})
