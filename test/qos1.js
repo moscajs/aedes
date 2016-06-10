@@ -390,9 +390,9 @@ test('deliver QoS 1 retained messages', function (t) {
     cmd: 'publish',
     topic: 'hello',
     payload: new Buffer('world'),
-    qos: 1,
+    qos: 0,
     dup: false,
-    length: 14,
+    length: 12,
     retain: true
   }
 
@@ -408,12 +408,6 @@ test('deliver QoS 1 retained messages', function (t) {
   publisher.outStream.on('data', function (packet) {
     subscribe(t, subscriber, 'hello', 1, function () {
       subscriber.outStream.once('data', function (packet) {
-        subscriber.inStream.write({
-          cmd: 'puback',
-          messageId: packet.messageId
-        })
-        t.notEqual(packet.messageId, 42, 'messageId must differ')
-        delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
         t.end()
       })
@@ -573,5 +567,132 @@ test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
       payload: 'world',
       qos: 0
     })
+  })
+})
+
+test('not clean and retain messages with QoS 1', function (t) {
+  var broker = aedes()
+  var publisher
+  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 1,
+    dup: false,
+    length: 14,
+    retain: true
+  }
+
+  subscribe(t, subscriber, 'hello', 1, function () {
+    subscriber.inStream.write({
+      cmd: 'disconnect'
+    })
+
+    subscriber.outStream.on('data', function (packet) {
+      console.log('original', packet)
+    })
+
+    publisher = connect(setup(broker))
+
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42,
+      retain: true
+    })
+
+    publisher.outStream.once('data', function (packet) {
+      t.equal(packet.cmd, 'puback')
+
+      broker.on('clientError', function (client, err) {
+        t.fail('no error')
+      })
+
+      subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
+        t.equal(connect.sessionPresent, true, 'session present is set to true')
+      })
+
+      subscriber.outStream.once('data', function (packet) {
+        t.notEqual(packet.messageId, 42, 'messageId must differ')
+        t.equal(packet.qos, 0, 'qos degraded to 0 for retained')
+        var prevId = packet.messageId
+        delete packet.messageId
+        packet.qos = 1
+        packet.length = 14
+        t.deepEqual(packet, expected, 'packet must match')
+
+        // message is duplicated
+        subscriber.outStream.once('data', function (packet2) {
+          var curId = packet2.messageId
+          t.notOk(curId === prevId, 'messageId must differ')
+          subscriber.inStream.write({
+            cmd: 'puback',
+            messageId: curId
+          })
+          delete packet2.messageId
+          t.deepEqual(packet, expected, 'packet must match')
+
+          t.end()
+        })
+      })
+    })
+  })
+})
+
+test('subscribe and publish QoS 1 in parallel', function (t) {
+  var broker = aedes()
+  var s = connect(setup(broker))
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 1,
+    dup: false,
+    length: 14,
+    retain: false
+  }
+
+  broker.on('clientError', function (client, err) {
+    console.log(err.stack)
+    // t.fail('no client error')
+  })
+
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'puback')
+    t.equal(packet.messageId, 42, 'messageId must match differ')
+    s.outStream.once('data', function (packet) {
+      s.inStream.write({
+        cmd: 'puback',
+        messageId: packet.messageId
+      })
+      delete packet.messageId
+      t.deepEqual(packet, expected, 'packet must match')
+      s.outStream.once('data', function (packet) {
+        t.equal(packet.cmd, 'suback')
+        t.deepEqual(packet.granted, [1])
+        t.equal(packet.messageId, 24)
+        t.end()
+      })
+    })
+  })
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: 'hello',
+      qos: 1
+    }]
+  })
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 42
   })
 })
