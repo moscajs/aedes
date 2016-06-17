@@ -67,7 +67,7 @@ Options:
 * `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence),
   such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis)
   or [aedes-persistence-mongodb](http://npm.im/aedes-persistence-mongodb)
-* `concurrency`: the max number of messages delivered concurrently,
+* `concurrency`: the max number of messages delivered to each client concurrently,
   defaults to `100`.
 * `heartbeatInterval`: the interval at which the broker heartbeat is
   emitted, it used by other broker in the cluster, the default is
