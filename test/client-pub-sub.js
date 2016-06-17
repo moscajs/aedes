@@ -74,12 +74,14 @@ test('publish direct to a single client QoS 1', function (t) {
 })
 
 test('emit a `ack` event on PUBACK for QoS 1', function (t) {
-  t.plan(3)
+  t.plan(6)
 
   var broker = aedes()
   var messageId
+  var clientId
 
   broker.on('client', function (client) {
+    clientId = client.id
     client.publish({
       topic: 'hello',
       payload: new Buffer('world'),
@@ -90,7 +92,10 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   })
 
   broker.once('ack', function (packet, client) {
+    t.equal(client.id, clientId)
     t.equal(packet.messageId, messageId)
+    t.equal(packet.topic, 'hello')
+    t.equal(packet.payload.toString(), 'world')
     t.pass('got the ack event')
   })
 
@@ -106,12 +111,14 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
 })
 
 test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
-  t.plan(3)
+  t.plan(6)
 
   var broker = aedes()
   var messageId
+  var clientId
 
   broker.on('client', function (client) {
+    clientId = client.id
     client.publish({
       topic: 'hello',
       payload: new Buffer('world'),
@@ -122,7 +129,10 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
   })
 
   broker.once('ack', function (packet, client) {
+    t.equal(client.id, clientId)
     t.equal(packet.messageId, messageId)
+    t.equal(packet.topic, 'hello')
+    t.equal(packet.payload.toString(), 'world')
     t.pass('got the ack event')
   })
 
