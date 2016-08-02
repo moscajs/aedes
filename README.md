@@ -172,10 +172,10 @@ instance.authenticate = function (client, username, password, callback) {
 ```
 The return code values and their responses which can be passed are given below :-
 
-1 - Unacceptable protocol version
-2 - Identifier rejected
-3 - Server unavailable
-4 - Bad user name or password
+1.  Unacceptable protocol version 
+2.  Identifier rejected 
+3.  Server unavailable 
+4.  Bad user name or password
 
 -------------------------------------------------------
 <a name="authorizePublish"></a>
