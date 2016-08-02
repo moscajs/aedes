@@ -132,6 +132,174 @@ test('authenticate errors', function (t) {
   })
 })
 
+test('authentication error when return code 1 (unacceptable protocol version) is passed', function (t) {
+  t.plan(5)
+
+  var s = setup()
+
+  s.broker.authenticate = function (client, username, password, cb) {
+    t.ok(client instanceof Client, 'client is there')
+    t.equal(username, 'my username', 'username is there')
+    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    cb({ returnCode: 1 }, null)
+  }
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 1,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'unsuccessful connack,unacceptable protocol version')
+  })
+
+  eos(s.outStream, function () {
+    t.pass('ended')
+  })
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    username: 'my username',
+    password: 'my pass',
+    keepalive: 0
+  })
+})
+
+test('authentication error when return code 2 (identifier rejected) is passed', function (t) {
+  t.plan(5)
+
+  var s = setup()
+
+  s.broker.authenticate = function (client, username, password, cb) {
+    t.ok(client instanceof Client, 'client is there')
+    t.equal(username, 'my username', 'username is there')
+    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    cb({ returnCode: 2 }, null)
+  }
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 2,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'unsuccessful connack, identifier rejected')
+  })
+
+  eos(s.outStream, function () {
+    t.pass('ended')
+  })
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    username: 'my username',
+    password: 'my pass',
+    keepalive: 0
+  })
+})
+
+test('authentication error when return code 3 (Server unavailable) is passed', function (t) {
+  t.plan(5)
+
+  var s = setup()
+
+  s.broker.authenticate = function (client, username, password, cb) {
+    t.ok(client instanceof Client, 'client is there')
+    t.equal(username, 'my username', 'username is there')
+    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    cb({ returnCode: 3 }, null)
+  }
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 3,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'unsuccessful connack, Server unavailable')
+  })
+
+  eos(s.outStream, function () {
+    t.pass('ended')
+  })
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    username: 'my username',
+    password: 'my pass',
+    keepalive: 0
+  })
+})
+
+test('authentication error when non numeric return code is passed', function (t) {
+  t.plan(5)
+
+  var s = setup()
+
+  s.broker.authenticate = function (client, username, password, cb) {
+    t.ok(client instanceof Client, 'client is there')
+    t.equal(username, 'my username', 'username is there')
+    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    cb({ returnCode: 'returnCode' }, null)
+  }
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 4,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'unsuccessful connack, bad user name or password')
+  })
+
+  eos(s.outStream, function () {
+    t.pass('ended')
+  })
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    username: 'my username',
+    password: 'my pass',
+    keepalive: 0
+  })
+})
+
 test('authorize publish', function (t) {
   t.plan(3)
 
