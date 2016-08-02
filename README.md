@@ -167,7 +167,9 @@ Other return codes can passed as follows :-
 
 ```js
 instance.authenticate = function (client, username, password, callback) {
-  callback({ returnCode: 1 }, null)
+  var error = new Error('Auth error')
+  error.returnCode = 1
+  callback(error, null)
 }
 ```
 The return code values and their responses which can be passed are given below :-
