@@ -143,7 +143,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
     t.deepEqual(password, new Buffer('my pass'), 'password is there')
     var error = new Error('Auth error')
     error.returnCode = 1
-    cb(error , null)
+    cb(error, null)
   }
 
   s.outStream.on('data', function (packet) {
@@ -187,7 +187,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
     t.deepEqual(password, new Buffer('my pass'), 'password is there')
     var error = new Error('Auth error')
     error.returnCode = 2
-    cb(error , null)
+    cb(error, null)
   }
 
   s.outStream.on('data', function (packet) {
@@ -231,7 +231,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
     t.deepEqual(password, new Buffer('my pass'), 'password is there')
     var error = new Error('Auth error')
     error.returnCode = 3
-    cb(error , null)
+    cb(error, null)
   }
 
   s.outStream.on('data', function (packet) {
@@ -273,9 +273,9 @@ test('authentication error when non numeric return code is passed', function (t)
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, new Buffer('my pass'), 'password is there')
-    var error = new Error("Non numeric error codes")
+    var error = new Error('Non numeric error codes')
     error.returnCode = 'return Code'
-    cb(error , null)
+    cb(error, null)
   }
 
   s.outStream.on('data', function (packet) {
