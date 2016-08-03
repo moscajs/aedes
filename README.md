@@ -163,6 +163,21 @@ instance.authenticate = function (client, username, password, callback) {
   callback(null, username === 'matteo')
 }
 ```
+Other return codes can passed as follows :-
+
+```js
+instance.authenticate = function (client, username, password, callback) {
+  var error = new Error('Auth error')
+  error.returnCode = 1
+  callback(error, null)
+}
+```
+The return code values and their responses which can be passed are given below :-
+
+*  `1` - Unacceptable protocol version 
+*  `2` - Identifier rejected 
+*  `3` - Server unavailable 
+*  `4` - Bad user name or password
 
 -------------------------------------------------------
 <a name="authorizePublish"></a>
