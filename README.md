@@ -113,6 +113,8 @@ packet.
      [UNSUBSCRIBE](https://github.com/mqttjs/mqtt-packet#unsubscribe)
 packet.
   2. `client`
+* `connackSent`: when a CONNACK packet is sent to a client [Client](#client) (happens after `'client'`), arguments:
+  1. `client`
 
 -------------------------------------------------------
 <a name="handle"></a>
