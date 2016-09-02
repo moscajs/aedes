@@ -174,3 +174,39 @@ test('emits client', function (t) {
     clientId: 'abcde'
   })
 })
+
+test('connect and connackSent event', function (t) {
+  var s = setup()
+  var clientId = 'my-client'
+
+  t.plan(2)
+  t.timeoutAfter(50)
+
+  s.broker.on('connackSent', function (client) {
+    t.equal(client.id, clientId, 'connackSent event and clientId matches')
+  })
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: clientId,
+    keepalive: 0
+  })
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 0,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'successful connack')
+    t.end()
+  })
+})
