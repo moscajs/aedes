@@ -39,11 +39,12 @@
     "duplexify": "^3.4.1",
     "faucet": "0.0.1",
     "istanbul": "^0.4.1",
-    "mqtt": "^1.0.6",
+    "mqtt": "^2.0.0",
     "mqtt-connection": "^2.1.0",
     "pre-commit": "^1.0.10",
-    "standard": "^6.0.0",
-    "tape": "^4.0.0"
+    "standard": "^8.0.0",
+    "tape": "^4.0.0",
+    "websocket-stream": "^3.3.0"
   },
   "dependencies": {
     "aedes-packet": "^1.0.0",
@@ -55,7 +56,7 @@
     "fastseries": "^1.5.0",
     "from2": "^2.1.0",
     "mqemitter": "^2.0.0",
-    "mqtt-packet": "^4.0.0",
+    "mqtt-packet": "^5.0.0",
     "pump": "^1.0.0",
     "qlobber": "^0.7.0",
     "retimer": "^1.0.0",
