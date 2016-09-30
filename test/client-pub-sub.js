@@ -320,3 +320,55 @@ test('subscribe a client programmatically with full packet', function (t) {
     t.deepEqual(packet, expected, 'packet matches')
   })
 })
+
+test('get message when client connects', function (t) {
+  t.plan(2)
+  var client1 = 'gav'
+  var broker = aedes()
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      subscriptions: [{
+        topic: '$SYS/+/new/clients',
+        qos: 0
+      }]
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+
+  var s1 = connect(setup(broker), { clientId: client1 })
+
+  s1.outStream.on('data', function (packet) {
+    t.equal(client1, packet.payload.toString())
+  })
+})
+
+test('get message when client disconnects', function (t) {
+  t.plan(2)
+  var client1 = 'gav'
+  var client2 = 'friend'
+  var broker = aedes()
+
+  broker.on('client', function (client) {
+    if (client.id === client1) {
+      client.subscribe({
+        subscriptions: [{
+          topic: '$SYS/+/new/clientDisconnect',
+          qos: 0
+        }]
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    } else {
+      client.close()
+    }
+  })
+
+  var s1 = connect(setup(broker), { clientId: client1 })
+  connect(setup(broker), { clientId: client2 })
+
+  s1.outStream.on('data', function (packet) {
+    t.equal(client2, packet.payload.toString())
+  })
+})

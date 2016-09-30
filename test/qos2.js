@@ -129,9 +129,10 @@ test('call published method with client with QoS 2', function (t) {
   }
 
   broker.published = function (packet, client, cb) {
-    t.ok(client, 'client must be passed to published method')
-
-    cb()
+    if (packet.topic.split('/').pop() !== 'clientDisconnect') {
+      t.ok(client, 'client must be passed to published method')
+      cb()
+    }
   }
 
   subscribe(t, subscriber, 'hello', 2, function () {
