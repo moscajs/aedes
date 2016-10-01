@@ -329,6 +329,17 @@ specifying a `messageId` will send suback to the client.
 
 Disconnects the client
 
+-------------------------------------------------------
+<a name="clientpresence"></a>
+### client presence
+
+You can subscribe on the following $SYS topics to get client presence
+
+ - `$SYS/+/new/clients` - Will inform about new clients connections
+ - `$SYS/+/disconnect/clients` - Will inform about client disconnections
+The payload will contain the clientId of the connected/disconnected client
+
+
 <a name="todo"></a>
 ## Todo
 
