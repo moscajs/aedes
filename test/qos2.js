@@ -129,6 +129,7 @@ test('call published method with client with QoS 2', function (t) {
   }
 
   broker.published = function (packet, client, cb) {
+    // Client is null for all server publishes
     if (packet.topic.split('/')[0] !== '$SYS') {
       t.ok(client, 'client must be passed to published method')
       cb()
