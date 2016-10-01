@@ -223,7 +223,6 @@ var publishFuncsQoS = [
   callPublished
 ]
 Aedes.prototype.publish = function (packet, client, done) {
-  //console.log(packet, client, done)
   if (typeof client === 'function') {
     done = client
     client = null
@@ -272,7 +271,7 @@ Aedes.prototype.unregisterClient = function (client) {
   delete this.clients[client.id]
   this.emit('clientDisconnect', client)
   this.publish({
-    topic: '$SYS/' + this.id + '/new/clientDisconnect',
+    topic: '$SYS/' + this.id + '/disconnect/clients',
     payload: new Buffer(client.id, 'utf8')
   }, noop)
 }

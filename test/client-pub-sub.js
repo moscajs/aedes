@@ -354,7 +354,7 @@ test('get message when client disconnects', function (t) {
     if (client.id === client1) {
       client.subscribe({
         subscriptions: [{
-          topic: '$SYS/+/new/clientDisconnect',
+          topic: '$SYS/+/disconnect/clients',
           qos: 0
         }]
       }, function (err) {
