@@ -270,6 +270,10 @@ Aedes.prototype.unregisterClient = function (client) {
   this.connectedClients--
   delete this.clients[client.id]
   this.emit('clientDisconnect', client)
+  this.publish({
+    topic: '$SYS/' + this.id + '/disconnect/clients',
+    payload: new Buffer(client.id, 'utf8')
+  }, noop)
 }
 
 function closeClient (client, cb) {
