@@ -40,7 +40,7 @@
     "faucet": "0.0.1",
     "istanbul": "^0.4.1",
     "mqtt": "^2.0.0",
-    "mqtt-connection": "^2.1.0",
+    "mqtt-connection": "^3.0.0",
     "pre-commit": "^1.0.10",
     "standard": "^8.0.0",
     "tape": "^4.0.0",
