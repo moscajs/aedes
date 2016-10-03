@@ -143,7 +143,7 @@ It supports backpressure.
 ### instance.publish(packet, done)
 
 Publish the given packet to subscribed clients and functions. A packet
-must be valid for [mqtt-packet](http://npm.im/mqtt-packet).
+must be valid for [aedes-packet](http://npm.im/aedes-packet).
 
 It supports backpressure.
 
