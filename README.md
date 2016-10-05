@@ -142,10 +142,22 @@ It supports backpressure.
 <a name="publish"></a>
 ### instance.publish(packet, done)
 
-Publish the given packet to subscribed clients and functions. A packet
-must be valid for [aedes-packet](http://npm.im/aedes-packet).
+Publish the given packet to subscribed clients and functions. It supports backpressure.
 
-It supports backpressure.
+A packet must contain the following properties:
+
+```js
+{
+  cmd: 'publish',
+  qos: 2,
+  topic: 'test',
+  payload: new Buffer('test'),
+  retain: false
+}
+```
+
+Only the `topic` and properties are mandatory
+Both `topic` and `payload` can be `Buffer` objects instead of strings.
 
 -------------------------------------------------------
 <a name="unsubscribe"></a>
