@@ -66,3 +66,27 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
     })
   })
 })
+
+test('Emit event when receives a ping', function (t) {
+  t.plan(6)
+  t.timeoutAfter(2000)
+  var broker = aedes()
+
+  broker.on('ping', function (packet, client) {
+    if (client && client) {
+      t.equal(client.id, 'abcde')
+      t.equal(packet.cmd, 'pingreq')
+      t.equal(packet.payload, null)
+      t.equal(packet.topic, null)
+      t.equal(packet.length, 0)
+      broker.close()
+      t.pass('ended')
+    }
+  })
+
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  s.inStream.write({
+    cmd: 'pingreq'
+  })
+})
