@@ -103,6 +103,9 @@ Events:
 * `ack`: when a packet published to a client is delivered successfully with QoS 1 or QoS 2, arguments:
   1. `packet`
   2. `client`
+* `ping`: when a [Client](#client) sends a ping, arguments:
+  1. `packet`
+  2. `client`
 * `subscribe`: when a client sends a SUBSCRIBE, arguments:
   1. `subscriptions`, as defined in the `subscriptions` property of the
      [SUBSCRIBE](https://github.com/mqttjs/mqtt-packet#subscribe)
@@ -188,9 +191,9 @@ instance.authenticate = function (client, username, password, callback) {
 ```
 The return code values and their responses which can be passed are given below :-
 
-*  `1` - Unacceptable protocol version 
-*  `2` - Identifier rejected 
-*  `3` - Server unavailable 
+*  `1` - Unacceptable protocol version
+*  `2` - Identifier rejected
+*  `3` - Server unavailable
 *  `4` - Bad user name or password
 
 -------------------------------------------------------
