@@ -51,7 +51,7 @@ server.listen(port, function () {
   * <a href="#clientclean"><code>client.<b>clean</b></code></a>
   * <a href="#clientpublish"><code>client.<b>publish()</b></code></a>
   * <a href="#clientsubscribe"><code>client.<b>subscribe()</b></code></a>
-  * <a href="#clientClose"><code>client.<b>close()</b></code></a>
+  * <a href="#clientclose"><code>client.<b>close()</b></code></a>
 
 -------------------------------------------------------
 <a name="constructor"></a>
@@ -68,22 +68,22 @@ Options:
   such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis)
   or [aedes-persistence-mongodb](http://npm.im/aedes-persistence-mongodb)
 * `concurrency`: the max number of messages delivered concurrently,
-  defaults to `100`.
+  defaults to `100`
 * `heartbeatInterval`: the interval at which the broker heartbeat is
-  emitted, it used by other broker in the cluster, the default is
-  `60000` milliseconds.
+  emitted, it used by other broker in the cluster, defaults to
+  `60000` milliseconds
 * `connectTimeout`: the max number of milliseconds to wait for the CONNECT
-  packet to arrive, defaults to `30000` milliseconds.
+  packet to arrive, defaults to `30000` milliseconds
 * `authenticate`: function used to authenticate clients, see
-  [instance.authenticate()](#authenticate).
+  [instance.authenticate()](#authenticate)
 * `authorizePublish`: function used to authorize PUBLISH packets, see
-  [instance.authorizePublish()](#authorizePublish).
+  [instance.authorizePublish()](#authorizePublish)
 * `authorizeSubscribe`: function used to authorize SUBSCRIBE packets, see
-  [instance.authorizeSubscribe()](#authorizeSubscribe).
+  [instance.authorizeSubscribe()](#authorizeSubscribe)
 * `authorizeForward`: function used to authorize forwarded packets, see
-  [instance.authorizeForward()](#authorizeForward).
+  [instance.authorizeForward()](#authorizeForward)
 * `published`: function called when a new packet is published, see
-  [instance.published()](#published).
+  [instance.published()](#published)
 
 Events:
 
@@ -147,7 +147,7 @@ It supports backpressure.
 
 Publish the given packet to subscribed clients and functions. It supports backpressure.
 
-A packet must contain the following properties:
+A packet contains the following properties:
 
 ```js
 {
@@ -159,7 +159,7 @@ A packet must contain the following properties:
 }
 ```
 
-Only the `topic` and properties are mandatory
+Only the `topic` property is mandatory.
 Both `topic` and `payload` can be `Buffer` objects instead of strings.
 
 -------------------------------------------------------
@@ -172,7 +172,7 @@ The reverse of [subscribe](#subscribe).
 <a name="authenticate"></a>
 ### instance.authenticate(client, username, password, done(err, successful))
 
-It will be called when a new client connects. Ovverride to supply custom
+It will be called when a new client connects. Override to supply custom
 authentication logic.
 
 ```js
@@ -189,7 +189,7 @@ instance.authenticate = function (client, username, password, callback) {
   callback(error, null)
 }
 ```
-The return code values and their responses which can be passed are given below :-
+The return code values and their responses which can be passed are given below:
 
 *  `1` - Unacceptable protocol version
 *  `2` - Identifier rejected
@@ -221,7 +221,7 @@ instance.authorizePublish = function (client, packet, callback) {
 <a name="authorizeSubscribe"></a>
 ### instance.authorizeSubscribe(client, pattern, done(err, pattern))
 
-It will be called when a client publishes a message. Override to supply custom
+It will be called when a client subscribes to a topic. Override to supply custom
 authorization logic.
 
 ```js
@@ -257,7 +257,6 @@ instance.authorizeSubscribe = function (client, sub, cb) {
 
 It will be called when a client is set to recieve a message. Override to supply custom
 authorization logic.
-In order to completely pre
 
 ```js
 instance.authorizeForward = function (clientId, packet) {
@@ -278,7 +277,7 @@ instance.authorizeForward = function (clientId, packet) {
 <a name="published"></a>
 ### instance.published(packet, client, done())
 
-It will be after a message is published.
+It will be called after a message is published.
 `client` will be null for internal messages.
 Ovverride to supply custom authorization logic.
 
@@ -348,11 +347,11 @@ Disconnects the client
 <a name="clientpresence"></a>
 ### client presence
 
-You can subscribe on the following $SYS topics to get client presence
+You can subscribe on the following `$SYS` topics to get client presence:
 
- - `$SYS/+/new/clients` - Will inform about new clients connections
- - `$SYS/+/disconnect/clients` - Will inform about client disconnections
-The payload will contain the clientId of the connected/disconnected client
+ - `$SYS/+/new/clients` - will inform about new clients connections
+ - `$SYS/+/disconnect/clients` - will inform about client disconnections.
+The payload will contain the `clientId` of the connected/disconnected client
 
 
 <a name="todo"></a>
@@ -383,7 +382,7 @@ The payload will contain the clientId of the connected/disconnected client
 ## Acknowledgements
 
 This library is born after a lot of discussion with all
-[Mosca](http://npm.im/mosca) users, and how that was deployed in
+[Mosca](http://npm.im/mosca) users and how that was deployed in
 production. This addresses your concerns about performance and
 stability.
 
