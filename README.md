@@ -65,7 +65,8 @@ Options:
   such as [MQEmitterRedis](http://npm.im/mqemitter-redis)
   or [MQEmitterMongoDB](http://npm.im/mqemitter-mongodb)
 * `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence),
-  such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis)
+  such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis), 
+  [aedes-persistence-nedb](http://npm.im/aedes-persistence-nedb)
   or [aedes-persistence-mongodb](http://npm.im/aedes-persistence-mongodb)
 * `concurrency`: the max number of messages delivered concurrently,
   defaults to `100`
