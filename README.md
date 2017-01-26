@@ -22,6 +22,7 @@ npm install aedes --save
 
 <a name="example"></a>
 ## Example
+
 ```js
 var aedes = require('aedes')()
 var server = require('net').createServer(aedes.handle)
@@ -29,6 +30,24 @@ var port = 1883
 
 server.listen(port, function () {
   console.log('server listening on port', port)
+})
+```
+
+### TLS
+
+```js
+var fs = require('fs')
+var aedes = require('aedes')()
+
+var options = {
+  key: fs.readFileSync('YOUR_TLS_KEY_FILE.pem'),
+  cert: fs.readFileSync('YOUR_TLS_CERT_FILE.pem')
+}
+
+var server = require('tls').createServer(options, aedes.handle)
+
+server.listen(8883, function () {
+  console.log('server started and listening on port 8883')
 })
 ```
 
