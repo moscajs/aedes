@@ -376,11 +376,10 @@ test('get message when client disconnects', function (t) {
 test('get number of clients when a client dis/connects ', function (t) {
   t.plan(2)
   var client1 = 'Debjeet'
-  var client2 = 'Bantu'
   var broker = aedes()
 
   broker.on('client', function (client) {
-    if(client.id === client1){
+    if (client.id === client1) {
       client.subscribe({
         subscriptions: [{
           topic: '$SYS/+/clients/total',
@@ -389,7 +388,7 @@ test('get number of clients when a client dis/connects ', function (t) {
       }, function (err) {
         t.error(err, 'no error')
       })
-    }else{
+    } else {
       client.close()
     }
   })
@@ -397,6 +396,6 @@ test('get number of clients when a client dis/connects ', function (t) {
   var s1 = connect(setup(broker), { clientId: client1 })
 
   s1.outStream.on('data', function (packet) {
-    t.equal("1", packet.payload.toString())
+    t.equal('1', packet.payload.toString())
   })
 })

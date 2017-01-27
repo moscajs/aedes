@@ -267,13 +267,12 @@ Aedes.prototype._finishRegisterClient = function (client) {
   }, noop)
 
   this.publish({
-  topic: '$SYS/' + this.id + '/clients/total',
-  payload: new Buffer(that.connectedClients.toString(), 'utf8')
+    topic: '$SYS/' + this.id + '/clients/total',
+    payload: new Buffer(that.connectedClients.toString(), 'utf8')
   }, noop)
 }
 
 Aedes.prototype.unregisterClient = function (client) {
-
   var that = this
   this.connectedClients--
   delete this.clients[client.id]
@@ -284,8 +283,8 @@ Aedes.prototype.unregisterClient = function (client) {
   }, noop)
 
   this.publish({
-  topic: '$SYS/' + this.id + '/clients/total',
-  payload: new Buffer(that.connectedClients.toString(), 'utf8')
+    topic: '$SYS/' + this.id + '/clients/total',
+    payload: new Buffer(that.connectedClients.toString(), 'utf8')
   }, noop)
 }
 
