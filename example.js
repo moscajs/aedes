@@ -4,7 +4,7 @@ var aedes = require('./aedes')()
 var server = require('net').createServer(aedes.handle)
 var httpServer = require('http').createServer()
 var ws = require('websocket-stream')
-var port = 1883
+var port = 1886
 var wsPort = 8888
 
 server.listen(port, function () {
