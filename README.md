@@ -138,6 +138,7 @@ packet.
   2. `client`
 * `connackSent`: when a CONNACK packet is sent to a client [Client](#client) (happens after `'client'`), arguments:
   1. `client`
+* `closed`: when the broker is closed
 
 -------------------------------------------------------
 <a name="handle"></a>
@@ -306,6 +307,10 @@ Ovverride to supply custom authorization logic.
 ### instance.close([cb])
 
 Disconnects all clients.
+
+Events:
+
+* `closed`, in case the broker is closed
 
 -------------------------------------------------------
 <a name="Client"></a>
