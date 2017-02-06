@@ -138,6 +138,7 @@ packet.
   2. `client`
 * `connackSent`: when a CONNACK packet is sent to a client [Client](#client) (happens after `'client'`), arguments:
   1. `client`
+* `closed`: when the broker is closed
 
 -------------------------------------------------------
 <a name="handle"></a>
@@ -307,6 +308,10 @@ Ovverride to supply custom authorization logic.
 
 Disconnects all clients.
 
+Events:
+
+* `closed`, in case the broker is closed
+
 -------------------------------------------------------
 <a name="Client"></a>
 ### Client
@@ -373,15 +378,6 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
 
--------------------------------------------------------
-<a name="clientcount"></a>
-### client count
-
-You can subscribe on the following `$SYS` topics to get the total client count:
-
- - `$SYS/+/clients/total` - will inform about the number of connected clients
-
-The payload will contain the number of connected clients.
 
 <a name="todo"></a>
 ## Todo
