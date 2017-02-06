@@ -373,15 +373,6 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
 
--------------------------------------------------------
-<a name="clientcount"></a>
-### client count
-
-You can subscribe on the following `$SYS` topics to get the total client count:
-
- - `$SYS/+/clients/total` - will inform about the number of connected clients
-
-The payload will contain the number of connected clients.
 
 <a name="todo"></a>
 ## Todo
