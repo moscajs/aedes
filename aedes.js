@@ -281,9 +281,15 @@ function closeClient (client, cb) {
 }
 
 Aedes.prototype.close = function (cb) {
+  var that = this
   clearInterval(this._heartbeatInterval)
   clearInterval(this._clearWillInterval)
-  this._parallel(this, closeClient, Object.keys(this.clients), cb || noop)
+  this._parallel(this, closeClient, Object.keys(this.clients), doneClose)
+  function doneClose () {
+    that.emit('closed')
+    cb = cb || noop
+    cb()
+  }
 }
 
 function defaultAuthenticate (client, username, password, callback) {

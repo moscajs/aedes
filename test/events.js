@@ -90,3 +90,13 @@ test('Emit event when receives a ping', function (t) {
     cmd: 'pingreq'
   })
 })
+
+test('Emit event when broker closed', function (t) {
+  t.plan(1)
+  var broker = aedes()
+  broker.once('closed', function () {
+    t.ok(true)
+  })
+  broker.close()
+})
+
