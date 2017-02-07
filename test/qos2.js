@@ -111,6 +111,39 @@ test('subscribe QoS 2', function (t) {
   })
 })
 
+test('client.publish with clean=true subscribption QoS 2', function (t) {
+  var broker = aedes()
+  var toPublish = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: new Buffer('world'),
+    qos: 2,
+    messageId: 42,
+    dup: false,
+    length: 14,
+    retain: false
+  }
+  var brokerClient = null
+
+  broker.on('client', function (client) {
+    brokerClient = client
+  })
+
+  var subscriber = connect(setup(broker), { clean: true })
+
+  brokerClient.on('error', function (err) {
+    t.error(err)
+  })
+
+  subscribe(t, subscriber, 'hello', 2, function () {
+    t.pass('subscribed')
+    receive(t, subscriber, toPublish, t.end.bind(t))
+    brokerClient.publish(toPublish, function (err) {
+      t.error(err)
+    })
+  })
+})
+
 test('call published method with client with QoS 2', function (t) {
   t.plan(10)
 
@@ -337,10 +370,6 @@ test('publish after disconnection', function (t) {
 
     receive(t, subscriber, toPublish, function () {
       publish(t, publisher, toPublish2, t.end.bind(t))
-
-      subscriber.outStream.once('data', function (packet) {
-        console.log(packet)
-      })
     })
   })
 })
