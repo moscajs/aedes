@@ -281,17 +281,14 @@ function closeClient (client, cb) {
 }
 
 Aedes.prototype.close = function (cb) {
+  var that = this
   clearInterval(this._heartbeatInterval)
   clearInterval(this._clearWillInterval)
-  this._parallel(this, closeClient, Object.keys(this.clients), doneClose(this, cb))
-}
-
-function doneClose (that, cb) {
-  that.emit('closed')
-  if (cb) {
+  this._parallel(this, closeClient, Object.keys(this.clients), doneClose)
+  function doneClose () {
+    that.emit('closed')
+    cb = cb || noop
     cb()
-  } else {
-    noop()
   }
 }
 
