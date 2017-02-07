@@ -291,7 +291,7 @@ function doneClose (that, cb) {
   if (cb) {
     cb()
   } else {
-    noop
+    noop()
   }
 }
 
