@@ -40,7 +40,7 @@ function Aedes (opts) {
   this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
   this.handle = function handle (conn) {
-    conn.setMaxListeners(opts.concurrency * 2)
+    conn.setMaxListeners(conn.getMaxListeners() - 1)
     // return, just to please standard
     return new Client(that, conn)
   }
