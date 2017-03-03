@@ -71,3 +71,74 @@ test('do not block after a subscription', function (t) {
     }
   })
 })
+
+test('do not block with overlapping subscription', function (t) {
+  var instance = aedes({ concurrency: 15 })
+  var server = net.createServer(instance.handle)
+  var total = 10000
+  var sent = 0
+  var received = 0
+
+  server.listen(4883, function (err) {
+    t.error(err, 'no error')
+
+    var publisher = mqtt.connect({
+      port: port,
+      keepalive: 0
+    })
+
+    var subscriber
+
+    function immediatePublish (e) {
+      setImmediate(publish)
+    }
+
+    function publish () {
+      if (sent === total) {
+        publisher.end()
+      } else {
+        sent++
+        publisher.publish('test', 'payload', immediatePublish)
+      }
+    }
+
+    function startSubscriber () {
+      subscriber = mqtt.connect({
+        port: port,
+        keepalive: 0
+      })
+
+      subscriber.subscribe('#', function () {
+        subscriber.subscribe('test', function () {
+          publish()
+        })
+      })
+
+      subscriber.on('message', function () {
+        console.log('received', arguments)
+        if (received % (total / 10) === 0) {
+          console.log('sent / received', sent, received)
+        }
+
+        if (++received === total * 2) {
+          finish()
+        }
+      })
+    }
+
+    publisher.on('connect', startSubscriber)
+
+    var timer = setTimeout(finish, 10000)
+
+    function finish () {
+      clearTimeout(timer)
+      subscriber.end()
+      publisher.end()
+      instance.close()
+      server.close()
+      t.equal(total, sent, 'messages sent')
+      t.equal(total, received, 'messages received')
+      t.end()
+    }
+  })
+})
