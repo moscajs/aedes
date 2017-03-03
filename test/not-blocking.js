@@ -110,17 +110,17 @@ test('do not block with overlapping subscription', function (t) {
 
       subscriber.subscribe('#', function () {
         subscriber.subscribe('test', function () {
-          publish()
+          immediatePublish()
         })
       })
 
       subscriber.on('message', function () {
-        console.log('received', arguments)
+        // console.log('received', arguments)
         if (received % (total / 10) === 0) {
           console.log('sent / received', sent, received)
         }
 
-        if (++received === total * 2) {
+        if (++received === total) {
           finish()
         }
       })

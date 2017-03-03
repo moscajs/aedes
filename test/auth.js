@@ -671,7 +671,7 @@ test('prevent publish in QoS1 mode', function (t) {
 })
 
 test('prevent publish in QoS0 mode', function (t) {
-  t.plan(1)
+  t.plan(2)
 
   var broker = aedes({
     authorizeForward: function (client, packet, cb) {
