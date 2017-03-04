@@ -99,4 +99,3 @@ test('Emit event when broker closed', function (t) {
   })
   broker.close()
 })
-

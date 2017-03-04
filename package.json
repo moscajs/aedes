@@ -42,7 +42,7 @@
     "mqtt": "^2.0.0",
     "mqtt-connection": "^3.0.0",
     "pre-commit": "^1.0.10",
-    "standard": "^8.0.0",
+    "standard": "^9.0.0",
     "tape": "^4.0.0",
     "websocket-stream": "^3.3.0"
   },

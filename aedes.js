@@ -72,7 +72,7 @@ function Aedes (opts) {
   }
 
   function deleteOldBrokers (broker) {
-    if (that.brokers[broker] + 3 * opts.heartbeatInterval < Date.now()) {
+    if (that.brokers[broker] + (3 * opts.heartbeatInterval) < Date.now()) {
       delete that.brokers[broker]
     }
   }
@@ -92,7 +92,7 @@ function Aedes (opts) {
   function checkAndPublish (will, done) {
     var needsPublishing =
       !that.brokers[will.brokerId] ||
-      that.brokers[will.brokerId] + 3 * opts.heartbeatInterval <
+      that.brokers[will.brokerId] + (3 * opts.heartbeatInterval) <
       Date.now()
 
     if (needsPublishing) {

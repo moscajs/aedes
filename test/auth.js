@@ -702,4 +702,3 @@ test('prevent publish in QoS0 mode', function (t) {
     t.fail('Should have not recieved this packet')
   })
 })
-
