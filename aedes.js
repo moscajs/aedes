@@ -35,7 +35,7 @@ function Aedes (opts) {
 
   opts = xtend(defaultOptions, opts)
 
-  this.id = shortid()
+  this.id = opts.id || shortid()
   this.counter = 0
   this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
