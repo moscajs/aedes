@@ -96,6 +96,9 @@ function Aedes (opts) {
       Date.now()
 
     if (needsPublishing) {
+      // brokerId should always tend to current
+      will.brokerId = this.id
+
       // randomize this, so that multiple brokers
       // do not publish the same wills at the same time
       that.publish(will, function publishWill (err) {

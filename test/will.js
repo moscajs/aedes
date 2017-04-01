@@ -37,7 +37,7 @@ test('delivers a will', function (t) {
 })
 
 test('delivers old will in case of a crash', function (t) {
-  t.plan(7)
+  t.plan(8)
   var persistence = memory()
   var will = {
     topic: 'mywill',
@@ -67,6 +67,7 @@ test('delivers old will in case of a crash', function (t) {
     function check (packet, cb) {
       broker.mq.removeListener('mywill', check)
       t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
+      t.equal(packet.brokerId, broker.id)
       t.equal(packet.topic, will.topic, 'topic matches')
       t.deepEqual(packet.payload, will.payload, 'payload matches')
       t.equal(packet.qos, will.qos, 'qos matches')
