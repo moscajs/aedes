@@ -105,7 +105,7 @@ function Aedes (opts) {
 
         that.persistence.delWill({
           id: will.clientId,
-          brokerId : will.brokerId
+          brokerId: will.brokerId
         }, done)
       })
     } else {
