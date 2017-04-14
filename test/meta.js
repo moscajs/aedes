@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -46,7 +47,7 @@ test('call published method', function (t) {
 
   broker.publish({
     topic: 'hello',
-    payload: new Buffer('world')
+    payload: Buffer.from('world')
   }, function (err) {
     t.error(err, 'no error')
   })
@@ -72,7 +73,7 @@ test('call published method with client', function (t) {
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world')
+    payload: Buffer.from('world')
   })
 })
 
@@ -95,7 +96,7 @@ test('emit publish event with client', function (t) {
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world')
+    payload: Buffer.from('world')
   })
 })
 

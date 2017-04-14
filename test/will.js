@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var memory = require('aedes-persistence')
 var helper = require('./helper')
@@ -11,7 +12,7 @@ function willConnect (s, opts, connected) {
   opts = opts || {}
   opts.will = {
     topic: 'mywill',
-    payload: new Buffer('last will'),
+    payload: Buffer.from('last will'),
     qos: 0,
     retain: false
   }
@@ -41,7 +42,7 @@ test('delivers old will in case of a crash', function (t) {
   var persistence = memory()
   var will = {
     topic: 'mywill',
-    payload: new Buffer('last will'),
+    payload: Buffer.from('last will'),
     qos: 0,
     retain: false
   }

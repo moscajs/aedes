@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var Client = require('../lib/client')
 var helper = require('./helper')
@@ -17,7 +18,7 @@ test('authenticate successfully a client with username and password', function (
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(null, true)
   }
 
@@ -55,7 +56,7 @@ test('authenticate unsuccessfully a client with username and password', function
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(null, false)
   }
 
@@ -98,7 +99,7 @@ test('authenticate errors', function (t) {
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(new Error('this should happen!'))
   }
 
@@ -140,7 +141,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     var error = new Error('Auth error')
     error.returnCode = 1
     cb(error, null)
@@ -184,7 +185,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     var error = new Error('Auth error')
     error.returnCode = 2
     cb(error, null)
@@ -228,7 +229,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     var error = new Error('Auth error')
     error.returnCode = 3
     cb(error, null)
@@ -272,7 +273,7 @@ test('authentication error when non numeric return code is passed', function (t)
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, new Buffer('my pass'), 'password is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     var error = new Error('Non numeric error codes')
     error.returnCode = 'return Code'
     cb(error, null)
@@ -315,7 +316,7 @@ test('authorize publish', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     retain: false,
     length: 12,
@@ -359,7 +360,7 @@ test('authorize publish from configOptions', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     retain: false,
     length: 12,
@@ -390,7 +391,7 @@ test('do not authorize publish', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     retain: false,
     length: 12,
@@ -556,7 +557,7 @@ test('set authentication method in config options', function (t) {
     authenticate: function (client, username, password, cb) {
       t.ok(client instanceof Client, 'client is there')
       t.equal(username, 'my username', 'username is there')
-      t.deepEqual(password, new Buffer('my pass'), 'password is there')
+      t.deepEqual(password, Buffer.from('my pass'), 'password is there')
       cb(null, false)
     }
   }))
@@ -597,7 +598,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
 
   var broker = aedes({
     authorizeForward: function (client, packet, cb) {
-      packet.payload = new Buffer('another-world')
+      packet.payload = Buffer.from('another-world')
       packet.messageId = 2
       return packet
     }
@@ -605,7 +606,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('another-world'),
+    payload: Buffer.from('another-world'),
     dup: false,
     length: 22,
     qos: 1,
@@ -622,7 +623,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
 
       broker.publish({
         topic: 'hello',
-        payload: new Buffer('world'),
+        payload: Buffer.from('world'),
         qos: 1
       }, function (err) {
         t.error(err, 'no error')
@@ -655,7 +656,7 @@ test('prevent publish in QoS1 mode', function (t) {
 
       broker.publish({
         topic: 'hello',
-        payload: new Buffer('world'),
+        payload: Buffer.from('world'),
         qos: 1
       }, function (err) {
         t.error(err, 'no error')
@@ -688,7 +689,7 @@ test('prevent publish in QoS0 mode', function (t) {
 
       broker.publish({
         topic: 'hello',
-        payload: new Buffer('world'),
+        payload: Buffer.from('world'),
         qos: 0
       }, function (err) {
         t.error(err, 'no error')

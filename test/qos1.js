@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -39,7 +40,7 @@ test('subscribe QoS 1', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     dup: false,
     length: 14,
@@ -75,7 +76,7 @@ test('subscribe QoS 0, but publish QoS 1', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     dup: false,
     length: 12,
@@ -105,7 +106,7 @@ test('restore QoS 1 subscriptions not clean', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     dup: false,
     length: 14,
@@ -199,7 +200,7 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     dup: false,
     length: 14,
@@ -245,7 +246,7 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     dup: false,
     length: 14,
@@ -337,7 +338,7 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     dup: false,
     length: 14,
@@ -389,7 +390,7 @@ test('deliver QoS 1 retained messages', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     dup: false,
     length: 12,
@@ -422,7 +423,7 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     dup: false,
     length: 12,
@@ -518,7 +519,7 @@ test('upgrade a QoS 0 subscription to QoS 1', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     length: 14,
     retain: false,
@@ -549,7 +550,7 @@ test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     length: 12,
     retain: false,
@@ -577,7 +578,7 @@ test('not clean and retain messages with QoS 1', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     dup: false,
     length: 14,
@@ -648,7 +649,7 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 1,
     dup: false,
     length: 14,

@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -42,7 +43,7 @@ test('publish QoS 0', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     retain: false,
     messageId: 0
@@ -68,7 +69,7 @@ test('subscribe QoS 0', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 12,
     qos: 0,
@@ -112,7 +113,7 @@ test('does not die badly on connection error', function (t) {
     s.broker.publish({
       cmd: 'publish',
       topic: 'hello',
-      payload: new Buffer('world')
+      payload: Buffer.from('world')
     }, function () {
       t.pass('calls the callback')
     })
@@ -190,7 +191,7 @@ test('unsubscribe on disconnect', function (t) {
     s.broker.publish({
       cmd: 'publish',
       topic: 'hello',
-      payload: new Buffer('world')
+      payload: Buffer.from('world')
     }, function () {
       t.pass('calls the callback')
       t.end()
@@ -217,7 +218,7 @@ test('retain messages', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     dup: false,
     length: 12,
@@ -318,7 +319,7 @@ test('disconnect if another broker connects the same client', function (t) {
 
     broker.publish({
       topic: '$SYS/anotherBroker/new/clients',
-      payload: new Buffer('abcde')
+      payload: Buffer.from('abcde')
     }, function () {
       t.pass('published')
 
@@ -351,7 +352,7 @@ test('restore QoS 0 subscriptions not clean', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     dup: false,
     length: 12,
@@ -385,7 +386,7 @@ test('double sub does not double deliver', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 12,
     qos: 0,
@@ -417,7 +418,7 @@ test('overlapping sub does not double deliver', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 12,
     qos: 0,
@@ -451,7 +452,7 @@ test('avoid wrong deduping of retain messages', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     dup: false,
     length: 12,
@@ -467,7 +468,7 @@ test('avoid wrong deduping of retain messages', function (t) {
       publisher.inStream.write({
         cmd: 'publish',
         topic: 'hello2',
-        payload: new Buffer('world'),
+        payload: Buffer.from('world'),
         qos: 0,
         dup: false
       })

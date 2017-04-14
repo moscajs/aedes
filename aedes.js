@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var mqemitter = require('mqemitter')
 var EE = require('events').EventEmitter
 var util = require('util')
@@ -62,7 +63,7 @@ function Aedes (opts) {
   var heartbeatTopic = '$SYS/' + that.id + '/heartbeat'
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
 
-  var bufId = new Buffer(that.id, 'utf8')
+  var bufId = Buffer.from(that.id, 'utf8')
 
   function heartbeat () {
     that.publish({
@@ -263,7 +264,7 @@ Aedes.prototype._finishRegisterClient = function (client) {
   this.emit('client', client)
   this.publish({
     topic: '$SYS/' + this.id + '/new/clients',
-    payload: new Buffer(client.id, 'utf8')
+    payload: Buffer.from(client.id, 'utf8')
   }, noop)
 }
 
@@ -273,7 +274,7 @@ Aedes.prototype.unregisterClient = function (client) {
   this.emit('clientDisconnect', client)
   this.publish({
     topic: '$SYS/' + this.id + '/disconnect/clients',
-    payload: new Buffer(client.id, 'utf8')
+    payload: Buffer.from(client.id, 'utf8')
   }, noop)
 }
 

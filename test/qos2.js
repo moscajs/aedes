@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -96,7 +97,7 @@ test('subscribe QoS 2', function (t) {
   var toPublish = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 2,
     messageId: 42,
     dup: false,
@@ -116,7 +117,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
   var toPublish = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 2,
     messageId: 42,
     dup: false,
@@ -153,7 +154,7 @@ test('call published method with client with QoS 2', function (t) {
   var toPublish = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 2,
     messageId: 42,
     dup: false,
@@ -183,7 +184,7 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 0,
     dup: false,
     length: 12,
@@ -199,7 +200,7 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
     publish(t, publisher, {
       cmd: 'publish',
       topic: 'hello',
-      payload: new Buffer('world'),
+      payload: Buffer.from('world'),
       qos: 2,
       retain: false,
       messageId: 42,
@@ -215,7 +216,7 @@ test('restore QoS 2 subscriptions not clean', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 2,
     dup: false,
     length: 14,
@@ -245,7 +246,7 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 2,
     dup: false,
     length: 14,
@@ -274,7 +275,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 2,
     dup: false,
     length: 14,
@@ -347,7 +348,7 @@ test('publish after disconnection', function (t) {
   var toPublish = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     qos: 2,
     messageId: 42,
     dup: false,
@@ -357,7 +358,7 @@ test('publish after disconnection', function (t) {
   var toPublish2 = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('worl2'),
+    payload: Buffer.from('worl2'),
     qos: 2,
     messageId: 43,
     dup: false,

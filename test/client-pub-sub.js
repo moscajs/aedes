@@ -1,5 +1,6 @@
 'use strict'
 
+var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -13,7 +14,7 @@ test('publish direct to a single client QoS 0', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 12,
     qos: 0,
@@ -23,7 +24,7 @@ test('publish direct to a single client QoS 0', function (t) {
   broker.on('client', function (client) {
     client.publish({
       topic: 'hello',
-      payload: new Buffer('world'),
+      payload: Buffer.from('world'),
       qos: 0
     }, function (err) {
       t.error(err, 'no error')
@@ -44,7 +45,7 @@ test('publish direct to a single client QoS 1', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 14,
     qos: 1,
@@ -54,7 +55,7 @@ test('publish direct to a single client QoS 1', function (t) {
   broker.on('client', function (client) {
     client.publish({
       topic: 'hello',
-      payload: new Buffer('world'),
+      payload: Buffer.from('world'),
       qos: 1
     }, function (err) {
       t.error(err, 'no error')
@@ -84,7 +85,7 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
     clientId = client.id
     client.publish({
       topic: 'hello',
-      payload: new Buffer('world'),
+      payload: Buffer.from('world'),
       qos: 1
     }, function (err) {
       t.error(err, 'no error')
@@ -121,7 +122,7 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
     clientId = client.id
     client.publish({
       topic: 'hello',
-      payload: new Buffer('world'),
+      payload: Buffer.from('world'),
       qos: 2
     }, function (err) {
       t.error(err, 'no error')
@@ -161,7 +162,7 @@ test('offline message support for direct publish', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 14,
     qos: 1,
@@ -175,7 +176,7 @@ test('offline message support for direct publish', function (t) {
   broker.once('client', function (client) {
     client.publish({
       topic: 'hello',
-      payload: new Buffer('world'),
+      payload: Buffer.from('world'),
       qos: 1
     }, function (err) {
       t.error(err, 'no error')
@@ -206,7 +207,7 @@ test('subscribe a client programmatically', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 12,
     qos: 0,
@@ -222,7 +223,7 @@ test('subscribe a client programmatically', function (t) {
 
       broker.publish({
         topic: 'hello',
-        payload: new Buffer('world'),
+        payload: Buffer.from('world'),
         qos: 0
       }, function (err) {
         t.error(err, 'no error')
@@ -244,7 +245,7 @@ test('subscribe a client programmatically multiple topics', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 12,
     qos: 0,
@@ -263,7 +264,7 @@ test('subscribe a client programmatically multiple topics', function (t) {
 
       broker.publish({
         topic: 'hello',
-        payload: new Buffer('world'),
+        payload: Buffer.from('world'),
         qos: 0
       }, function (err) {
         t.error(err, 'no error')
@@ -285,7 +286,7 @@ test('subscribe a client programmatically with full packet', function (t) {
   var expected = {
     cmd: 'publish',
     topic: 'hello',
-    payload: new Buffer('world'),
+    payload: Buffer.from('world'),
     dup: false,
     length: 12,
     qos: 0,
@@ -306,7 +307,7 @@ test('subscribe a client programmatically with full packet', function (t) {
 
       broker.publish({
         topic: 'hello',
-        payload: new Buffer('world'),
+        payload: Buffer.from('world'),
         qos: 0
       }, function (err) {
         t.error(err, 'no error')
