@@ -37,6 +37,32 @@ test('delivers a will', function (t) {
   s.conn.destroy()
 })
 
+test('calling close two times should not deliver two wills', function (t) {
+  t.plan(4)
+  var opts = {}
+  var broker = aedes()
+
+  broker.on('client', function (client) {
+    client.close()
+    client.close()
+  })
+
+  broker.mq.on('mywill', onWill)
+
+  // willConnect populates opts with a will
+  willConnect(setup(broker), opts)
+
+  function onWill (packet, cb) {
+    broker.mq.removeListener('mywill', onWill)
+    broker.mq.on('mywill', t.fail.bind(t))
+    t.equal(packet.topic, opts.will.topic, 'topic matches')
+    t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+    t.equal(packet.qos, opts.will.qos, 'qos matches')
+    t.equal(packet.retain, opts.will.retain, 'retain matches')
+    cb()
+  }
+})
+
 test('delivers old will in case of a crash', function (t) {
   t.plan(7)
   var persistence = memory()
