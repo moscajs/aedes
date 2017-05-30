@@ -246,9 +246,9 @@ It will be called when a client subscribes to a topic. Override to supply custom
 authorization logic.
 
 ```js
-instance.authorizeSubscribe = function (client, sub, cb) {
+instance.authorizeSubscribe = function (client, sub, callback) {
   if (sub.topic === 'aaaa') {
-    return cb(new Error('wrong topic'))
+    return callback(new Error('wrong topic'))
   }
 
   if (sub.topic === 'bbb') {
@@ -263,7 +263,7 @@ instance.authorizeSubscribe = function (client, sub, cb) {
 To negate a subscription, set the subscription to `null`:
 
 ```js
-instance.authorizeSubscribe = function (client, sub, cb) {
+instance.authorizeSubscribe = function (client, sub, callback) {
   if (sub.topic === 'aaaa') {
     sub = null
   }
@@ -300,7 +300,7 @@ instance.authorizeForward = function (clientId, packet) {
 
 It will be called after a message is published.
 `client` will be null for internal messages.
-Ovverride to supply custom authorization logic.
+Override to supply custom authorization logic.
 
 -------------------------------------------------------
 <a name="close"></a>
