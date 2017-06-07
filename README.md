@@ -330,7 +330,7 @@ The id of the client, as specified by the CONNECT packet.
 
 -------------------------------------------------------
 <a name="clientclean"></a>
-### client#client
+### client#clean
 
 `true` if the client connected (CONNECT) with `clean: true`, `false`
 otherwise. Check the MQTT spec for what this means.
