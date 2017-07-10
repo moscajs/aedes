@@ -29,6 +29,12 @@ aedes.on('publish', function (packet, client) {
   }
 })
 
+aedes.on('subscribe', function (subscriptions, client) {
+  if (client) {
+    console.log('subscribe from client', subscriptions, client.id)
+  }
+})
+
 aedes.on('client', function (client) {
   console.log('new client', client.id)
 })
