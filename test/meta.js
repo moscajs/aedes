@@ -145,6 +145,26 @@ test('emit unsubscribe event', function (t) {
   })
 })
 
+test('dont emit unsubscribe event on client close', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var s = connect(setup(broker), { clientId: 'abcde' })
+
+  broker.on('unsubscribe', function (unsubscriptions, client) {
+    t.error('unsubscribe should not be emitted')
+  })
+
+  subscribe(t, s, 'hello', 0, function () {
+    s.inStream.end({
+      cmd: 'disconnect'
+    })
+    s.outStream.once('data', function (packet) {
+      t.pass('unsubscribe completed')
+    })
+  })
+})
+
 test('emit clientDisconnect event', function (t) {
   t.plan(1)
 
