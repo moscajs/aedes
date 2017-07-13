@@ -238,6 +238,28 @@ test('subscribe a client programmatically', function (t) {
   })
 })
 
+test('unsubscribe a client', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+      client.unsubscribe({
+        topic: 'hello',
+        qos: 0
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+  connect(setup(broker))
+})
+
 test('subscribe a client programmatically multiple topics', function (t) {
   t.plan(3)
 
