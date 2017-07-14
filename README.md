@@ -70,6 +70,7 @@ server.listen(8883, function () {
   * <a href="#clientclean"><code>client.<b>clean</b></code></a>
   * <a href="#clientpublish"><code>client.<b>publish()</b></code></a>
   * <a href="#clientsubscribe"><code>client.<b>subscribe()</b></code></a>
+  * <a href="#clientunsubscribe"><code>client.<b>unsubscribe()</b></code></a>
   * <a href="#clientclose"><code>client.<b>close()</b></code></a>
 
 -------------------------------------------------------
@@ -84,7 +85,7 @@ Options:
   such as [MQEmitterRedis](http://npm.im/mqemitter-redis)
   or [MQEmitterMongoDB](http://npm.im/mqemitter-mongodb)
 * `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence),
-  such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis), 
+  such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis),
   [aedes-persistence-nedb](http://npm.im/aedes-persistence-nedb)
   or [aedes-persistence-mongodb](http://npm.im/aedes-persistence-mongodb)
 * `concurrency`: the max number of messages delivered concurrently,
@@ -361,6 +362,19 @@ Subscribe the client to the list of topics.
 specifying a `messageId` will send suback to the client.
 
 `callback`  will be called when the subscription is completed.
+
+-------------------------------------------------------
+<a name="clientunsubscribe"></a>
+### client#unsubscribe(topicObjects, [callback])
+
+Unsubscribe the client to the list of topics.
+
+The topic objects can be as follows :-
+
+1. a single object in the format `{ topic: topic, qos: qos }`
+2. an array of the above
+
+`callback`  will be called when the unsubscriptions are completed.
 
 -------------------------------------------------------
 <a name="clientclose"></a>
