@@ -146,7 +146,9 @@ function storeRetained (_, done) {
 }
 
 function emitPacket (_, done) {
-  this.broker.mq.emit(this.packet, done)
+  var packet = Object.assign({}, this.packet)
+  packet.retain = false
+  this.broker.mq.emit(packet, done)
 }
 
 function enqueueOffline (_, done) {
