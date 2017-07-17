@@ -191,9 +191,7 @@ function DoEnqueues () {
       that.complete = null
       that.topic = null
 
-      broker._parallel(
-        status,
-        doEnqueue, subs, complete)
+      broker.persistence.outgoingEnqueueCombi(subs, status.packet, complete)
 
       broker._enqueuers.release(that)
     }
@@ -202,10 +200,6 @@ function DoEnqueues () {
 
 function removeSharp (sub) {
   return sub.topic !== '#'
-}
-
-function doEnqueue (sub, done) {
-  this.broker.persistence.outgoingEnqueue(sub, this.packet, done)
 }
 
 function callPublished (_, done) {
