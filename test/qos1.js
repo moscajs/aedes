@@ -416,7 +416,6 @@ test('deliver QoS 1 retained messages', function (t) {
   })
 })
 
-
 test('deliver QoS 1 retained messages', function (t) {
   var broker = aedes()
   var publisher = connect(setup(broker))
@@ -434,7 +433,6 @@ test('deliver QoS 1 retained messages', function (t) {
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.outStream.once('data', function (packet) {
       delete packet.messageId
-      console.log(',,,', packet.payload.toString())
       t.deepEqual(packet, expected, 'packet must match')
       t.end()
     })

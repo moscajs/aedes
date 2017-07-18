@@ -157,6 +157,39 @@ test('unsubscribe', function (t) {
   })
 })
 
+test('live retain packets', function (t) {
+  t.plan(5)
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    retain : false,
+    dup: false,
+    length: 12,
+    qos: 0
+  }
+
+  var s = noError(connect(setup()), t)
+
+  subscribe(t, s, 'hello', 0, function () {
+    s.outStream.on('data', function (packet) {
+      t.deepEqual(packet, expected)
+    })
+
+    s.broker.publish({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      retain : true,
+      dup: false,
+      length: 12,
+      qos: 0
+    }, function () {
+      t.pass('publish finished')
+    })
+  })
+})
+
 test('unsubscribe without subscribe', function (t) {
   t.plan(1)
 
