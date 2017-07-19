@@ -486,3 +486,68 @@ test('avoid wrong deduping of retain messages', function (t) {
 
   publisher.inStream.write(expected)
 })
+
+test('publish invalid topic with #', function (t) {
+  var s = connect(setup())
+
+  subscribe(t, s, '#', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet')
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello/#',
+      payload: 'world'
+    })
+  })
+
+  eos(s.conn, function () {
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+    t.end()
+  })
+})
+
+test('publish invalid topic with +', function (t) {
+  var s = connect(setup())
+
+  subscribe(t, s, '#', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet')
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello/+/eee',
+      payload: 'world'
+    })
+  })
+
+  eos(s.conn, function () {
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+    t.end()
+  })
+})
+
+test('subscribe to invalid topic with hello/+foo', function (t) {
+  var s = connect(setup())
+
+  subscribe(t, s, 'hello/+foo', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet')
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello/#',
+      payload: 'world'
+    })
+  })
+
+  eos(s.conn, function () {
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+    t.end()
+  })
+})
