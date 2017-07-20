@@ -525,8 +525,7 @@ test('publish invalid topic with #', function (t) {
     })
   })
 
-  eos(s.conn, function () {
-    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+  s.broker.on('clientError', function () {
     t.end()
   })
 })
@@ -546,15 +545,18 @@ test('publish invalid topic with +', function (t) {
     })
   })
 
-  eos(s.conn, function () {
-    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+  s.broker.on('clientError', function () {
     t.end()
   })
 })
 
-;['base/#/sub', 'base/#sub', 'base/+xyz/sub', ''].forEach(function (topic) {
+;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub'].forEach(function (topic) {
   test('subscribe to invalid topic with "' + topic + '"', function (t) {
     var s = connect(setup())
+
+    s.broker.on('clientError', function () {
+      t.end()
+    })
 
     s.inStream.write({
       cmd: 'subscribe',
@@ -563,11 +565,6 @@ test('publish invalid topic with +', function (t) {
         topic: topic,
         qos: 0
       }]
-    })
-
-    eos(s.conn, function () {
-      t.equal(s.broker.connectedClients, 0, 'no connected clients')
-      t.end()
     })
   })
 })
