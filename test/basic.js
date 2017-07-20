@@ -530,24 +530,22 @@ test('publish invalid topic with +', function (t) {
   })
 })
 
-test('subscribe to invalid topic with hello/+foo', function (t) {
-  var s = connect(setup())
-
-  subscribe(t, s, 'hello/+foo', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-      t.end()
-    })
+;['base/#/sub', 'base/#sub', 'base/+xyz/sub'].forEach(function (topic) {
+  test('subscribe to invalid topic with ' + topic, function (t) {
+    var s = connect(setup())
 
     s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello/#',
-      payload: 'world'
+      cmd: 'subscribe',
+      messageId: 24,
+      subscriptions: [{
+        topic: topic,
+        qos: 0
+      }]
     })
-  })
 
-  eos(s.conn, function () {
-    t.equal(s.broker.connectedClients, 0, 'no connected clients')
-    t.end()
+    eos(s.conn, function () {
+      t.equal(s.broker.connectedClients, 0, 'no connected clients')
+      t.end()
+    })
   })
 })
