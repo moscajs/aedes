@@ -487,6 +487,28 @@ test('avoid wrong deduping of retain messages', function (t) {
   publisher.inStream.write(expected)
 })
 
+test('publish empty topic', function (t) {
+  var s = connect(setup())
+
+  subscribe(t, s, '#', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet')
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: '',
+      payload: 'world'
+    })
+  })
+
+  eos(s.conn, function () {
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+    t.end()
+  })
+})
+
 test('publish invalid topic with #', function (t) {
   var s = connect(setup())
 
