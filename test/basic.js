@@ -552,8 +552,8 @@ test('publish invalid topic with +', function (t) {
   })
 })
 
-;['base/#/sub', 'base/#sub', 'base/+xyz/sub'].forEach(function (topic) {
-  test('subscribe to invalid topic with ' + topic, function (t) {
+;['base/#/sub', 'base/#sub', 'base/+xyz/sub', ''].forEach(function (topic) {
+  test('subscribe to invalid topic with "' + topic + '"', function (t) {
     var s = connect(setup())
 
     s.inStream.write({
