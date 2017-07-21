@@ -567,4 +567,18 @@ test('publish invalid topic with +', function (t) {
       }]
     })
   })
+
+  test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
+    var s = connect(setup())
+
+    s.broker.on('clientError', function () {
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'unsubscribe',
+      messageId: 24,
+      unsubscriptions: [topic]
+    })
+  })
 })
