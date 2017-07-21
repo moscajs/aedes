@@ -200,8 +200,11 @@ function DoEnqueues () {
   }
 }
 
+// + is 43
+// # is 35
 function removeSharp (sub) {
-  return sub.topic !== '#'
+  var code = sub.topic.charCodeAt(0)
+  return code !== 43 && code !== 35
 }
 
 function doEnqueue (sub, done) {
