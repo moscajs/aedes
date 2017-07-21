@@ -479,6 +479,71 @@ test('negate subscription', function (t) {
   })
 })
 
+test('negate multiple subscriptions', function (t) {
+  t.plan(5)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.ok(client, 'client exists')
+    cb(null, null)
+  }
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: 'hello',
+      qos: 0
+    }, {
+      topic: 'world',
+      qos: 0
+    }]
+  })
+
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [128, 128])
+    t.equal(packet.messageId, 24)
+  })
+})
+
+test('negate multiple subscriptions random times', function (t) {
+  t.plan(5)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.ok(client, 'client exists')
+    if (sub.topic === 'hello') {
+      setTimeout(function () {
+        cb(null, sub)
+      }, 100)
+    } else {
+      cb(null, null)
+    }
+  }
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: 'hello',
+      qos: 0
+    }, {
+      topic: 'world',
+      qos: 0
+    }]
+  })
+
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [0, 128])
+    t.equal(packet.messageId, 24)
+  })
+})
+
+
 test('failed authentication does not disconnect other client with same clientId', function (t) {
   t.plan(3)
 
