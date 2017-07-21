@@ -40,6 +40,25 @@ test('does not forward $SYS topics to # subscription', function (t) {
   })
 })
 
+test('does not forward $SYS topics to +/# subscription', function (t) {
+  t.plan(4)
+  var s = connect(setup())
+
+  subscribe(t, s, '+/#', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet should be received')
+    })
+
+    s.broker.mq.emit({
+      cmd: 'publish',
+      topic: '$SYS/hello',
+      payload: 'world'
+    }, function () {
+      t.pass('nothing happened')
+    })
+  })
+})
+
 test('does not store $SYS topics to QoS 1 # subscription', function (t) {
   t.plan(3)
 
