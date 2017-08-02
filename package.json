@@ -58,7 +58,6 @@
     "mqemitter": "^2.1.0",
     "mqtt-packet": "^5.4.0",
     "pump": "^1.0.0",
-    "qlobber": "^0.8.0",
     "retimer": "^1.0.0",
     "reusify": "^1.0.0",
     "safe-buffer": "^5.1.1",
