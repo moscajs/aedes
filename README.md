@@ -392,32 +392,6 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
 
-
-<a name="todo"></a>
-## Todo
-
-* [x] QoS 0 support
-* [x] Retain messages support
-* [x] QoS 1 support
-* [x] QoS 2 support
-* [x] clean=false support
-* [x] Keep alive support
-* [x] Will messages must survive crash
-* [x] Authentication
-* [x] Events
-* [x] Wait a CONNECT packet only for X seconds
-* [x] Support a CONNECT packet without a clientId
-* [x] Disconnect other clients with the same client.id
-* [x] Write docs
-* [x] Support counting the number of offline clients and subscriptions
-* [x] Performance optimizations for QoS 1 and Qos 2
-* [x] Add `client#publish()` and `client#subscribe()`
-* [x] move the persistence in a separate module
-* [x] mongo persistence ([external module](http://npm.im/aedes-persistence-mongodb))
-* [x] redis persistence ([external module](http://npm.im/aedes-persistence-redis))
-* [x] leveldb persistence ([external module](http://npm.im/aedes-persistence-level))
-* [ ] cluster support (external module)
-
 ## Acknowledgements
 
 This library is born after a lot of discussion with all
