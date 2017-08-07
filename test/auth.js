@@ -543,7 +543,6 @@ test('negate multiple subscriptions random times', function (t) {
   })
 })
 
-
 test('failed authentication does not disconnect other client with same clientId', function (t) {
   t.plan(3)
 
