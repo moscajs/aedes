@@ -582,3 +582,26 @@ test('publish invalid topic with +', function (t) {
     })
   })
 })
+
+test('clear drain', function (t) {
+  t.plan(4)
+
+  var s = connect(setup())
+
+  subscribe(t, s, 'hello', 0, function () {
+    // fake a busy socket
+    s.conn.write = function (chunk, enc, cb) {
+      return false
+    }
+
+    s.broker.publish({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world'
+    }, function () {
+      t.pass('callback called')
+    })
+
+    s.conn.destroy()
+  })
+})
