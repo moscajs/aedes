@@ -416,6 +416,37 @@ test('deliver QoS 1 retained messages', function (t) {
   })
 })
 
+test('deliver QoS 1 retained messages', function (t) {
+  var broker = aedes()
+  var publisher = connect(setup(broker))
+  var subscriber = connect(setup(broker))
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    dup: false,
+    length: 14,
+    retain: false
+  }
+
+  subscribe(t, subscriber, 'hello', 1, function () {
+    subscriber.outStream.once('data', function (packet) {
+      delete packet.messageId
+      t.deepEqual(packet, expected, 'packet must match')
+      t.end()
+    })
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42,
+      retain: true
+    })
+  })
+})
+
 test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
   var broker = aedes()
   var publisher = connect(setup(broker))
@@ -448,7 +479,7 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
   publisher.inStream.write({
     cmd: 'publish',
     topic: 'hello',
-    payload: 'world',
+    payload: Buffer.from('world'),
     qos: 0,
     messageId: 42,
     retain: true
