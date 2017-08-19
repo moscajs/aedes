@@ -1,6 +1,6 @@
 {
   "name": "aedes",
-  "version": "0.29.3",
+  "version": "0.30.0",
   "description": "Stream-based MQTT broker",
   "main": "aedes.js",
   "scripts": {
@@ -39,7 +39,7 @@
     "duplexify": "^3.5.1",
     "faucet": "0.0.1",
     "istanbul": "^0.4.1",
-    "mqtt": "^2.11.0",
+    "mqtt": "^2.12.0",
     "mqtt-connection": "^3.0.0",
     "pre-commit": "^1.0.10",
     "standard": "^10.0.3",
@@ -55,7 +55,7 @@
     "fastparallel": "^2.0.0",
     "fastseries": "^1.5.0",
     "from2": "^2.1.0",
-    "mqemitter": "^2.1.0",
+    "mqemitter": "^2.2.0",
     "mqtt-packet": "^5.4.0",
     "pump": "^1.0.0",
     "retimer": "^1.0.0",
