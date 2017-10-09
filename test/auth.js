@@ -346,8 +346,8 @@ test('authorize publish', function (t) {
   })
 })
 
-test.only('authorize waits for authenticate', function (t) {
-  t.plan(4)
+test('authorize waits for authenticate', function (t) {
+  t.plan(5)
 
   var s = setup()
 
@@ -365,6 +365,26 @@ test.only('authorize waits for authenticate', function (t) {
     t.ok(client.authenticated, 'client authenticated')
     cb()
   }
+
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false,
+    length: 12,
+    dup: false
+  }
+
+  s.broker.mq.on('hello', function (packet, cb) {
+    expected.brokerId = s.broker.id
+    expected.brokerCounter = s.broker.counter
+    expected.messageId = 0
+    delete expected.dup
+    delete expected.length
+    t.deepEqual(packet, expected, 'packet matches')
+    cb()
+  })
 
   s.inStream.write({
     cmd: 'connect',
