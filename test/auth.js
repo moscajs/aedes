@@ -346,6 +346,64 @@ test('authorize publish', function (t) {
   })
 })
 
+test('authorize waits for authenticate', function (t) {
+  t.plan(5)
+
+  var s = setup()
+
+  s.broker.authenticate = function (client, username, password, cb) {
+    t.ok(client instanceof Client, 'client is there')
+    setTimeout(function () {
+      t.equal(username, 'my username', 'username is there')
+      t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+      client.authenticated = true
+      cb(null, true)
+    }, 10)
+  }
+
+  s.broker.authorizePublish = function (client, packet, cb) {
+    t.ok(client.authenticated, 'client authenticated')
+    cb()
+  }
+
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false,
+    length: 12,
+    dup: false
+  }
+
+  s.broker.mq.on('hello', function (packet, cb) {
+    expected.brokerId = s.broker.id
+    expected.brokerCounter = s.broker.counter
+    expected.messageId = 0
+    delete expected.dup
+    delete expected.length
+    t.deepEqual(packet, expected, 'packet matches')
+    cb()
+  })
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    username: 'my username',
+    password: 'my pass',
+    keepalive: 0
+  })
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world'
+  })
+})
+
 test('authorize publish from configOptions', function (t) {
   t.plan(3)
 
