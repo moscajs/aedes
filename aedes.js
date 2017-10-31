@@ -13,6 +13,7 @@ var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
 var Client = require('./lib/client')
 var xtend = require('xtend')
+var ipcConnect = require('./lib/agents/IPCClient')()
 
 module.exports = Aedes
 
@@ -56,9 +57,23 @@ function Aedes (opts) {
   this.authorizeSubscribe = opts.authorizeSubscribe
   this.authorizeForward = opts.authorizeForward
   this.published = opts.published
-
+  this.ipcServer = opts.ipcServer || null
+  this.ipcAgent = null
   this.clients = {}
   this.brokers = {}
+  if (this.ipcServer) { // init the IPC agent so we can communicated with server.
+    var ipcClientPromise = ipcConnect.connect({id: process.pid}, this.ipcServer, function (data) {
+      console.log('data from IPC server data.debug:', data.debug)
+    })
+    that = this
+    ipcClientPromise.then(function (ipcInstance) {
+      console.log('conncected to IPC Server:', that.ipcServer)
+      that.ipcAgent = ipcInstance
+    }).catch(function (e) {
+      console.log('Unable to connect to IPC Server:', that.ipcServer)
+      throw new Error('no connection to IPC server aborting')
+    })
+  }
 
   var heartbeatTopic = '$SYS/' + that.id + '/heartbeat'
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
@@ -146,7 +161,8 @@ function storeRetained (_, done) {
 }
 
 function emitPacket (_, done) {
-  this.packet.retain = false
+  // why make it not retained if it was ?
+  // this.packet.retain = false
   this.broker.mq.emit(this.packet, done)
 }
 
@@ -246,7 +262,7 @@ Aedes.prototype.unsubscribe = function (topic, func, done) {
 Aedes.prototype.registerClient = function (client) {
   var that = this
   if (this.clients[client.id]) {
-    // moving out so we wait for this, so we don't
+    // moving out so we wait f0or this, so we don't
     // unregister a good client
     this.clients[client.id].close(function closeClient () {
       that._finishRegisterClient(client)
@@ -260,6 +276,13 @@ Aedes.prototype._finishRegisterClient = function (client) {
   this.connectedClients++
   this.clients[client.id] = client
   this.emit('client', client)
+  // this.persistence.setClientOnlineState(client.id, 1, noop)
+  if (this.ipcAgent) {
+    this.ipcAgent.emit('mqtt-client-connect', {
+      processId: process.pid,
+      clientId: client.id
+    })
+  }
   this.publish({
     topic: '$SYS/' + this.id + '/new/clients',
     payload: Buffer.from(client.id, 'utf8')
@@ -269,6 +292,13 @@ Aedes.prototype._finishRegisterClient = function (client) {
 Aedes.prototype.unregisterClient = function (client) {
   this.connectedClients--
   delete this.clients[client.id]
+  // this.persistence.setClientOnlineState(client.id, 0, noop)
+  if (this.ipcAgent) {
+    this.ipcAgent.emit('mqtt-client-disconnect', {
+      clientId: client.id,
+      processId: process.pid
+    })
+  }
   this.emit('clientDisconnect', client)
   this.publish({
     topic: '$SYS/' + this.id + '/disconnect/clients',

@@ -163,7 +163,7 @@ test('live retain packets', function (t) {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
-    retain: false,
+    retain: true,
     dup: false,
     length: 12,
     qos: 0

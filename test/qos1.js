@@ -427,7 +427,7 @@ test('deliver QoS 1 retained messages', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: true
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
