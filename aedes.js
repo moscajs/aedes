@@ -13,6 +13,7 @@ var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
 var Client = require('./lib/client')
 var xtend = require('xtend')
+var ipcConnect = require('./lib/agents/IPCClient')()
 
 module.exports = Aedes
 
@@ -56,9 +57,23 @@ function Aedes (opts) {
   this.authorizeSubscribe = opts.authorizeSubscribe
   this.authorizeForward = opts.authorizeForward
   this.published = opts.published
-
+  this.ipcServer = opts.ipcServer || null
+  this.ipcAgent = null
   this.clients = {}
   this.brokers = {}
+  if (this.ipcServer) { // init the IPC agent so we can communicated with server.
+    var ipcClientPromise = ipcConnect.connect({id: process.pid}, this.ipcServer, function (data) {
+      console.log('data from IPC server data.debug:', data.debug)
+    })
+    that = this
+    ipcClientPromise.then(function (ipcInstance) {
+      console.log('conncected to IPC Server:', that.ipcServer)
+      that.ipcAgent = ipcInstance
+    }).catch(function (e) {
+      console.log('Unable to connect to IPC Server:', that.ipcServer)
+      throw new Error('no connection to IPC server aborting')
+    })
+  }
 
   var heartbeatTopic = '$SYS/' + that.id + '/heartbeat'
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
@@ -260,6 +275,13 @@ Aedes.prototype._finishRegisterClient = function (client) {
   this.connectedClients++
   this.clients[client.id] = client
   this.emit('client', client)
+  // this.persistence.setClientOnlineState(client.id, 1, noop)
+  if (this.ipcAgent) {
+    this.ipcAgent.emit('client-connect', {
+      processId: process.pid,
+      clientId: client.id
+    })
+  }
   this.publish({
     topic: '$SYS/' + this.id + '/new/clients',
     payload: Buffer.from(client.id, 'utf8')
@@ -269,6 +291,13 @@ Aedes.prototype._finishRegisterClient = function (client) {
 Aedes.prototype.unregisterClient = function (client) {
   this.connectedClients--
   delete this.clients[client.id]
+  // this.persistence.setClientOnlineState(client.id, 0, noop)
+  if (this.ipcAgent) {
+    this.ipcAgent.emit('client-disconnect', {
+      clientId: client.id,
+      processId: process.pid
+    })
+  }
   this.emit('clientDisconnect', client)
   this.publish({
     topic: '$SYS/' + this.id + '/disconnect/clients',
