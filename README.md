@@ -281,8 +281,8 @@ It will be called when a client is set to recieve a message. Override to supply 
 authorization logic.
 
 ```js
-instance.authorizeForward = function (clientId, packet) {
-  if (packet.topic === 'aaaa' && clientId === "I should not see this") {
+instance.authorizeForward = function (client, packet) {
+  if (packet.topic === 'aaaa' && client.id === "I should not see this") {
     return null
     // also works with return undefined
   }
