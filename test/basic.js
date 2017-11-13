@@ -414,6 +414,46 @@ test('restore QoS 0 subscriptions not clean', function (t) {
   })
 })
 
+test('do not restore QoS 0 subscriptions when clean', function (t) {
+  var broker = aedes()
+  var publisher
+  var subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    dup: false,
+    length: 12,
+    retain: false
+  }
+
+  subscribe(t, subscriber, 'hello', 0, function () {
+    subscriber.inStream.end()
+
+    publisher = connect(setup(broker))
+
+    subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' }, function (connect) {
+      t.equal(connect.sessionPresent, false, 'session present is set to false')
+      publisher.inStream.write({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world',
+        qos: 0
+      })
+    })
+
+    subscriber.outStream.once('data', function (packet) {
+      t.fail('packet received')
+      t.end()
+    })
+    eos(subscriber.conn, function () {
+      t.equal(subscriber.broker.connectedClients, 0, 'no connected clients')
+      t.end()
+    })
+  })
+})
+
 test('double sub does not double deliver', function (t) {
   var s = connect(setup())
   var expected = {
