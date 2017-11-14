@@ -421,12 +421,12 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
 
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.inStream.end()
+    t.equal(subscriber.broker.persistence._subscriptions.size, 0, 'no previous subscriptions restored')
 
     publisher = connect(setup(broker))
 
     subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' }, function (connect) {
       t.equal(connect.sessionPresent, false, 'session present is set to false')
-      t.equal(subscriber.broker.persistence._subscriptions.size, 0, 'no previous subscriptions restored')
       publisher.inStream.write({
         cmd: 'publish',
         topic: 'hello',
