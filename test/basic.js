@@ -418,15 +418,6 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
   var broker = aedes()
   var publisher
   var subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' })
-  var expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 12,
-    retain: false
-  }
 
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.inStream.end()
@@ -435,6 +426,7 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
 
     subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' }, function (connect) {
       t.equal(connect.sessionPresent, false, 'session present is set to false')
+      t.equal(subscriber.broker.persistence._subscriptions.size, 0, 'no previous subscriptions restored')
       publisher.inStream.write({
         cmd: 'publish',
         topic: 'hello',
