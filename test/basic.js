@@ -213,13 +213,21 @@ test('unsubscribe without subscribe', function (t) {
   })
 })
 
-test('unsubscribe on disconnect', function (t) {
-  var s = noError(connect(setup()), t)
+test('unsubscribe on disconnect for a clean=true client', function (t) {
+  var opts = { clean: true }
+  var s = noError(connect(setup(), opts), t)
 
   subscribe(t, s, 'hello', 0, function () {
     s.conn.emit('close')
     s.outStream.on('data', function () {
       t.fail('should not receive any more messages')
+    })
+    s.broker.once('unsubscribe', function () {
+      t.pass('should emit unsubscribe')
+      t.end()
+    })
+    s.broker.once('closed', function () {
+      t.ok(true)
     })
     s.broker.publish({
       cmd: 'publish',
@@ -227,7 +235,32 @@ test('unsubscribe on disconnect', function (t) {
       payload: Buffer.from('world')
     }, function () {
       t.pass('calls the callback')
+    })
+  })
+})
+
+test('unsubscribe on disconnect for a clean=false client', function (t) {
+  var opts = { clean: false }
+  var s = noError(connect(setup(), opts), t)
+
+  subscribe(t, s, 'hello', 0, function () {
+    s.conn.emit('close')
+    s.outStream.on('data', function () {
+      t.fail('should not receive any more messages')
+    })
+    s.broker.once('unsubscribe', function () {
+      t.fail('should not emit unsubscribe')
+    })
+    s.broker.once('closed', function () {
+      t.ok(true)
       t.end()
+    })
+    s.broker.publish({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world')
+    }, function () {
+      t.pass('calls the callback')
     })
   })
 })

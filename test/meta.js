@@ -123,7 +123,7 @@ test('emit unsubscribe event', function (t) {
   t.plan(6)
 
   var broker = aedes()
-  var s = connect(setup(broker), { clientId: 'abcde' })
+  var s = connect(setup(broker), { clean: true, clientId: 'abcde' })
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
     t.deepEqual(unsubscriptions, [
