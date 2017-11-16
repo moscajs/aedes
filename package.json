@@ -39,12 +39,12 @@
     "duplexify": "^3.5.1",
     "faucet": "0.0.1",
     "istanbul": "^0.4.1",
-    "mqtt": "^2.13.0",
-    "mqtt-connection": "^3.0.0",
+    "mqtt": "^2.14.0",
+    "mqtt-connection": "^3.2.0",
     "pre-commit": "^1.0.10",
     "standard": "^10.0.3",
     "tape": "^4.8.0",
-    "websocket-stream": "^5.0.1"
+    "websocket-stream": "^5.1.1"
   },
   "dependencies": {
     "aedes-packet": "^1.0.0",
