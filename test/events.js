@@ -3,15 +3,17 @@
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
 
 test('publishes an hearbeat', function (t) {
   t.plan(3)
-  var broker = aedes({
-    heartbeatInterval: 10 // ms
-  })
+
+  var config = JSON.parse(JSON.stringify(aedesConfig))
+  config.heartbeatInterval = 10 // ms
+  var broker = aedes(config)
 
   broker.subscribe('$SYS/+/heartbeat', function (message, cb) {
     var id = message.topic.match(/\$SYS\/([^/]+)\/heartbeat/)[1]
@@ -23,7 +25,9 @@ test('publishes an hearbeat', function (t) {
 
 test('does not forward $SYS topics to # subscription', function (t) {
   t.plan(4)
-  var s = connect(setup())
+
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -42,7 +46,9 @@ test('does not forward $SYS topics to # subscription', function (t) {
 
 test('does not forward $SYS topics to +/# subscription', function (t) {
   t.plan(4)
-  var s = connect(setup())
+
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
 
   subscribe(t, s, '+/#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -62,7 +68,7 @@ test('does not forward $SYS topics to +/# subscription', function (t) {
 test('does not store $SYS topics to QoS 1 # subscription', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var opts = { clean: false, clientId: 'abcde' }
   var s = connect(setup(broker), opts)
 
@@ -89,7 +95,8 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
 test('Emit event when receives a ping', function (t) {
   t.plan(6)
   t.timeoutAfter(2000)
-  var broker = aedes()
+
+  var broker = aedes(aedesConfig)
 
   broker.on('ping', function (packet, client) {
     if (client && client) {
@@ -112,7 +119,8 @@ test('Emit event when receives a ping', function (t) {
 
 test('Emit event when broker closed', function (t) {
   t.plan(1)
-  var broker = aedes()
+
+  var broker = aedes(aedesConfig)
   broker.once('closed', function () {
     t.ok(true)
   })
