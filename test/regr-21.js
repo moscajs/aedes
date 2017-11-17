@@ -2,12 +2,16 @@
 
 var test = require('tape').test
 var helper = require('./helper')
+var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
 
 test('after an error, outstanding packets are discarded', function (t) {
   t.plan(1)
-  var s = connect(setup(), {
+
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker), {
     keepalive: 1000
   })
   var packet = {
