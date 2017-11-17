@@ -4,9 +4,10 @@ var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var memory = require('aedes-persistence')
 var helper = require('./helper')
+var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
-var aedes = require('../')
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -21,9 +22,10 @@ function willConnect (s, opts, connected) {
 }
 
 test('delivers a will', function (t) {
+  var broker = aedes(aedesConfig)
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(), opts)
+  var s = willConnect(setup(broker), opts)
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
@@ -39,8 +41,9 @@ test('delivers a will', function (t) {
 
 test('calling close two times should not deliver two wills', function (t) {
   t.plan(4)
+
+  var broker = aedes(aedesConfig)
   var opts = {}
-  var broker = aedes()
 
   broker.on('client', function (client) {
     client.close()
@@ -65,7 +68,11 @@ test('calling close two times should not deliver two wills', function (t) {
 
 test('delivers old will in case of a crash', function (t) {
   t.plan(7)
-  var persistence = memory()
+
+  var config = JSON.parse(JSON.stringify(aedesConfig))
+  if (typeof config.persistence === 'undefined') {
+    config.persistence = memory()
+  }
   var will = {
     topic: 'mywill',
     payload: Buffer.from('last will'),
@@ -73,27 +80,24 @@ test('delivers old will in case of a crash', function (t) {
     retain: false
   }
 
-  persistence.broker = {
+  config.persistence.broker = {
     id: 'anotherBroker'
   }
 
-  persistence.putWill({
+  config.persistence.putWill({
     id: 'myClientId42'
   }, will, function (err) {
     t.error(err, 'no error')
 
-    var interval = 10 // ms, so that the will check happens fast!
-    var broker = aedes({
-      persistence: persistence,
-      heartbeatInterval: interval
-    })
+    config.heartbeatInterval = 10 // ms, so that the will check happens fast!
+    var broker = aedes(config)
     var start = Date.now()
 
     broker.mq.on('mywill', check)
 
     function check (packet, cb) {
       broker.mq.removeListener('mywill', check)
-      t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
+      t.ok(Date.now() - start >= 3 * config.heartbeatInterval, 'the will needs to be emitted after 3 heartbeats')
       t.equal(packet.topic, will.topic, 'topic matches')
       t.deepEqual(packet.payload, will.payload, 'payload matches')
       t.equal(packet.qos, will.qos, 'qos matches')
@@ -115,7 +119,8 @@ test('store the will in the persistence', function (t) {
   }
 
   // willConnect populates opts with a will
-  var s = willConnect(setup(), opts)
+  var broker = aedes(aedesConfig)
+  var s = willConnect(setup(broker), opts)
 
   s.broker.persistence.getWill({
     id: opts.clientId
