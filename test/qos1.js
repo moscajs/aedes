@@ -4,12 +4,14 @@ var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
 
 test('publish QoS 1', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var expected = {
     cmd: 'puback',
     messageId: 42,
@@ -34,7 +36,7 @@ test('publish QoS 1', function (t) {
 })
 
 test('subscribe QoS 1', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -70,7 +72,7 @@ test('subscribe QoS 1', function (t) {
 })
 
 test('subscribe QoS 0, but publish QoS 1', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -100,7 +102,7 @@ test('subscribe QoS 0, but publish QoS 1', function (t) {
 })
 
 test('restore QoS 1 subscriptions not clean', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -147,7 +149,7 @@ test('restore QoS 1 subscriptions not clean', function (t) {
 })
 
 test('remove stored subscriptions if connected with clean=true', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
@@ -193,7 +195,7 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
 })
 
 test('resend publish on non-clean reconnect QoS 1', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
@@ -240,7 +242,7 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
 })
 
 test('do not resend QoS 1 packets at each reconnect', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -297,7 +299,7 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
 })
 
 test('do not resend QoS 1 packets if reconnect is clean', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
@@ -332,7 +334,7 @@ test('do not resend QoS 1 packets if reconnect is clean', function (t) {
 })
 
 test('do not resend QoS 1 packets at reconnect if puback was received', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -384,7 +386,7 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
 })
 
 test('deliver QoS 1 retained messages', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -417,7 +419,7 @@ test('deliver QoS 1 retained messages', function (t) {
 })
 
 test('deliver QoS 1 retained messages', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -448,7 +450,7 @@ test('deliver QoS 1 retained messages', function (t) {
 })
 
 test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -487,7 +489,7 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
 })
 
 test('remove stored subscriptions after unsubscribe', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
@@ -546,7 +548,8 @@ test('remove stored subscriptions after unsubscribe', function (t) {
 })
 
 test('upgrade a QoS 0 subscription to QoS 1', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -577,7 +580,8 @@ test('upgrade a QoS 0 subscription to QoS 1', function (t) {
 })
 
 test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -603,7 +607,7 @@ test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
 })
 
 test('not clean and retain messages with QoS 1', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -675,7 +679,7 @@ test('not clean and retain messages with QoS 1', function (t) {
 })
 
 test('subscribe and publish QoS 1 in parallel', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',
