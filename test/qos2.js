@@ -4,6 +4,7 @@ var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
@@ -79,7 +80,8 @@ function receive (t, subscriber, expected, done) {
 }
 
 test('publish QoS 2', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var packet = {
     cmd: 'publish',
     topic: 'hello',
@@ -91,7 +93,7 @@ test('publish QoS 2', function (t) {
 })
 
 test('subscribe QoS 2', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var toPublish = {
@@ -113,7 +115,7 @@ test('subscribe QoS 2', function (t) {
 })
 
 test('client.publish with clean=true subscribption QoS 2', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var toPublish = {
     cmd: 'publish',
     topic: 'hello',
@@ -148,7 +150,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
 test('call published method with client with QoS 2', function (t) {
   t.plan(10)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var toPublish = {
@@ -178,7 +180,7 @@ test('call published method with client with QoS 2', function (t) {
 })
 
 test('subscribe QoS 0, but publish QoS 2', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -210,7 +212,7 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
 })
 
 test('restore QoS 2 subscriptions not clean', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -239,7 +241,7 @@ test('restore QoS 2 subscriptions not clean', function (t) {
 })
 
 test('resend publish on non-clean reconnect QoS 2', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
@@ -268,7 +270,7 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
 })
 
 test('resend pubrel on non-clean reconnect QoS 2', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
@@ -342,7 +344,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
 })
 
 test('publish after disconnection', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var toPublish = {
