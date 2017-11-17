@@ -4,13 +4,14 @@ var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
 
 test('publish direct to a single client QoS 0', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -41,7 +42,7 @@ test('publish direct to a single client QoS 0', function (t) {
 test('publish direct to a single client QoS 1', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -77,7 +78,7 @@ test('publish direct to a single client QoS 1', function (t) {
 test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var messageId
   var clientId
 
@@ -114,7 +115,7 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
 test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var messageId
   var clientId
 
@@ -158,7 +159,7 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
 test('offline message support for direct publish', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -203,7 +204,7 @@ test('offline message support for direct publish', function (t) {
 test('subscribe a client programmatically', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -241,7 +242,7 @@ test('subscribe a client programmatically', function (t) {
 test('unsubscribe a client', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.on('client', function (client) {
     client.subscribe({
@@ -263,7 +264,7 @@ test('unsubscribe a client', function (t) {
 test('subscribe a client programmatically multiple topics', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -304,7 +305,7 @@ test('subscribe a client programmatically multiple topics', function (t) {
 test('subscribe a client programmatically with full packet', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -347,7 +348,7 @@ test('subscribe a client programmatically with full packet', function (t) {
 test('get message when client connects', function (t) {
   t.plan(2)
   var client1 = 'gav'
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.on('client', function (client) {
     client.subscribe({
@@ -371,7 +372,7 @@ test('get message when client disconnects', function (t) {
   t.plan(2)
   var client1 = 'gav'
   var client2 = 'friend'
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.on('client', function (client) {
     if (client.id === client1) {
