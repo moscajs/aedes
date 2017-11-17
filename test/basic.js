@@ -4,6 +4,7 @@ var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var aedesConfig = {}
 var eos = require('end-of-stream')
 var setup = helper.setup
 var connect = helper.connect
@@ -11,7 +12,8 @@ var noError = helper.noError
 var subscribe = helper.subscribe
 
 test('connect and connack (minimal)', function (t) {
-  var s = setup()
+  var broker = aedes(aedesConfig)
+  var s = setup(broker)
 
   s.inStream.write({
     cmd: 'connect',
@@ -39,7 +41,8 @@ test('connect and connack (minimal)', function (t) {
 })
 
 test('publish QoS 0', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -65,7 +68,8 @@ test('publish QoS 0', function (t) {
 })
 
 test('subscribe QoS 0', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -92,7 +96,9 @@ test('subscribe QoS 0', function (t) {
 
 test('does not die badly on connection error', function (t) {
   t.plan(3)
-  var s = connect(setup())
+
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
 
   s.inStream.write({
     cmd: 'subscribe',
@@ -123,7 +129,8 @@ test('does not die badly on connection error', function (t) {
 test('unsubscribe', function (t) {
   t.plan(5)
 
-  var s = noError(connect(setup()), t)
+  var broker = aedes(aedesConfig)
+  var s = noError(connect(setup(broker)), t)
 
   subscribe(t, s, 'hello', 0, function () {
     s.inStream.write({
@@ -169,7 +176,8 @@ test('live retain packets', function (t) {
     qos: 0
   }
 
-  var s = noError(connect(setup()), t)
+  var broker = aedes(aedesConfig)
+  var s = noError(connect(setup(broker)), t)
 
   subscribe(t, s, 'hello', 0, function () {
     s.outStream.on('data', function (packet) {
@@ -193,7 +201,8 @@ test('live retain packets', function (t) {
 test('unsubscribe without subscribe', function (t) {
   t.plan(1)
 
-  var s = noError(connect(setup()), t)
+  var broker = aedes(aedesConfig)
+  var s = noError(connect(setup(broker)), t)
 
   s.inStream.write({
     cmd: 'unsubscribe',
@@ -214,8 +223,9 @@ test('unsubscribe without subscribe', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=true client', function (t) {
+  var broker = aedes(aedesConfig)
   var opts = { clean: true }
-  var s = noError(connect(setup(), opts), t)
+  var s = noError(connect(setup(broker), opts), t)
 
   subscribe(t, s, 'hello', 0, function () {
     s.conn.emit('close')
@@ -240,8 +250,9 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=false client', function (t) {
+  var broker = aedes(aedesConfig)
   var opts = { clean: false }
-  var s = noError(connect(setup(), opts), t)
+  var s = noError(connect(setup(broker), opts), t)
 
   subscribe(t, s, 'hello', 0, function () {
     s.conn.emit('close')
@@ -266,7 +277,8 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
 })
 
 test('disconnect', function (t) {
-  var s = noError(connect(setup()), t)
+  var broker = aedes(aedesConfig)
+  var s = noError(connect(setup(broker)), t)
 
   s.outStream.on('finish', function () {
     t.end()
@@ -278,7 +290,7 @@ test('disconnect', function (t) {
 })
 
 test('retain messages', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -312,7 +324,7 @@ test('retain messages', function (t) {
 test('closes', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var client = noError(connect(setup(broker)))
   eos(client.conn, t.pass.bind('client closes'))
 
@@ -322,7 +334,8 @@ test('closes', function (t) {
 })
 
 test('connect without a clientId for MQTT 3.1.1', function (t) {
-  var s = setup()
+  var broker = aedes(aedesConfig)
+  var s = setup(broker)
 
   s.inStream.write({
     cmd: 'connect',
@@ -352,7 +365,7 @@ test('connect without a clientId for MQTT 3.1.1', function (t) {
 test('disconnect another client with the same clientId', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var c1 = connect(setup(broker), {
     clientId: 'abcde'
   }, function () {
@@ -375,7 +388,7 @@ test('disconnect another client with the same clientId', function (t) {
 test('disconnect if another broker connects the same client', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var c1 = connect(setup(broker), {
     clientId: 'abcde'
   }, function () {
@@ -399,7 +412,7 @@ test('disconnect if another broker connects the same client', function (t) {
 test('publish to $SYS/broker/new/clients', function (t) {
   t.plan(1)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.mq.on('$SYS/' + broker.id + '/new/clients', function (packet, done) {
     t.equal(packet.payload.toString(), 'abcde', 'clientId matches')
@@ -412,7 +425,7 @@ test('publish to $SYS/broker/new/clients', function (t) {
 })
 
 test('restore QoS 0 subscriptions not clean', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -448,7 +461,7 @@ test('restore QoS 0 subscriptions not clean', function (t) {
 })
 
 test('do not restore QoS 0 subscriptions when clean', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher
   var subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' })
 
@@ -480,7 +493,8 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
 })
 
 test('double sub does not double deliver', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -512,7 +526,8 @@ test('double sub does not double deliver', function (t) {
 })
 
 test('overlapping sub does not double deliver', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -544,7 +559,7 @@ test('overlapping sub does not double deliver', function (t) {
 })
 
 test('avoid wrong deduping of retain messages', function (t) {
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -586,7 +601,8 @@ test('avoid wrong deduping of retain messages', function (t) {
 })
 
 test('publish empty topic', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -608,7 +624,8 @@ test('publish empty topic', function (t) {
 })
 
 test('publish invalid topic with #', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -629,7 +646,8 @@ test('publish invalid topic with #', function (t) {
 })
 
 test('publish invalid topic with +', function (t) {
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -650,7 +668,8 @@ test('publish invalid topic with +', function (t) {
 
 ;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub'].forEach(function (topic) {
   test('subscribe to invalid topic with "' + topic + '"', function (t) {
-    var s = connect(setup())
+    var broker = aedes(aedesConfig)
+    var s = connect(setup(broker))
 
     s.broker.on('clientError', function () {
       t.end()
@@ -667,7 +686,8 @@ test('publish invalid topic with +', function (t) {
   })
 
   test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
-    var s = connect(setup())
+    var broker = aedes(aedesConfig)
+    var s = connect(setup(broker))
 
     s.broker.on('clientError', function () {
       t.end()
@@ -684,7 +704,8 @@ test('publish invalid topic with +', function (t) {
 test('clear drain', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker))
 
   subscribe(t, s, 'hello', 0, function () {
     // fake a busy socket
