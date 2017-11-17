@@ -4,6 +4,7 @@ var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
@@ -11,7 +12,7 @@ var subscribe = helper.subscribe
 test('count connected clients', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   t.equal(broker.connectedClients, 0, 'no connected clients')
 
@@ -35,7 +36,7 @@ test('count connected clients', function (t) {
 test('call published method', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.published = function (packet, client, done) {
     t.equal(packet.topic, 'hello', 'topic matches')
@@ -56,7 +57,7 @@ test('call published method', function (t) {
 test('call published method with client', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.published = function (packet, client, done) {
     // for internal messages, client will be null
@@ -80,7 +81,7 @@ test('call published method with client', function (t) {
 test('emit publish event with client', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.on('publish', function (packet, client) {
     // for internal messages, client will be null
@@ -103,7 +104,7 @@ test('emit publish event with client', function (t) {
 test('emit subscribe event', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var s = connect(setup(broker), { clientId: 'abcde' })
 
   broker.on('subscribe', function (subscriptions, client) {
@@ -122,7 +123,7 @@ test('emit subscribe event', function (t) {
 test('emit unsubscribe event', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var s = connect(setup(broker), { clean: true, clientId: 'abcde' })
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
@@ -148,7 +149,7 @@ test('emit unsubscribe event', function (t) {
 test('dont emit unsubscribe event on client close', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
   var s = connect(setup(broker), { clientId: 'abcde' })
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
@@ -168,7 +169,7 @@ test('dont emit unsubscribe event on client close', function (t) {
 test('emit clientDisconnect event', function (t) {
   t.plan(1)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.on('clientDisconnect', function (client) {
     t.equal(client.id, 'abcde', 'client matches')
@@ -185,7 +186,7 @@ test('emit clientDisconnect event', function (t) {
 test('emits client', function (t) {
   t.plan(1)
 
-  var broker = aedes()
+  var broker = aedes(aedesConfig)
 
   broker.on('client', function (client) {
     t.equal(client.id, 'abcde', 'clientId matches')
@@ -197,7 +198,8 @@ test('emits client', function (t) {
 })
 
 test('connect and connackSent event', function (t) {
-  var s = setup()
+  var broker = aedes(aedesConfig)
+  var s = setup(broker)
   var clientId = 'my-client'
 
   t.plan(2)
