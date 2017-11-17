@@ -4,6 +4,7 @@ var eos = require('end-of-stream')
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var aedesConfig = {}
 var setup = helper.setup
 var connect = helper.connect
 var noError = helper.noError
@@ -11,7 +12,8 @@ var noError = helper.noError
 test.skip('supports pingreq/pingresp', function (t) {
   t.plan(1)
 
-  var s = noError(connect(setup()))
+  var broker = aedes(aedesConfig)
+  var s = noError(connect(setup(broker)))
 
   s.inStream.write({
     cmd: 'pingreq'
@@ -26,7 +28,8 @@ test('supports keep alive disconnections', function (t) {
   t.plan(2)
   t.timeoutAfter(2000)
 
-  var s = connect(setup(null, 2000), { keepalive: 1 })
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker, 2000), { keepalive: 1 })
   var start = Date.now()
 
   eos(s.conn, function () {
@@ -39,7 +42,8 @@ test('supports keep alive disconnections after a pingreq', function (t) {
   t.plan(2)
   t.timeoutAfter(3000)
 
-  var s = connect(setup(null, 3000), { keepalive: 1 })
+  var broker = aedes(aedesConfig)
+  var s = connect(setup(broker, 3000), { keepalive: 1 })
   var start
 
   setTimeout(function () {
@@ -59,9 +63,10 @@ test('disconnect if a connect does not arrive in time', function (t) {
   t.plan(2)
   t.timeoutAfter(200)
 
-  var s = setup(aedes({
-    connectTimeout: 50
-  }))
+  var config = JSON.parse(JSON.stringify(aedesConfig))
+  config.connectTimeout = 50 // ms
+  var broker = aedes(config)
+  var s = setup(broker)
   var start = Date.now()
 
   eos(s.conn, function () {
