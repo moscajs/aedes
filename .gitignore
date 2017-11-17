@@ -32,3 +32,7 @@ flamegraph.html
 .__*
 profile*
 
+.idea
+.DS_Store
+dump.rdb
+
