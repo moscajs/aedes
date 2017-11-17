@@ -9,7 +9,7 @@ var aedesPersistenceRedis = require('aedes-persistence-redis')({
   db: 0,
   maxSessionDelivery: 100 // maximum offline messages deliverable on client CONNECT, default is 1000
 })
-var mq = require('mqemitter-redis')({
+var mqemitterRedis = require('mqemitter-redis')({
   port: 6379,          // Redis port
   host: '127.0.0.1',   // Redis host
   family: 4,           // 4 (IPv4) or 6 (IPv6)
@@ -18,7 +18,7 @@ var mq = require('mqemitter-redis')({
   maxSessionDelivery: 100 // maximum offline messages deliverable on client CONNECT, default is 1000
 })
 
-var aedes = require('../')({persistence: aedesPersistenceRedis, concurrency: 0})
+var aedes = require('../')({persistence: aedesPersistenceRedis, mq: mqemitterRedis})
 var server = require('net').createServer(aedes.handle)
 var port = 1883
 

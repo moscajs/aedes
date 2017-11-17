@@ -32,6 +32,7 @@
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "devDependencies": {
+    "aedes-persistence-redis": "^5.1.0",
     "compute-mode": "^1.0.0",
     "concat-stream": "^1.4.7",
     "convert-hrtime": "^2.0.0",
@@ -39,8 +40,14 @@
     "duplexify": "^3.5.1",
     "faucet": "0.0.1",
     "istanbul": "^0.4.1",
+<<<<<<< HEAD
+    "mqemitter-redis": "^2.2.0",
+    "mqtt": "^2.13.0",
+    "mqtt-connection": "^3.0.0",
+=======
     "mqtt": "^2.14.0",
     "mqtt-connection": "^3.2.0",
+>>>>>>> 9a4eb0449d75a76db91099b32820f18f531a431b
     "pre-commit": "^1.0.10",
     "standard": "^10.0.3",
     "tape": "^4.8.0",
