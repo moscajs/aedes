@@ -128,3 +128,36 @@ test('store the will in the persistence', function (t) {
     t.end()
   })
 })
+
+test('delete the will in the persistence after publish', function (t) {
+  var opts = {
+    clientId: 'abcde'
+  }
+
+  var broker = aedes()
+
+  broker.on('client', function (client) {
+    setImmediate(function () {
+      client.close()
+    })
+  })
+
+  broker.mq.on('mywill', check)
+
+  // willConnect populates opts with a will
+  willConnect(setup(broker), opts)
+
+  function check (packet, cb) {
+    broker.mq.removeListener('mywill', check)
+    setImmediate(function () {
+      broker.persistence.getWill({
+        id: opts.clientId
+      }, function (err, p) {
+        t.error(err, 'no error')
+        t.notOk(p, 'packet is empty')
+        t.end()
+      })
+    })
+    cb()
+  }
+})
