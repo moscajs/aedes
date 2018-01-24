@@ -325,7 +325,7 @@ test('testing other event', function (t) {
   var broker = aedes()
   var client = setup(broker)
 
-  broker.on('genericError', function (client, error) {
+  broker.on('connectionError', function (client, error) {
     t.notOk(client.id, null)
     t.end()
   })
