@@ -321,6 +321,17 @@ test('closes', function (t) {
   })
 })
 
+test('testing other event', function (t) {
+  var broker = aedes()
+  var client = setup(broker)
+
+  broker.on('connectionError', function (client, error) {
+    t.notOk(client.id, null)
+    t.end()
+  })
+  client.conn.emit('error', 'Connect not yet arrived')
+})
+
 test('connect without a clientId for MQTT 3.1.1', function (t) {
   var s = setup()
 

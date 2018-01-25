@@ -23,6 +23,10 @@ aedes.on('clientError', function (client, err) {
   console.log('client error', client.id, err.message, err.stack)
 })
 
+aedes.on('connectionError', function (client, err) {
+  console.log('client error', client, err.message, err.stack)
+})
+
 aedes.on('publish', function (packet, client) {
   if (client) {
     console.log('message from client', client.id)

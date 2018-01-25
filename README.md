@@ -115,6 +115,9 @@ Events:
 * `clientError`: when a [Client](#client) errors, arguments:
   1. `client`
   2. `err`
+* `connectionError` When a [Client](#client) connection errors and there is no clientId attached , arguments:
+  1. `client`
+  2. `err`
 * `keepaliveTimeout`: when a [Client](#client) keepalive times out, arguments:
   1. `client`
 * `publish`: when a new packet is published, arguments:
