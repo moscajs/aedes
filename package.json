@@ -3,15 +3,21 @@
   "version": "0.33.0",
   "description": "Stream-based MQTT broker",
   "main": "aedes.js",
+  "types": "types/index.d.ts",
   "scripts": {
     "lint": "standard",
+    "tslint": "tslint types/**/*.d.ts",
+    "typescript-compile-test": "tsc -p test/typescript/tsconfig.json",
+    "typescript-compile-execute": "node test/typescript/*.js",
+    "typescript-test": "npm run typescript-compile-test && npm run typescript-compile-execute",
     "test": "tape test/*.js test/*/*.js | faucet",
-    "ci": "npm run lint; npm run coverage",
+    "ci": "npm run lint &&  npm run typescript-test && npm run coverage",
     "coverage": "istanbul cover tape test/*.js test/*/*.js",
     "coveralls": "cat coverage/lcov.info | coveralls"
   },
   "pre-commit": [
     "lint",
+    "tslint",
     "test"
   ],
   "repository": {
@@ -32,6 +38,7 @@
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^8.10.0",
     "compute-mode": "^1.0.0",
     "concat-stream": "^1.4.7",
     "convert-hrtime": "^2.0.0",
@@ -44,6 +51,9 @@
     "pre-commit": "^1.0.10",
     "standard": "^10.0.3",
     "tape": "^4.8.0",
+    "tslint": "^5.10.0",
+    "tslint-config-standard": "^7.0.0",
+    "typescript": "^2.8.3",
     "websocket-stream": "^5.1.1"
   },
   "dependencies": {
@@ -56,7 +66,7 @@
     "fastseries": "^1.5.0",
     "from2": "^2.1.0",
     "mqemitter": "^2.2.0",
-    "mqtt-packet": "^5.4.0",
+    "mqtt-packet": "^5.6.0",
     "pump": "^2.0.1",
     "retimer": "^1.1.0",
     "reusify": "^1.0.3",
