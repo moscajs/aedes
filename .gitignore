@@ -33,3 +33,6 @@ flamegraph.html
 profile*
 
 package-lock.json
+
+test/typescript/*.js
+test/typescript/*.map
