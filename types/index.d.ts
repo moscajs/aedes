@@ -63,9 +63,11 @@ interface Aedes extends EventEmitter {
   authorizeForward: AuthorizeForwardCallback
   published: PublishedCallback
 
-  on (event: 'client' | 'clientDisconnect' | 'keepaliveTimeout', cb: (client: Client) => void): this
+  on (event: 'closed', cb: () => void): this
+  on (event: 'client' | 'clientDisconnect' | 'keepaliveTimeout' | 'connackSent', cb: (client: Client) => void): this
   on (event: 'clientError' | 'connectionError', cb: (client: Client, error: Error) => void): this
-  on (event: 'ping', cb: (packet: any, client: Client) => void): this
+  on (event: 'ping' | 'publish' | 'ack', cb: (packet: any, client: Client) => void): this
+  on (event: 'subscribe' | 'unsubscribe', cb: (subscriptions: ISubscription | ISubscription[] | ISubscribePacket, client: Client) => void): this
 
   publish (packet: IPublishPacket & { topic: string | Buffer }, done: () => void): void
   subscribe (topic: string, callback: (packet: ISubscribePacket, cb: () => void) => void, done: () => void): void
