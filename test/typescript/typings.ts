@@ -59,6 +59,10 @@ const aedes = Aedes({
 
 const server = createServer(aedes.handle)
 
+aedes.on('closed', () => {
+  console.log(`closed`)
+})
+
 aedes.on('client', client => {
   console.log(`client: ${client.id} connected`)
 })
@@ -71,12 +75,36 @@ aedes.on('keepaliveTimeout', client => {
   console.log(`client: ${client.id} timed out`)
 })
 
+aedes.on('connackSent', client => {
+  console.log(`client: ${client.id} connack sent`)
+})
+
 aedes.on('clientError', client => {
   console.log(`client: ${client.id} error`)
 })
 
 aedes.on('connectionError', client => {
   console.log('connectionError')
+})
+
+aedes.on('ping', (packet, client) => {
+  console.log(`client: ${client.id} ping with packet ${packet.id}`)
+})
+
+aedes.on('publish', (packet, client) => {
+  console.log(`client: ${client.id} published packet ${packet.id}`)
+})
+
+aedes.on('ack', (packet, client) => {
+  console.log(`client: ${client.id} ack with packet ${packet.id}`)
+})
+
+aedes.on('subscribe', (subscriptions, client) => {
+  console.log(`client: ${client.id} subsribe`)
+})
+
+aedes.on('unsubscribe', (subscriptions, client) => {
+  console.log(`client: ${client.id} subsribe`)
 })
 
 aedes.subscribe('aaaa', (packet: ISubscribePacket, cb) => {
