@@ -36,3 +36,7 @@ package-lock.json
 
 test/typescript/*.js
 test/typescript/*.map
+
+.editorconfig
+.prettierrc
+.vscode

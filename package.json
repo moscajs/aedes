@@ -9,17 +9,14 @@
     "tslint": "tslint types/**/*.d.ts",
     "typescript-compile-test": "tsc -p test/typescript/tsconfig.json",
     "typescript-compile-execute": "node test/typescript/*.js",
-    "typescript-test": "npm run typescript-compile-test && npm run typescript-compile-execute",
+    "typescript-test":
+      "npm run typescript-compile-test && npm run typescript-compile-execute",
     "test": "tape test/*.js test/*/*.js | faucet",
     "ci": "npm run lint &&  npm run typescript-test && npm run coverage",
     "coverage": "istanbul cover tape test/*.js test/*/*.js",
     "coveralls": "cat coverage/lcov.info | coveralls"
   },
-  "pre-commit": [
-    "lint",
-    "tslint",
-    "test"
-  ],
+  "pre-commit": ["lint", "tslint", "test"],
   "repository": {
     "type": "git",
     "url": "https://github.com/mcollina/aedes.git"
@@ -27,14 +24,7 @@
   "bugs": {
     "url": "http://github.com/mcollina/aedes/issues"
   },
-  "keywords": [
-    "mqtt",
-    "broker",
-    "stream",
-    "internet",
-    "of",
-    "things"
-  ],
+  "keywords": ["mqtt", "broker", "stream", "internet", "of", "things"],
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "devDependencies": {
