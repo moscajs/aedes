@@ -81,6 +81,8 @@ declare namespace aedes {
     ): void
     close (callback?: () => void): void
   }
+
+  export function Server (options?: aedes.AedesOptions): aedes.Aedes
 }
 
 declare function aedes (options?: aedes.AedesOptions): aedes.Aedes

@@ -1,11 +1,10 @@
 // relative path uses package.json {"types":"types/index.d.ts", ...}
 
-import aedes = require ('../..')
-import { Client, AuthenticateError } from '../..'
+import { Server, Client, AuthenticateError } from '../..'
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { createServer } from 'net'
 
-const broker = aedes({
+const broker = Server({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,

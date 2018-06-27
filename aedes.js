@@ -15,6 +15,7 @@ var Client = require('./lib/client')
 var xtend = require('xtend')
 
 module.exports = Aedes
+Aedes.Server = Aedes
 
 var defaultOptions = {
   concurrency: 100,
