@@ -161,3 +161,44 @@ test('delete the will in the persistence after publish', function (t) {
     cb()
   }
 })
+
+test('delivers a will with authorization', function (t) {
+  let authorized = false
+  var opts = {}
+  // willConnect populates opts with a will
+  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })), opts)
+
+  s.broker.on('clientDisconnect', function () {
+    t.end()
+  })
+
+  s.broker.mq.on('mywill', function (packet, cb) {
+    t.equal(packet.topic, opts.will.topic, 'topic matches')
+    t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+    t.equal(packet.qos, opts.will.qos, 'qos matches')
+    t.equal(packet.retain, opts.will.retain, 'retain matches')
+    t.equal(authorized, true, 'authorization called')
+    cb()
+  })
+
+  s.conn.destroy()
+})
+
+test('does not deliver a will without authorization', function (t) {
+  let authorized = false
+  var opts = {}
+  // willConnect populates opts with a will
+  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(new Error()) } })), opts)
+
+  s.broker.on('clientDisconnect', function () {
+    t.equal(authorized, true, 'authorization called')
+    t.end()
+  })
+
+  s.broker.mq.on('mywill', function (packet, cb) {
+    t.fail('received will without authorization')
+    cb()
+  })
+
+  s.conn.destroy()
+})
