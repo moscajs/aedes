@@ -188,7 +188,7 @@ test('delivers a will waits for authorization', function (t) {
   let authorized = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setTimeout(() => { callback(null) }, 10) } })), opts)
+  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })), opts)
 
   s.broker.on('clientDisconnect', function () {
     t.end()
