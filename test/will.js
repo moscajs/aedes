@@ -184,6 +184,28 @@ test('delivers a will with authorization', function (t) {
   s.conn.destroy()
 })
 
+test('delivers a will waits for authorization', function (t) {
+  let authorized = false
+  var opts = {}
+  // willConnect populates opts with a will
+  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setTimeout(() => { callback(null) }, 10) } })), opts)
+
+  s.broker.on('clientDisconnect', function () {
+    t.end()
+  })
+
+  s.broker.mq.on('mywill', function (packet, cb) {
+    t.equal(packet.topic, opts.will.topic, 'topic matches')
+    t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+    t.equal(packet.qos, opts.will.qos, 'qos matches')
+    t.equal(packet.retain, opts.will.retain, 'retain matches')
+    t.equal(authorized, true, 'authorization called')
+    cb()
+  })
+
+  s.conn.destroy()
+})
+
 test('does not deliver a will without authorization', function (t) {
   let authorized = false
   var opts = {}
