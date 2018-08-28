@@ -226,13 +226,13 @@ test('does not deliver a will without authorization', function (t) {
 })
 
 test('does not deliver a will without authentication', function (t) {
-  let authorized = false
+  let authenticated = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authenticate: (_1, _2, _3, callback) => { authorized = true; callback(new Error(), false) } })), opts)
+  var s = willConnect(setup(aedes({ authenticate: (_1, _2, _3, callback) => { authenticated = true; callback(new Error(), false) } })), opts)
 
   s.broker.on('clientError', function () {
-    t.equal(authorized, true, 'authorization called')
+    t.equal(authenticated, true, 'authentication called')
     t.end()
   })
 
@@ -258,7 +258,6 @@ test('does not deliver will if keepalive is triggered during authentication', fu
   })
 
   broker.mq.on('mywill', function (packet, cb) {
-    console.log(packet)
     cb()
     t.fail('Received will when it was not expected')
   })
