@@ -95,6 +95,8 @@ Options:
   `60000` milliseconds
 * `connectTimeout`: the max number of milliseconds to wait for the CONNECT
   packet to arrive, defaults to `30000` milliseconds
+* `id`: id used to identify this broker instance in `$SYS` messages,
+  defaults to `shortid()`
 * `authenticate`: function used to authenticate clients, see
   [instance.authenticate()](#authenticate)
 * `authorizePublish`: function used to authorize PUBLISH packets, see
