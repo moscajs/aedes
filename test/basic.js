@@ -714,3 +714,15 @@ test('clear drain', function (t) {
     s.conn.destroy()
   })
 })
+
+test('id option', function (t) {
+  t.plan(2)
+
+  var broker1 = aedes()
+  setup(broker1)
+  t.ok(broker1.id, 'broker gets random id when id option not set')
+
+  var broker2 = aedes({ id: 'abc' })
+  setup(broker2)
+  t.equal(broker2.id, 'abc', 'broker id equals id option when set')
+})
