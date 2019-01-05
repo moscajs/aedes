@@ -12,7 +12,6 @@ var Packet = require('aedes-packet')
 var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
 var Client = require('./lib/client')
-var xtend = require('xtend')
 
 module.exports = Aedes
 
@@ -34,7 +33,7 @@ function Aedes (opts) {
     return new Aedes(opts)
   }
 
-  opts = xtend(defaultOptions, opts)
+  opts = Object.assign({}, defaultOptions, opts)
 
   this.id = opts.id || shortid()
   this.counter = 0
