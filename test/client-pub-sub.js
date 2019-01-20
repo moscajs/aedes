@@ -409,29 +409,29 @@ test('should not receive a message on negated subscription', function (t) {
       topic: 'hello',
       payload: Buffer.from('world'),
       qos: 0,
-      retain : true
+      retain: true
     }, function (err) {
+      t.error(err, 'no error')
+      client.subscribe({
+        topic: 'hello',
+        qos: 0
+      }, function (err) {
         t.error(err, 'no error')
-        client.subscribe({
-          topic: 'hello',
-          qos: 0
-        }, function (err) {
-          t.error(err, 'no error')
-        })
+      })
     })
   })
 
   var s = connect(setup(broker))
-  var receivedPacket = null;
+  var receivedPacket = null
   s.outStream.once('data', function (packet) {
     receivedPacket = packet
   })
 
-  setTimeout(function(){
-    if(receivedPacket != null) {
-      t.fail("Packet should not be received")
+  setTimeout(function () {
+    if (receivedPacket != null) {
+      t.fail('Packet should not be received')
     } else {
-      t.pass("Message not received")
+      t.pass('Message not received')
     }
   }, 1000)
 })
