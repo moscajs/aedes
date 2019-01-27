@@ -433,5 +433,5 @@ test('should not receive a message on negated subscription', function (t) {
     } else {
       t.pass('Message not received')
     }
-  }, 1000)
+  }, 100)
 })
