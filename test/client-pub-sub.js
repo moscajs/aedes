@@ -103,6 +103,7 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   var s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
+    console.log(packet)
     messageId = packet.messageId
     s.inStream.write({
       cmd: 'puback',

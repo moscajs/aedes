@@ -34,7 +34,9 @@ test('delivers a will', function (t) {
     t.end()
   })
 
-  s.conn.destroy()
+  process.nextTick(() => {
+    s.conn.destroy()
+  })
 })
 
 test('calling close two times should not deliver two wills', function (t) {
@@ -117,15 +119,18 @@ test('store the will in the persistence', function (t) {
   // willConnect populates opts with a will
   var s = willConnect(setup(), opts)
 
-  s.broker.persistence.getWill({
-    id: opts.clientId
-  }, function (err, packet) {
-    t.error(err, 'no error')
-    t.deepEqual(packet.topic, opts.will.topic, 'will topic matches')
-    t.deepEqual(packet.payload, opts.will.payload, 'will payload matches')
-    t.deepEqual(packet.qos, opts.will.qos, 'will qos matches')
-    t.deepEqual(packet.retain, opts.will.retain, 'will retain matches')
-    t.end()
+  s.broker.on('client', function () {
+    // this is connack
+    s.broker.persistence.getWill({
+      id: opts.clientId
+    }, function (err, packet) {
+      t.error(err, 'no error')
+      t.deepEqual(packet.topic, opts.will.topic, 'will topic matches')
+      t.deepEqual(packet.payload, opts.will.payload, 'will payload matches')
+      t.deepEqual(packet.qos, opts.will.qos, 'will qos matches')
+      t.deepEqual(packet.retain, opts.will.retain, 'will retain matches')
+      t.end()
+    })
   })
 })
 
@@ -181,7 +186,9 @@ test('delivers a will with authorization', function (t) {
     cb()
   })
 
-  s.conn.destroy()
+  process.nextTick(function () {
+    s.conn.destroy()
+  })
 })
 
 test('delivers a will waits for authorization', function (t) {
@@ -203,7 +210,9 @@ test('delivers a will waits for authorization', function (t) {
     cb()
   })
 
-  s.conn.destroy()
+  process.nextTick(function () {
+    s.conn.destroy()
+  })
 })
 
 test('does not deliver a will without authorization', function (t) {
@@ -222,7 +231,9 @@ test('does not deliver a will without authorization', function (t) {
     cb()
   })
 
-  s.conn.destroy()
+  process.nextTick(function () {
+    s.conn.destroy()
+  })
 })
 
 test('does not deliver a will without authentication', function (t) {
@@ -231,7 +242,7 @@ test('does not deliver a will without authentication', function (t) {
   // willConnect populates opts with a will
   var s = willConnect(setup(aedes({ authenticate: (_1, _2, _3, callback) => { authenticated = true; callback(new Error(), false) } })), opts)
 
-  s.broker.on('clientError', function () {
+  s.broker.once('clientError', function () {
     t.equal(authenticated, true, 'authentication called')
     t.end()
   })
