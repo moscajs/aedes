@@ -395,3 +395,43 @@ test('get message when client disconnects', function (t) {
     t.equal(client2, packet.payload.toString())
   })
 })
+
+test('should not receive a message on negated subscription', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  broker.authorizeSubscribe = function (client, sub, callback) {
+    callback(null, null)
+  }
+
+  broker.on('client', function (client) {
+    broker.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 0,
+      retain: true
+    }, function (err) {
+      t.error(err, 'no error')
+      client.subscribe({
+        topic: 'hello',
+        qos: 0
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  var s = connect(setup(broker))
+  var receivedPacket = null
+  s.outStream.once('data', function (packet) {
+    receivedPacket = packet
+  })
+
+  setTimeout(function () {
+    if (receivedPacket != null) {
+      t.fail('Packet should not be received')
+    } else {
+      t.pass('Message not received')
+    }
+  }, 100)
+})
