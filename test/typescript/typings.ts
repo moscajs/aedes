@@ -41,19 +41,19 @@ const aedes = Aedes({
 
     callback(null, sub)
   },
-  authorizeForward: (client, packet: IPublishPacket) => {
+  authorizeForward: (client, packet: IPublishPacket, callback) => {
     if (packet.topic === 'aaaa' && client.id === 'I should not see this') {
-      return null
+      callback(null)
       // also works with return undefined
     } else if (packet.topic === 'aaaa' && client.id === 'I should not see this either') {
-      return
+      callback()
     }
 
     if (packet.topic === 'bbb') {
       packet.payload = new Buffer('overwrite packet payload')
     }
 
-    return packet
+    callback(packet)
   }
 })
 

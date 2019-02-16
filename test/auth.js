@@ -722,7 +722,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
     authorizeForward: function (client, packet, cb) {
       packet.payload = Buffer.from('another-world')
       packet.messageId = 2
-      return packet
+      cb(packet)
     }
   })
   var expected = {
@@ -765,7 +765,7 @@ test('prevent publish in QoS1 mode', function (t) {
 
   var broker = aedes({
     authorizeForward: function (client, packet, cb) {
-      return null
+      cb(null)
     }
   })
 
@@ -798,7 +798,7 @@ test('prevent publish in QoS0 mode', function (t) {
 
   var broker = aedes({
     authorizeForward: function (client, packet, cb) {
-      return null
+      cb(null)
     }
   })
 
