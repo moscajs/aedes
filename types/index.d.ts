@@ -37,7 +37,7 @@ type AuthorizePublishCallback = (client: Client, packet: IPublishPacket, done: (
 
 type AuthorizeSubscribeCallback = (client: Client, subscription: ISubscription, done: (err: Error | null, subscription?: ISubscription | null) => void) => void
 
-type AuthorizeForwardCallback = (client: Client, packet: IPublishPacket) => IPublishPacket | null | void
+type AuthorizeForwardCallback = (client: Client, packet: IPublishPacket,done: (packet:IPublishPacket | null | void) => void) => void
 
 type PublishedCallback = (packet: IPublishPacket, client: Client, done: () => void) => void
 
