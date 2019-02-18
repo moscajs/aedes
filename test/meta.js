@@ -17,18 +17,22 @@ test('count connected clients', function (t) {
 
   connect(setup(broker))
 
-  t.equal(broker.connectedClients, 1, 'one connected clients')
-
-  var last = connect(setup(broker))
-
-  t.equal(broker.connectedClients, 2, 'two connected clients')
-
-  last.conn.destroy()
-
-  // needed because destroy() will do the trick before
-  // the next tick
   process.nextTick(function () {
     t.equal(broker.connectedClients, 1, 'one connected clients')
+
+    var last = connect(setup(broker))
+
+    process.nextTick(function () {
+      t.equal(broker.connectedClients, 2, 'two connected clients')
+
+      last.conn.destroy()
+
+      // needed because destroy() will do the trick before
+      // the next tick
+      process.nextTick(function () {
+        t.equal(broker.connectedClients, 1, 'one connected clients')
+      })
+    })
   })
 })
 
