@@ -353,12 +353,12 @@ test('authorize waits for authenticate', function (t) {
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
-    setTimeout(function () {
+    process.nextTick(function () {
       t.equal(username, 'my username', 'username is there')
       t.deepEqual(password, Buffer.from('my pass'), 'password is there')
       client.authenticated = true
       cb(null, true)
-    }, 10)
+    })
   }
 
   s.broker.authorizePublish = function (client, packet, cb) {

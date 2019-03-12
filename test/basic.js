@@ -109,7 +109,7 @@ test('does not die badly on connection error', function (t) {
   })
 
   s.outStream.on('data', function (packet) {
-    s.conn._writableState.ended = true
+    s.conn.destroy()
     s.broker.publish({
       cmd: 'publish',
       topic: 'hello',
@@ -719,10 +719,10 @@ test('id option', function (t) {
   t.plan(2)
 
   var broker1 = aedes()
-  setup(broker1)
+  setup(broker1).conn.destroy()
   t.ok(broker1.id, 'broker gets random id when id option not set')
 
   var broker2 = aedes({ id: 'abc' })
-  setup(broker2)
+  setup(broker2).conn.destroy()
   t.equal(broker2.id, 'abc', 'broker id equals id option when set')
 })

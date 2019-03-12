@@ -128,13 +128,13 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
 
   broker.on('client', function (client) {
     brokerClient = client
+
+    brokerClient.on('error', function (err) {
+      t.error(err)
+    })
   })
 
   var subscriber = connect(setup(broker), { clean: true })
-
-  brokerClient.on('error', function (err) {
-    t.error(err)
-  })
 
   subscribe(t, subscriber, 'hello', 2, function () {
     t.pass('subscribed')

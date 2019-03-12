@@ -18,13 +18,15 @@ test('after an error, outstanding packets are discarded', function (t) {
 
   s.broker.mq.on('hello', function (msg, cb) {
     t.pass('first msg received')
-    s.inStream.emit('error', new Error('something went wrong'))
+    s.inStream.destroy(new Error('something went wrong'))
     setImmediate(cb)
   })
 
-  s.inStream.write(packet)
-  setImmediate(function () {
+  process.nextTick(function () {
     s.inStream.write(packet)
-    s.inStream.write(packet)
+    setImmediate(function () {
+      s.inStream.write(packet)
+      s.inStream.write(packet)
+    })
   })
 })
