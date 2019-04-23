@@ -1,24 +1,24 @@
 // relative path uses package.json {"types":"types/index.d.ts", ...}
 
-import Aedes = require ('../..')
+import { Server, Client, AuthenticateError } from '../..'
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { createServer } from 'net'
 
-const aedes = Aedes({
+const broker = Server({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
-  authenticate: (client, username: string, password: string, callback) => {
+  authenticate: (client: Client, username: string, password: string, callback) => {
     if (username === 'test' && password === 'test') {
       callback(null, true)
     } else {
-      const error = new Error() as Error & { returnCode: number }
+      const error = new Error() as AuthenticateError
       error.returnCode = 1
 
       callback(error, false)
     }
   },
-  authorizePublish: (client, packet: IPublishPacket, callback) => {
+  authorizePublish: (client: Client, packet: IPublishPacket, callback) => {
     if (packet.topic === 'aaaa') {
       return callback(new Error('wrong topic'))
     }
@@ -29,7 +29,7 @@ const aedes = Aedes({
 
     callback(null)
   },
-  authorizeSubscribe: (client, sub: ISubscription, callback) => {
+  authorizeSubscribe: (client: Client, sub: ISubscription, callback) => {
     if (sub.topic === 'aaaa') {
       return callback(new Error('wrong topic'))
     }
@@ -57,57 +57,57 @@ const aedes = Aedes({
   }
 })
 
-const server = createServer(aedes.handle)
+const server = createServer(broker.handle)
 
-aedes.on('closed', () => {
+broker.on('closed', () => {
   console.log(`closed`)
 })
 
-aedes.on('client', client => {
+broker.on('client', client => {
   console.log(`client: ${client.id} connected`)
 })
 
-aedes.on('clientDisconnect', client => {
+broker.on('clientDisconnect', client => {
   console.log(`client: ${client.id} disconnected`)
 })
 
-aedes.on('keepaliveTimeout', client => {
+broker.on('keepaliveTimeout', client => {
   console.log(`client: ${client.id} timed out`)
 })
 
-aedes.on('connackSent', client => {
+broker.on('connackSent', client => {
   console.log(`client: ${client.id} connack sent`)
 })
 
-aedes.on('clientError', client => {
+broker.on('clientError', client => {
   console.log(`client: ${client.id} error`)
 })
 
-aedes.on('connectionError', client => {
+broker.on('connectionError', client => {
   console.log('connectionError')
 })
 
-aedes.on('ping', (packet, client) => {
+broker.on('ping', (packet, client) => {
   console.log(`client: ${client.id} ping with packet ${packet.id}`)
 })
 
-aedes.on('publish', (packet, client) => {
+broker.on('publish', (packet, client) => {
   console.log(`client: ${client.id} published packet ${packet.id}`)
 })
 
-aedes.on('ack', (packet, client) => {
+broker.on('ack', (packet, client) => {
   console.log(`client: ${client.id} ack with packet ${packet.id}`)
 })
 
-aedes.on('subscribe', (subscriptions, client) => {
+broker.on('subscribe', (subscriptions, client) => {
   console.log(`client: ${client.id} subsribe`)
 })
 
-aedes.on('unsubscribe', (subscriptions, client) => {
+broker.on('unsubscribe', (subscriptions, client) => {
   console.log(`client: ${client.id} subsribe`)
 })
 
-aedes.subscribe('aaaa', (packet: ISubscribePacket, cb) => {
+broker.subscribe('aaaa', (packet: ISubscribePacket, cb) => {
   console.log('cmd')
   console.log(packet.subscriptions)
   cb()
@@ -115,7 +115,7 @@ aedes.subscribe('aaaa', (packet: ISubscribePacket, cb) => {
   console.log('done subscribing')
 })
 
-aedes.unsubscribe('aaaa', (packet: IUnsubscribePacket, cb) => {
+broker.unsubscribe('aaaa', (packet: IUnsubscribePacket, cb) => {
   console.log('cmd')
   console.log(packet.unsubscriptions)
   cb()
@@ -123,4 +123,4 @@ aedes.unsubscribe('aaaa', (packet: IUnsubscribePacket, cb) => {
   console.log('done unsubscribing')
 })
 
-aedes.close()
+broker.close()

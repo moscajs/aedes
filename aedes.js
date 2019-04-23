@@ -14,6 +14,7 @@ var reusify = require('reusify')
 var Client = require('./lib/client')
 
 module.exports = Aedes
+Aedes.Server = Aedes
 
 var defaultOptions = {
   concurrency: 100,
