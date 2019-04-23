@@ -55,6 +55,7 @@ server.listen(8883, function () {
 ## API
 
   * <a href="#constructor"><code><b>aedes()</b></code></a>
+  * <a href="#Server"><code><b>aedes.Server()</b></code></a>
   * <a href="#handle"><code>instance.<b>handle()</b></code></a>
   * <a href="#subscribe"><code>instance.<b>subscribe()</b></code></a>
   * <a href="#publish"><code>instance.<b>publish()</b></code></a>
@@ -145,6 +146,14 @@ packet.
 * `connackSent`: when a CONNACK packet is sent to a client [Client](#client) (happens after `'client'`), arguments:
   1. `client`
 * `closed`: when the broker is closed
+
+-------------------------------------------------------
+<a name="Server"></a>
+### new aedes.Server([opts])
+
+Same as [`aedes(opts)`](#constructor).
+Creates a new instance of Aedes.
+This variant is useful with TypeScript or ES modules.
 
 -------------------------------------------------------
 <a name="handle"></a>

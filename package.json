@@ -18,7 +18,8 @@
   "pre-commit": [
     "lint",
     "tslint",
-    "test"
+    "test",
+    "typescript-test"
   ],
   "repository": {
     "type": "git",
