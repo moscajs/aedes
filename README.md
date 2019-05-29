@@ -275,12 +275,12 @@ instance.authorizeSubscribe = function (client, sub, callback) {
 }
 ```
 
-To negate a subscription, set the subscription to `null`:
+To negate a subscription, set the subscription's QoS to `128`:
 
 ```js
 instance.authorizeSubscribe = function (client, sub, callback) {
   if (sub.topic === 'aaaa') {
-    sub = null
+    sub.qos = 128
   }
 
   callback(null, sub)
