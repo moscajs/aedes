@@ -566,6 +566,40 @@ test('negate multiple subscriptions', function (t) {
   })
 })
 
+test('negate subscription with correct persistence', function (t) {
+  t.plan(7)
+
+  var broker = aedes()
+  broker.authorizeSubscribe = function (client, sub, cb) {
+    t.ok(client, 'client exists')
+    if (sub.topic === 'hello') {
+      sub = null
+    }
+    cb(null, sub)
+  }
+
+  var s = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [128, 0])
+    t.notEqual(broker.persistence._subscriptions.get('abcde'), undefined)
+    t.deepEqual(broker.persistence._subscriptions.get('abcde').size, 2)
+    t.equal(packet.messageId, 24)
+  })
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{
+      topic: 'hello',
+      qos: 0
+    }, {
+      topic: 'world',
+      qos: 0
+    }]
+  })
+})
+
 test('negate multiple subscriptions random times', function (t) {
   t.plan(5)
 
