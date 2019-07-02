@@ -126,7 +126,7 @@ Events:
 * `publish`: when a new packet is published, arguments:
   1. `packet`
   2. `client`, it will be null if the message is published using
-     [`publish`](#publish).
+     [`publish`](#publish). It is by design that the broker heartbeat will be on publish event, in this case `client` is null
 * `ack`: when a packet published to a client is delivered successfully with QoS 1 or QoS 2, arguments:
   1. `packet`
   2. `client`
