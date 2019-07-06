@@ -288,7 +288,7 @@ Aedes.prototype.close = function (cb) {
   function doneClose () {
     that.emit('closed')
     cb = cb || noop
-    cb()
+    that.mq.close(cb)
   }
 }
 

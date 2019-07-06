@@ -321,6 +321,19 @@ test('closes', function (t) {
   })
 })
 
+test('closes gracefully', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var client = noError(connect(setup(broker)))
+  eos(client.conn, t.pass.bind('client closes'))
+
+  broker.close(function (err) {
+    t.error(err, 'no error')
+    t.ok(broker.mq.closed, 'broker mq closes')
+  })
+})
+
 test('testing other event', function (t) {
   var broker = aedes()
   var client = setup(broker)
