@@ -45,13 +45,13 @@ test('publish QoS 0', function (t) {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 0,
-    retain: false,
-    messageId: 0
+    retain: false
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
+    t.equal(packet['messageId'], undefined, 'MUST not contain a packet identifier in QoS 0')
     t.deepEqual(packet, expected, 'packet matches')
     cb()
     t.end()

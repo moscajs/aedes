@@ -231,6 +231,8 @@ Aedes.prototype.publish = function (packet, client, done) {
   var publishFuncs = publishFuncsSimple
   if (p.qos > 0) {
     publishFuncs = publishFuncsQoS
+  } else {
+    delete p.messageId
   }
   this._series(new PublishState(this, client, p), publishFuncs, null, done)
 }
