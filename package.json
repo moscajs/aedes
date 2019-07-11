@@ -12,7 +12,7 @@
     "typescript-test": "npm run typescript-compile-test && npm run typescript-compile-execute",
     "test": "tape test/*.js test/*/*.js | faucet",
     "ci": "npm run lint &&  npm run typescript-test && npm run coverage",
-    "coverage": "istanbul cover tape test/*.js test/*/*.js",
+    "coverage": "nyc --reporter=lcov tape test/*.js test/*/*.js",
     "coveralls": "cat coverage/lcov.info | coveralls"
   },
   "pre-commit": [
@@ -46,9 +46,9 @@
     "coveralls": "^3.0.4",
     "duplexify": "^4.1.1",
     "faucet": "0.0.1",
-    "istanbul": "^0.4.5",
     "mqtt": "^3.0.0",
     "mqtt-connection": "^4.0.0",
+    "nyc": "^14.1.1",
     "pre-commit": "^1.2.2",
     "standard": "^12.0.1",
     "tape": "^4.10.2",
