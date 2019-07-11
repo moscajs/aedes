@@ -686,29 +686,16 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
     length: 14,
     retain: false
   }
+  var count = 0
+  var cmdStream = []
 
   broker.on('clientError', function (client, err) {
     console.log(err.stack)
     // t.fail('no client error')
   })
 
-  s.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'puback')
-    t.equal(packet.messageId, 42, 'messageId must match differ')
-    s.outStream.once('data', function (packet) {
-      s.inStream.write({
-        cmd: 'puback',
-        messageId: packet.messageId
-      })
-      delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
-      s.outStream.once('data', function (packet) {
-        t.equal(packet.cmd, 'suback')
-        t.deepEqual(packet.granted, [1])
-        t.equal(packet.messageId, 24)
-        t.end()
-      })
-    })
+  s.outStream.on('data', function (packet) {
+    cmdStream[packet.cmd] = { packet: packet, seq: count++ }
   })
 
   s.inStream.write({
@@ -727,4 +714,22 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
     qos: 1,
     messageId: 42
   })
+  setTimeout(() => {
+    t.equal(count, 3, 'should receive 3 packets')
+    var _cmdArr = Object.keys(cmdStream)
+    t.ok(_cmdArr.includes('publish'), 'should include publish cmd')
+    t.ok(_cmdArr.includes('puback'), 'should include puback cmd')
+    t.ok(_cmdArr.includes('suback'), 'should include suback cmd')
+    if (cmdStream['publish'] === undefined || cmdStream['puback'] === undefined) {
+      t.fail('publish or puback not found')
+    } else {
+      t.ok(cmdStream['publish'].seq < cmdStream['puback'].seq, 'puback should go after publish')
+      t.equal(cmdStream['puback'].packet.messageId, 42, 'puback messageId must match')
+      delete cmdStream['publish'].packet.messageId
+      t.deepEqual(cmdStream['publish'].packet, expected, 'publish packet must match')
+      t.deepEqual(cmdStream['suback'].packet.granted, [1])
+      t.equal(cmdStream['suback'].packet.messageId, 24)
+    }
+    t.end()
+  }, 200)
 })
