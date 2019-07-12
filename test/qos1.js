@@ -694,7 +694,7 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
 
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'puback')
-    t.equal(packet.messageId, 42, 'messageId must match differ')
+    t.equal(packet.messageId, 42, 'messageId must match')
     s.outStream.once('data', function (packet) {
       s.inStream.write({
         cmd: 'puback',
