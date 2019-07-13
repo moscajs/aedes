@@ -694,20 +694,19 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
 
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'puback')
-    t.equal(packet.messageId, 42, 'messageId must match differ')
-    s.outStream.once('data', function (packet) {
-      s.inStream.write({
-        cmd: 'puback',
-        messageId: packet.messageId
-      })
-      delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
-      s.outStream.once('data', function (packet) {
-        t.equal(packet.cmd, 'suback')
+    t.equal(packet.messageId, 42, 'messageId must match')
+    s.outStream.on('data', function (packet) {
+      if (packet.cmd === 'suback') {
         t.deepEqual(packet.granted, [1])
         t.equal(packet.messageId, 24)
-        t.end()
-      })
+      }
+      if (packet.cmd === 'publish') {
+        s.inStream.write({
+          cmd: 'puback',
+          messageId: packet.messageId
+        })
+        t.deepEqual(packet, expected, 'packet must match')
+      }
     })
   })
 
@@ -727,4 +726,8 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
     qos: 1,
     messageId: 42
   })
+
+  setTimeout(function () {
+    t.end()
+  }, 50)
 })
