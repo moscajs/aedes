@@ -38,6 +38,44 @@ test('connect and connack (minimal)', function (t) {
   })
 })
 
+test('the first Packet sent from the Client to the Server MUST be a CONNECT Packet [MQTT-3.1.0-1]', function (t) {
+  var s = setup()
+
+  var packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false
+  }
+  s.inStream.write(packet)
+  setTimeout(() => {
+    t.ok(s.conn.destroyed, 'close connection if first packet is not a CONNECT')
+    s.conn.destroy()
+    t.end()
+  }, 100)
+})
+
+test('second CONNECT Packet sent from a Client as a protocol violation and disconnect the Client [MQTT-3.1.0-2]', function (t) {
+  var s = connect(setup())
+
+  var packet = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    keepalive: 0
+  }
+
+  s.inStream.write(packet)
+  setTimeout(() => {
+    t.ok(s.conn.destroyed, 'close connection if packet is a CONNECT after network is established')
+    s.conn.destroy()
+    t.end()
+  }, 100)
+})
+
 test('publish QoS 0', function (t) {
   var s = connect(setup())
   var expected = {
