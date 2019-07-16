@@ -675,6 +675,8 @@ test('not clean and retain messages with QoS 1', function (t) {
 })
 
 test('subscribe and publish QoS 1 in parallel', function (t) {
+  t.plan(5)
+
   var broker = aedes()
   var s = connect(setup(broker))
   var expected = {
@@ -686,7 +688,6 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
     length: 14,
     retain: false
   }
-  var count = 0
 
   broker.on('clientError', function (client, err) {
     console.log(err.stack)
@@ -698,21 +699,16 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
     t.equal(packet.messageId, 42, 'messageId must match')
     s.outStream.on('data', function (packet) {
       if (packet.cmd === 'suback') {
-        count++
         t.deepEqual(packet.granted, [1])
         t.equal(packet.messageId, 24)
       }
       if (packet.cmd === 'publish') {
-        count++
         s.inStream.write({
           cmd: 'puback',
           messageId: packet.messageId
         })
         delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
-      }
-      if (count === 2) {
-        t.end()
       }
     })
   })
