@@ -47,11 +47,8 @@ function publish (t, s, packet, done) {
 
 function receive (t, subscriber, expected, done) {
   subscriber.outStream.once('data', function (packet) {
-    t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
-
     var msgId = packet.messageId
-    delete packet.messageId
-    delete expected.messageId
+
     t.deepEqual(packet, expected, 'packet must match')
 
     subscriber.inStream.write({
@@ -146,7 +143,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
 })
 
 test('call published method with client with QoS 2', function (t) {
-  t.plan(10)
+  t.plan(9)
 
   var broker = aedes()
   var publisher = connect(setup(broker))
@@ -325,11 +322,8 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
       subscriber = connect(setup(broker), opts)
 
       subscriber.outStream.once('data', function (packet) {
-        t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
-
         var msgId = packet.messageId
-        delete packet.messageId
-        delete expected.messageId
+
         t.deepEqual(packet, expected, 'packet must match')
 
         subscriber.inStream.write({

@@ -44,7 +44,8 @@ test('subscribe QoS 1', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
@@ -53,8 +54,6 @@ test('subscribe QoS 1', function (t) {
         cmd: 'puback',
         messageId: packet.messageId
       })
-      t.notEqual(packet.messageId, 42, 'messageId must differ')
-      delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
       t.end()
     })
@@ -110,7 +109,8 @@ test('restore QoS 1 subscriptions not clean', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
@@ -138,8 +138,6 @@ test('restore QoS 1 subscriptions not clean', function (t) {
         cmd: 'puback',
         messageId: packet.messageId
       })
-      t.notEqual(packet.messageId, 42, 'messageId must differ')
-      delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
       t.end()
     })
@@ -204,7 +202,8 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
@@ -230,8 +229,6 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
           cmd: 'puback',
           messageId: packet.messageId
         })
-        t.notEqual(packet.messageId, 42, 'messageId must differ')
-        delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
         t.end()
       })
@@ -250,7 +247,8 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
@@ -277,8 +275,6 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
           messageId: packet.messageId
         })
 
-        t.notEqual(packet.messageId, 42, 'messageId must differ')
-        delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
 
         var subscriber2 = connect(setup(broker), { clean: false, clientId: 'abcde' })
@@ -648,23 +644,17 @@ test('not clean and retain messages with QoS 1', function (t) {
       })
 
       subscriber.outStream.once('data', function (packet) {
-        t.notEqual(packet.messageId, 42, 'messageId must differ')
         t.equal(packet.qos, 0, 'qos degraded to 0 for retained')
-        var prevId = packet.messageId
-        delete packet.messageId
         packet.qos = 1
         packet.length = 14
         t.deepEqual(packet, expected, 'packet must match')
 
         // message is duplicated
         subscriber.outStream.once('data', function (packet2) {
-          var curId = packet2.messageId
-          t.notOk(curId === prevId, 'messageId must differ')
           subscriber.inStream.write({
             cmd: 'puback',
-            messageId: curId
+            messageId: packet2.messageId
           })
-          delete packet2.messageId
           t.deepEqual(packet, expected, 'packet must match')
 
           t.end()
@@ -684,7 +674,8 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   broker.on('clientError', function (client, err) {
@@ -700,7 +691,6 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
         cmd: 'puback',
         messageId: packet.messageId
       })
-      delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
       s.outStream.once('data', function (packet) {
         t.equal(packet.cmd, 'suback')
