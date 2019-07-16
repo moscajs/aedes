@@ -332,7 +332,6 @@ test('authorize publish', function (t) {
   s.broker.mq.on('hello', function (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    expected.messageId = 0
     delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
@@ -379,7 +378,6 @@ test('authorize waits for authenticate', function (t) {
   s.broker.mq.on('hello', function (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    expected.messageId = 0
     delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
@@ -428,7 +426,6 @@ test('authorize publish from configOptions', function (t) {
   s.broker.mq.on('hello', function (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    expected.messageId = 0
     delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
