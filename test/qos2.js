@@ -217,12 +217,12 @@ test('subscribe QoS 1, but publish QoS 2', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.outStream.once('data', function (packet) {
-      delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
       t.end()
     })

@@ -338,7 +338,8 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
@@ -362,7 +363,6 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
         messageId: packet.messageId
       })
 
-      delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
 
       subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
@@ -423,12 +423,12 @@ test('deliver QoS 1 retained messages', function (t) {
     qos: 1,
     dup: false,
     length: 14,
-    retain: false
+    retain: false,
+    messageId: 42
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.outStream.once('data', function (packet) {
-      delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
       t.end()
     })
