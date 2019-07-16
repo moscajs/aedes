@@ -8,6 +8,7 @@ Barebone MQTT server that can run on any stream server.
 * [Example](#example)
 * [API](#api)
 * [TODO](#todo)
+* [Collaborators](#collaborators)
 * [Acknowledgements](#acknowledgements)
 * [License](#license)
 
@@ -405,6 +406,12 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/new/clients` - will inform about new clients connections
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
+
+## Collaborators
+
+* [__Gavin D'mello__](https://github.com/GavinDmello)
+* [__Behrad Zari__](https://github.com/behrad)
+* [__Gnought__](https://github.com/gnought)
 
 ## Acknowledgements
 
