@@ -686,6 +686,7 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
     length: 14,
     retain: false
   }
+  var count = 0
 
   broker.on('clientError', function (client, err) {
     console.log(err.stack)
@@ -695,19 +696,24 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'puback')
     t.equal(packet.messageId, 42, 'messageId must match')
-    s.outStream.once('data', function (packet) {
-      s.inStream.write({
-        cmd: 'puback',
-        messageId: packet.messageId
-      })
-      delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
-      s.outStream.once('data', function (packet) {
-        t.equal(packet.cmd, 'suback')
+    s.outStream.on('data', function (packet) {
+      if (packet.cmd === 'suback') {
+        count++
         t.deepEqual(packet.granted, [1])
         t.equal(packet.messageId, 24)
+      }
+      if (packet.cmd === 'publish') {
+        count++
+        s.inStream.write({
+          cmd: 'puback',
+          messageId: packet.messageId
+        })
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+      }
+      if (count === 2) {
         t.end()
-      })
+      }
     })
   })
 
