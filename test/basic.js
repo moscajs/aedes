@@ -39,7 +39,10 @@ test('connect and connack (minimal)', function (t) {
 })
 
 test('the first Packet sent from the Client to the Server MUST be a CONNECT Packet [MQTT-3.1.0-1]', function (t) {
-  var s = setup()
+  t.plan(1)
+
+  var broker = aedes()
+  var s = setup(broker, false)
 
   var packet = {
     cmd: 'publish',
@@ -52,13 +55,15 @@ test('the first Packet sent from the Client to the Server MUST be a CONNECT Pack
   setTimeout(() => {
     t.ok(s.conn.destroyed, 'close connection if first packet is not a CONNECT')
     s.conn.destroy()
+    broker.close()
     t.end()
   }, 100)
 })
 
 test('second CONNECT Packet sent from a Client as a protocol violation and disconnect the Client [MQTT-3.1.0-2]', function (t) {
-  var s = connect(setup())
+  t.plan(3)
 
+  var broker = aedes()
   var packet = {
     cmd: 'connect',
     protocolId: 'MQTT',
@@ -67,11 +72,16 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
     clientId: 'my-client',
     keepalive: 0
   }
+  var s = connect(setup(broker, false), { clientId: 'abcde' }, function () {
+    t.ok(broker.clients['abcde'].connected)
+    s.inStream.write(packet)
+  })
 
-  s.inStream.write(packet)
   setTimeout(() => {
+    t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
     t.ok(s.conn.destroyed, 'close connection if packet is a CONNECT after network is established')
     s.conn.destroy()
+    broker.close()
     t.end()
   }, 100)
 })
@@ -347,29 +357,53 @@ test('retain messages', function (t) {
   publisher.inStream.write(expected)
 })
 
-test('closes', function (t) {
-  t.plan(2)
-
-  var broker = aedes()
-  var client = noError(connect(setup(broker)))
-  eos(client.conn, t.pass.bind('client closes'))
-
-  broker.close(function (err) {
-    t.error(err, 'no error')
-  })
-})
-
-test('closes gracefully', function (t) {
+test('client closes', function (t) {
   t.plan(3)
 
   var broker = aedes()
-  var client = noError(connect(setup(broker)))
+  var client = noError(connect(setup(broker, false), { clientId: 'abcde' }))
   eos(client.conn, t.pass.bind('client closes'))
 
-  broker.close(function (err) {
-    t.error(err, 'no error')
-    t.ok(broker.mq.closed, 'broker mq closes')
-  })
+  setTimeout(() => {
+    broker.clients['abcde'].close(function () {
+      t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+      broker.close(function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  }, 200)
+})
+
+test('broker closes', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var client = noError(connect(setup(broker, false), { clientId: 'abcde' }))
+  eos(client.conn, t.pass.bind('client closes'))
+
+  setTimeout(() => {
+    broker.close(function (err) {
+      t.error(err, 'no error')
+      t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+    })
+  }, 200)
+})
+
+test('broker closes gracefully', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+  var client1 = noError(connect(setup(broker, false)))
+  var client2 = noError(connect(setup(broker, false)))
+  eos(client1.conn, t.pass.bind('client1 closes'))
+  eos(client2.conn, t.pass.bind('client2 closes'))
+
+  setTimeout(() => {
+    broker.close(function (err) {
+      t.error(err, 'no error')
+      t.ok(broker.mq.closed, 'broker mq closes')
+    })
+  }, 200)
 })
 
 test('testing other event', function (t) {
