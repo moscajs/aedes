@@ -52,12 +52,12 @@ test('the first Packet sent from the Client to the Server MUST be a CONNECT Pack
     retain: false
   }
   s.inStream.write(packet)
-  setTimeout(() => {
+  setImmediate(() => {
     t.ok(s.conn.destroyed, 'close connection if first packet is not a CONNECT')
     s.conn.destroy()
     broker.close()
     t.end()
-  }, 100)
+  })
 })
 
 test('second CONNECT Packet sent from a Client as a protocol violation and disconnect the Client [MQTT-3.1.0-2]', function (t) {
@@ -75,15 +75,14 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
   var s = connect(setup(broker, false), { clientId: 'abcde' }, function () {
     t.ok(broker.clients['abcde'].connected)
     s.inStream.write(packet)
+    setImmediate(() => {
+      t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+      t.ok(s.conn.destroyed, 'close connection if packet is a CONNECT after network is established')
+      s.conn.destroy()
+      broker.close()
+      t.end()
+    })
   })
-
-  setTimeout(() => {
-    t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
-    t.ok(s.conn.destroyed, 'close connection if packet is a CONNECT after network is established')
-    s.conn.destroy()
-    broker.close()
-    t.end()
-  }, 100)
 })
 
 test('publish QoS 0', function (t) {
@@ -364,14 +363,14 @@ test('client closes', function (t) {
   var client = noError(connect(setup(broker, false), { clientId: 'abcde' }))
   eos(client.conn, t.pass.bind('client closes'))
 
-  setTimeout(() => {
+  setImmediate(() => {
     broker.clients['abcde'].close(function () {
       t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
       broker.close(function (err) {
         t.error(err, 'no error')
       })
     })
-  }, 200)
+  })
 })
 
 test('broker closes', function (t) {
@@ -381,12 +380,12 @@ test('broker closes', function (t) {
   var client = noError(connect(setup(broker, false), { clientId: 'abcde' }))
   eos(client.conn, t.pass.bind('client closes'))
 
-  setTimeout(() => {
+  setImmediate(() => {
     broker.close(function (err) {
       t.error(err, 'no error')
       t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
     })
-  }, 200)
+  })
 })
 
 test('broker closes gracefully', function (t) {
@@ -398,12 +397,12 @@ test('broker closes gracefully', function (t) {
   eos(client1.conn, t.pass.bind('client1 closes'))
   eos(client2.conn, t.pass.bind('client2 closes'))
 
-  setTimeout(() => {
+  setImmediate(() => {
     broker.close(function (err) {
       t.error(err, 'no error')
       t.ok(broker.mq.closed, 'broker mq closes')
     })
-  }, 200)
+  })
 })
 
 test('testing other event', function (t) {
