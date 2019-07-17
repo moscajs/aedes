@@ -1,9 +1,16 @@
+/* eslint no-unused-vars: 0 */
+/* eslint no-undef: 0 */
+/* eslint space-infix-ops: 0 */
+
 /// <reference types="node" />
 
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { Duplex } from 'stream'
 import EventEmitter = NodeJS.EventEmitter
 
+declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
+
+// eslint-disable-next-line no-redeclare
 declare namespace aedes {
   export enum AuthErrorCode {
     UNNACCEPTABLE_PROTOCOL = 1,
@@ -84,7 +91,5 @@ declare namespace aedes {
 
   export function Server (options?: aedes.AedesOptions): aedes.Aedes
 }
-
-declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
 
 export = aedes
