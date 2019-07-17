@@ -37,6 +37,20 @@
     "things"
   ],
   "author": "Matteo Collina <hello@matteocollina.com>",
+  "contributors": [
+    {
+      "name": "Gavin D'mello",
+      "url": "https://github.com/GavinDmello"
+    },
+    {
+      "name": "Behrad Zari",
+      "url": "https://github.com/behrad"
+    },
+    {
+      "name": "Gnought",
+      "url": "https://github.com/gnought"
+    }
+  ],
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^12.6.3",
