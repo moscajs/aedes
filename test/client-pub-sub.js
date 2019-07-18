@@ -112,7 +112,7 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
 })
 
 test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
-  t.plan(6)
+  t.plan(5)
 
   var broker = aedes()
   var messageId
@@ -132,8 +132,7 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
   broker.once('ack', function (packet, client) {
     t.equal(client.id, clientId)
     t.equal(packet.messageId, messageId)
-    t.equal(packet.topic, 'hello')
-    t.equal(packet.payload.toString(), 'world')
+    t.equal(packet.cmd, 'pubrel')
     t.pass('got the ack event')
   })
 
