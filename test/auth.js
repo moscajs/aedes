@@ -310,7 +310,7 @@ test('authentication error when non numeric return code is passed', function (t)
 })
 
 test('authorize publish', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   var s = connect(setup())
   var expected = {
@@ -330,6 +330,7 @@ test('authorize publish', function (t) {
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
+    t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.dup
@@ -346,7 +347,7 @@ test('authorize publish', function (t) {
 })
 
 test('authorize waits for authenticate', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   var s = setup()
 
@@ -376,6 +377,7 @@ test('authorize waits for authenticate', function (t) {
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
+    t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.dup
@@ -403,7 +405,7 @@ test('authorize waits for authenticate', function (t) {
 })
 
 test('authorize publish from configOptions', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   var s = connect(setup(aedes({
     authorizePublish: function (client, packet, cb) {
@@ -424,6 +426,7 @@ test('authorize publish from configOptions', function (t) {
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
+    t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.dup
