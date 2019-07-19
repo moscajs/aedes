@@ -204,39 +204,6 @@ test('unsubscribe', function (t) {
   })
 })
 
-test('live retain packets', function (t) {
-  t.plan(5)
-  var expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    retain: false,
-    dup: false,
-    length: 12,
-    qos: 0
-  }
-
-  var s = noError(connect(setup()), t)
-
-  subscribe(t, s, 'hello', 0, function () {
-    s.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected)
-    })
-
-    s.broker.publish({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: Buffer.from('world'),
-      retain: true,
-      dup: false,
-      length: 12,
-      qos: 0
-    }, function () {
-      t.pass('publish finished')
-    })
-  })
-})
-
 test('unsubscribe without subscribe', function (t) {
   t.plan(1)
 
@@ -322,38 +289,6 @@ test('disconnect', function (t) {
   s.inStream.write({
     cmd: 'disconnect'
   })
-})
-
-test('retain messages', function (t) {
-  var broker = aedes()
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 12,
-    retain: true
-  }
-
-  broker.subscribe('hello', function (packet, cb) {
-    cb()
-
-    // defer this or it will receive the message which
-    // is being published
-    setImmediate(function () {
-      subscribe(t, subscriber, 'hello', 0, function () {
-        subscriber.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet must match')
-          t.end()
-        })
-      })
-    })
-  })
-
-  publisher.inStream.write(expected)
 })
 
 test('client closes', function (t) {
@@ -636,48 +571,6 @@ test('overlapping sub does not double deliver', function (t) {
       })
     })
   })
-})
-
-test('avoid wrong deduping of retain messages', function (t) {
-  var broker = aedes()
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 12,
-    retain: true
-  }
-
-  broker.subscribe('hello', function (packet, cb) {
-    cb()
-    // subscribe and publish another topic
-    subscribe(t, subscriber, 'hello2', 0, function () {
-      cb()
-
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: 'hello2',
-        payload: Buffer.from('world'),
-        qos: 0,
-        dup: false
-      })
-
-      subscriber.outStream.once('data', function (packet) {
-        subscribe(t, subscriber, 'hello', 0, function () {
-          subscriber.outStream.once('data', function (packet) {
-            t.deepEqual(packet, expected, 'packet must match')
-            t.end()
-          })
-        })
-      })
-    })
-  })
-
-  publisher.inStream.write(expected)
 })
 
 test('publish empty topic', function (t) {
