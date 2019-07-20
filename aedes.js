@@ -132,6 +132,7 @@ function Aedes (opts) {
 
   // metadata
   this.connectedClients = 0
+  this.closed = false
 }
 
 util.inherits(Aedes, EE)
@@ -280,14 +281,18 @@ function closeClient (client, cb) {
   this.clients[client].close(cb)
 }
 
-Aedes.prototype.close = function (cb) {
+Aedes.prototype.close = function (cb = noop) {
   var that = this
+  if (this.closed) {
+    this.emit('closed')
+    return cb()
+  }
+  this.closed = true
   clearInterval(this._heartbeatInterval)
   clearInterval(this._clearWillInterval)
   this._parallel(this, closeClient, Object.keys(this.clients), doneClose)
   function doneClose () {
     that.emit('closed')
-    cb = cb || noop
     that.mq.close(cb)
   }
 }
