@@ -19,7 +19,6 @@
   },
   "pre-commit": [
     "lint",
-    "tslint",
     "test",
     "typescript-test"
   ],
