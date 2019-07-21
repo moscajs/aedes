@@ -223,7 +223,7 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
     qos: 1,
     retain: true,
     messageId: 42
-})
+  })
   var subscriber = connect(setup(broker, false), { clean: true })
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.on('data', function (packet) {
