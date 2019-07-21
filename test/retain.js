@@ -10,6 +10,7 @@ var connect = helper.connect
 var noError = helper.noError
 var subscribe = helper.subscribe
 
+// [MQTT-3.3.1-9]
 test('live retain packets', function (t) {
   t.plan(5)
   var expected = {
