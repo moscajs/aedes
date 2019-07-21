@@ -273,7 +273,7 @@ test('broker not store zero-byte retained messages', function (t) {
     payload: '',
     retain: true
   })
-  s.broker.on('publish', function (packet, client){
+  s.broker.on('publish', function (packet, client) {
     if (packet.topic.startsWith('$SYS/')) {
       return
     }
@@ -313,9 +313,9 @@ test('fail to clean retained messages without retain flag', function (t) {
     qos: 0,
     retain: false
   })
-  var subscriber1 = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber1, 'hello', 0, function () {
-    subscriber1.outStream.on('data', function (packet) {
+  var subscriber = connect(setup(broker, false), { clean: true })
+  subscribe(t, subscriber, 'hello', 0, function () {
+    subscriber.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
@@ -350,9 +350,9 @@ test('only get the last retained messages in same topic', function (t) {
     qos: 0,
     retain: true
   })
-  var subscriber1 = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber1, 'hello', 0, function () {
-    subscriber1.outStream.on('data', function (packet) {
+  var subscriber = connect(setup(broker, false), { clean: true })
+  subscribe(t, subscriber, 'hello', 0, function () {
+    subscriber.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
