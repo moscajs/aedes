@@ -161,8 +161,8 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
 })
 
 // [MQTT-3.3.1-6]
-test('new subscribers receive retained messages when QoS 0 and clean', function (t) {
-  t.plan(8)
+test('new QoS 0 subscribers receive QoS 0 retained messages when clean', function (t) {
+  t.plan(9)
 
   var broker = aedes()
   var publisher = connect(setup(broker), { clean: true })
@@ -194,7 +194,11 @@ test('new subscribers receive retained messages when QoS 0 and clean', function 
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
-  broker.on('closed', t.end.bind(t))
+  broker.on('closed', function () {
+    t.equal(broker.counter, 9)
+    t.end()
+  })
+})
 })
 
 // [MQTT-3.3.1-10]
