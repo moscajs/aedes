@@ -2,6 +2,7 @@
 
 var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
+var through = require('through2')
 var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
@@ -221,6 +222,29 @@ test('clean retained messages', function (t) {
     })
   })
   broker.on('closed', t.end.bind(t))
+})
+
+// [MQTT-3.3.1-11]
+test('broker not store zero-byte retained messages', function (t) {
+  var broker = aedes()
+  var s = connect(setup(broker))
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: '',
+    retain: true
+  })
+  s.broker.on('publish', function (packet, client){
+    if (packet.topic.startsWith('$SYS/')) {
+      return
+    }
+    var stream = s.broker.persistence.createRetainedStream(packet.topic)
+    stream.pipe(through.obj(function sendRetained (packet, enc, cb) {
+      t.fail('not store zero-byte retained messages')
+    }))
+  })
+  s.broker.on('closed', t.end.bind(t))
 })
 
 test('fail to clean retained messages without retain flag', function (t) {
