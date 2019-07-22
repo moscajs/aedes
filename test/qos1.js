@@ -34,7 +34,7 @@ test('publish QoS 1', function (t) {
 })
 
 test('publish QoS 1 and check offline queue', function (t) {
-  t.plan(9)
+  t.plan(13)
 
   var broker = aedes()
   var publisher = connect(setup(broker), { clean: false })
@@ -47,8 +47,7 @@ test('publish QoS 1 and check offline queue', function (t) {
     topic: 'hello',
     qos: 1,
     dup: false,
-    retain: false,
-    messageId: 1
+    retain: false
   }
   var expectedAck = {
     cmd: 'puback',
@@ -56,14 +55,14 @@ test('publish QoS 1 and check offline queue', function (t) {
     qos: 0,
     dup: false,
     length: 2,
-    messageId: 1
+    messageId: 10
   }
   var sent = {
     cmd: 'publish',
     topic: 'hello',
     payload: 'world',
     qos: 1,
-    messageId: 1,
+    messageId: 10,
     retain: false
   }
   var queue = []
@@ -75,17 +74,23 @@ test('publish QoS 1 and check offline queue', function (t) {
       queue.push(packet)
       delete packet.payload
       delete packet.length
+      t.notEqual(packet.messageId, undefined, 'messageId is assigned a value')
+      t.notEqual(packet.messageId, 10, 'messageId should be unique')
+      expected.messageId = packet.messageId
+      // console.log('received', packet)
       t.deepEqual(packet, expected, 'publish packet must patch')
       if (queue.length === 2) {
         setImmediate(() => {
           for (var i = 0; i < queue.length; i++) {
-            broker.persistence.outgoingClearMessageId(subscriberClient, sent, function (_, origPacket) {
+            broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
+              console.log(origPacket)
               if (origPacket) {
                 delete origPacket.brokerId
                 delete origPacket.brokerCounter
                 delete origPacket.payload
-                delete origPacket.length
+                delete origPacket.messageId
                 delete sent.payload
+                delete sent.messageId
                 t.deepEqual(origPacket, sent, 'origPacket must match')
               }
             })
