@@ -33,6 +33,76 @@ test('publish QoS 1', function (t) {
   })
 })
 
+test('publish QoS 1 and check offline queue', function (t) {
+  t.plan(9)
+
+  var broker = aedes()
+  var publisher = connect(setup(broker), { clean: false })
+  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var subscriberClient = {
+    id: 'abcde'
+  }
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    qos: 1,
+    dup: false,
+    retain: false,
+    messageId: 1
+  }
+  var expectedAck = {
+    cmd: 'puback',
+    retain: false,
+    qos: 0,
+    dup: false,
+    length: 2,
+    messageId: 1
+  }
+  var sent = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 1,
+    retain: false
+  }
+  var queue = []
+  subscribe(t, subscriber, 'hello', 1, function () {
+    publisher.outStream.on('data', function (packet) {
+      t.deepEqual(packet, expectedAck, 'ack packet must patch')
+    })
+    subscriber.outStream.on('data', function (packet) {
+      console.log('poush')
+      queue.push(packet)
+      delete packet.payload
+      delete packet.length
+      t.deepEqual(packet, expected, 'publish packet must patch')
+      if (queue.length === 2) {
+        setImmediate(() => {
+          console.log(broker.persistence._outgoing)
+          for (var i=0; i < queue.length; i++) {
+            broker.persistence.outgoingClearMessageId(subscriberClient, sent, function(_, origPacket) {
+              console.log(origPacket)
+              if (origPacket) {
+                delete origPacket.brokerId
+                delete origPacket.brokerCounter
+                delete origPacket.payload
+                delete origPacket.length
+                delete sent.payload
+                t.deepEqual(origPacket, sent, 'origPacket must match')
+              }
+            })
+          }
+          t.end()
+        })
+      }
+    })
+    publisher.inStream.write(sent)
+    sent.payload = 'world2world'
+    publisher.inStream.write(sent)
+  })
+})
+
 test('subscribe QoS 1', function (t) {
   var broker = aedes()
   var publisher = connect(setup(broker))
