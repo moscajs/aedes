@@ -72,17 +72,14 @@ test('publish QoS 1 and check offline queue', function (t) {
       t.deepEqual(packet, expectedAck, 'ack packet must patch')
     })
     subscriber.outStream.on('data', function (packet) {
-      console.log('poush')
       queue.push(packet)
       delete packet.payload
       delete packet.length
       t.deepEqual(packet, expected, 'publish packet must patch')
       if (queue.length === 2) {
         setImmediate(() => {
-          console.log(broker.persistence._outgoing)
-          for (var i=0; i < queue.length; i++) {
-            broker.persistence.outgoingClearMessageId(subscriberClient, sent, function(_, origPacket) {
-              console.log(origPacket)
+          for (var i = 0; i < queue.length; i++) {
+            broker.persistence.outgoingClearMessageId(subscriberClient, sent, function (_, origPacket) {
               if (origPacket) {
                 delete origPacket.brokerId
                 delete origPacket.brokerCounter
