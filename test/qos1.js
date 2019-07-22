@@ -77,13 +77,11 @@ test('publish QoS 1 and check offline queue', function (t) {
       t.notEqual(packet.messageId, undefined, 'messageId is assigned a value')
       t.notEqual(packet.messageId, 10, 'messageId should be unique')
       expected.messageId = packet.messageId
-      // console.log('received', packet)
       t.deepEqual(packet, expected, 'publish packet must patch')
       if (queue.length === 2) {
         setImmediate(() => {
           for (var i = 0; i < queue.length; i++) {
             broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
-              console.log(origPacket)
               if (origPacket) {
                 delete origPacket.brokerId
                 delete origPacket.brokerCounter
