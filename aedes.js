@@ -284,7 +284,6 @@ function closeClient (client, cb) {
 Aedes.prototype.close = function (cb = noop) {
   var that = this
   if (this.closed) {
-    this.emit('closed')
     return cb()
   }
   this.closed = true
