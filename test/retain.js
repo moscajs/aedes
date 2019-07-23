@@ -224,15 +224,19 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
     retain: true,
     messageId: 42
   })
-  var subscriber = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.outStream.on('data', function (packet) {
-      t.notEqual(packet.messageId, 42, 'messageId should not be the same')
-      delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
-      t.equal(broker.counter, 4)
-      t.end()
+  publisher.outStream.on('data', function (packet) {
+    var subscriber = connect(setup(broker, false), { clean: true })
+    subscribe(t, subscriber, 'hello', 0, function () {
+      subscriber.outStream.on('data', function (packet) {
+        t.notEqual(packet.messageId, 42, 'messageId should not be the same')
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+      })
     })
+  })
+  broker.on('closed', function () {
+    t.equal(broker.counter, 6)
+    t.end()
   })
 })
 
