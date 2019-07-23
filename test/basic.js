@@ -324,18 +324,23 @@ test('broker closes', function (t) {
 })
 
 test('broker closes gracefully', function (t) {
-  t.plan(4)
+  t.plan(7)
 
   var broker = aedes()
   var client1 = noError(connect(setup(broker, false)))
   var client2 = noError(connect(setup(broker, false)))
-  eos(client1.conn, t.pass.bind('client1 closes'))
-  eos(client2.conn, t.pass.bind('client2 closes'))
-
   setImmediate(() => {
-    broker.close(function (err) {
-      t.error(err, 'no error')
-      t.ok(broker.mq.closed, 'broker mq closes')
+    t.equal(broker.connectedClients, 2, '2 connected clients')
+    eos(client1.conn, t.pass.bind('client1 closes'))
+    eos(client2.conn, t.pass.bind('client2 closes'))
+
+    setImmediate(() => {
+      broker.close(function (err) {
+        t.error(err, 'no error')
+        t.ok(broker.mq.closed, 'broker mq closes')
+        t.ok(broker.closed, 'broker closes')
+        t.equal(broker.connectedClients, 0, 'no connected clients')
+      })
     })
   })
 })
