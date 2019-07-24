@@ -71,7 +71,6 @@
     "snazzy": "^8.0.0",
     "standard": "^13.0.2",
     "tape": "^4.11.0",
-    "tslint-config-standard": "^8.0.1",
     "typescript": "^3.5.3",
     "websocket-stream": "^5.5.0"
   },
