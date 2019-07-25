@@ -24,24 +24,28 @@ test('client is closed before authenticate returns', function (t) {
       evt.emit('AuthenticateEnd', client)
     }
   })
+  broker.on('client', function (client) {
+    t.fail('should no client registration')
+  })
+  broker.on('connackSent', function () {
+    t.fail('should no connack be sent')
+  })
+  broker.on('clientError', function (client, err) {
+    t.error(err)
+  })
+
   connect(setup(broker, false))
+
   evt.on('AuthenticateBegin', function (client) {
     t.equal(broker.connectedClients, 0)
     client.close()
-    broker.on('client', function (client) {
-      t.fail('should no client registration')
-    })
-    broker.on('connackSent', function () {
-      t.fail('should no connack be sent')
-    })
-    broker.on('clientError', function (client, err) {
-      t.error(err)
-    })
   })
   evt.on('AuthenticateEnd', function (client) {
     t.equal(broker.connectedClients, 0)
-    broker.close()
-    t.end()
+    setImmediate(() => {
+      broker.close()
+      t.end()
+    })
   })
 })
 
@@ -57,6 +61,9 @@ test('client is closed before authorizePublish returns', function (t) {
       evt.emit('AuthorizePublishEnd', client)
     }
   })
+  broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'connection closed')
+  })
 
   var s = connect(setup(broker, false))
   s.inStream.write({
@@ -67,17 +74,17 @@ test('client is closed before authorizePublish returns', function (t) {
     messageId: 10,
     retain: false
   })
+
   evt.on('AuthorizePublishBegin', function (client) {
     t.equal(broker.connectedClients, 1)
     client.close()
-    broker.on('clientError', function (client, err) {
-      t.equal(err.message, 'connection closed')
-    })
   })
   evt.on('AuthorizePublishEnd', function (client) {
     t.equal(broker.connectedClients, 0)
-    broker.close()
-    t.end()
+    setImmediate(() => {
+      broker.close()
+      t.end()
+    })
   })
 })
 
