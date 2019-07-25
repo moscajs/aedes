@@ -1,10 +1,30 @@
 'use strict'
 
 var test = require('tape').test
+var helper = require('./helper')
 var aedes = require('../')
+var setup = helper.setup
+var connect = helper.connect
+var subscribe = helper.subscribe
+
+test('close client when its socket is closed', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+  var subscriber = connect(setup(broker, false))
+
+  subscribe(t, subscriber, 'hello', 1, function () {
+    subscriber.inStream.end()
+    subscriber.conn.on('close', function () {
+      t.equal(broker.connectedClients, 0, 'no connected client')
+      broker.close()
+      t.end()
+    })
+  })
+})
 
 test('multiple clients subscribe same topic, and all clients still receive message except the closed one', function (t) {
-  t.plan(4)
+  t.plan(5)
 
   var mqtt = require('mqtt')
   var broker = aedes()
@@ -19,7 +39,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
   var _sameTopic = 'hello'
 
   // client 1
-  client1 = mqtt.connect('mqtt://localhost', { clientId: 'client1', resubscribe: false })
+  client1 = mqtt.connect('mqtt://localhost', { clientId: 'client1', resubscribe: false, reconnectPeriod: -1 })
   client1.on('message', () => {
     t.fail('client1 receives message')
   })
@@ -46,7 +66,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
     })
   })
   setTimeout(() => {
-    client1.end()
+    t.equal(broker.connectedClients, 1)
     client2.end()
     broker.close()
     server.close()
