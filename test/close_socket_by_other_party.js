@@ -1,16 +1,17 @@
 'use strict'
 
 var test = require('tape').test
+var aedes = require('../')
 
 test('multiple clients subscribe same topic, and all clients still receive message except the closed one', function (t) {
   t.plan(4)
 
   var mqtt = require('mqtt')
-  var aedes = require('../')()
-  var server = require('net').createServer(aedes.handle)
+  var broker = aedes()
+  var server = require('net').createServer(broker.handle)
   var port = 1883
   server.listen(port)
-  aedes.on('clientError', function (client, err) {
+  broker.on('clientError', function (client, err) {
     t.error(err)
   })
 
@@ -47,7 +48,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
   setTimeout(() => {
     client1.end()
     client2.end()
-    aedes.close()
+    broker.close()
     server.close()
   }, 2000)
 })
