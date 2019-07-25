@@ -1,6 +1,6 @@
 'use strict'
 
-var test = require('tape')
+var test = require('tape').test
 var EE = require('events').EventEmitter
 var handleConnect = require('../../lib/handlers/connect')
 
