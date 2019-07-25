@@ -29,6 +29,9 @@
   "bugs": {
     "url": "http://github.com/mcollina/aedes/issues"
   },
+  "engines": {
+    "node": ">=8"
+  },
   "keywords": [
     "mqtt",
     "broker",
