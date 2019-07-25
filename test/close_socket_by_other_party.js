@@ -1,7 +1,7 @@
 'use strict'
 
 var test = require('tape').test
-var EE = require('events')
+var EE = require('events').EventEmitter
 var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
