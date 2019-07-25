@@ -1,11 +1,85 @@
 'use strict'
 
 var test = require('tape').test
+var EE = require('events')
 var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
+
+function sleep (ms) {
+  return new Promise((resolve, reject) => setTimeout(resolve, ms))
+}
+
+test('client is closed before authenticate returns', function (t) {
+  t.plan(2)
+
+  var evt = new EE()
+  var broker = aedes({
+    authenticate: async (client, username, password, done) => {
+      evt.emit('AuthenticateBegin', client)
+      await sleep(2000) // simulate network
+      done(null, true)
+      evt.emit('AuthenticateEnd', client)
+    }
+  })
+  connect(setup(broker, false))
+  evt.on('AuthenticateBegin', function (client) {
+    t.equal(broker.connectedClients, 0)
+    client.close()
+    broker.on('client', function (client) {
+      t.fail('should no client registration')
+    })
+    broker.on('connackSent', function () {
+      t.fail('should no connack be sent')
+    })
+    broker.on('clientError', function (client, err) {
+      t.error(err)
+    })
+  })
+  evt.on('AuthenticateEnd', function (client) {
+    t.equal(broker.connectedClients, 0)
+    broker.close()
+    t.end()
+  })
+})
+
+test('client is closed before authorizePublish returns', function (t) {
+  t.plan(3)
+
+  var evt = new EE()
+  var broker = aedes({
+    authorizePublish: async (client, packet, done) => {
+      evt.emit('AuthorizePublishBegin', client)
+      await sleep(2000) // simulate latency writing to persistent store.
+      done()
+      evt.emit('AuthorizePublishEnd', client)
+    }
+  })
+
+  var s = connect(setup(broker, false))
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 10,
+    retain: false
+  })
+  evt.on('AuthorizePublishBegin', function (client) {
+    t.equal(broker.connectedClients, 1)
+    client.close()
+    broker.on('clientError', function (client, err) {
+      t.equal(err.message, 'connection closed')
+    })
+  })
+  evt.on('AuthorizePublishEnd', function (client) {
+    t.equal(broker.connectedClients, 0)
+    broker.close()
+    t.end()
+  })
+})
 
 test('close client when its socket is closed', function (t) {
   t.plan(4)
