@@ -29,6 +29,9 @@
   "bugs": {
     "url": "http://github.com/mcollina/aedes/issues"
   },
+  "engines": {
+    "node": ">=8"
+  },
   "keywords": [
     "mqtt",
     "broker",
@@ -54,9 +57,9 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^12.6.3",
-    "@typescript-eslint/eslint-plugin": "^1.12.0",
-    "@typescript-eslint/parser": "^1.12.0",
+    "@types/node": "^12.6.8",
+    "@typescript-eslint/eslint-plugin": "^1.13.0",
+    "@typescript-eslint/parser": "^1.13.0",
     "compute-mode": "^1.0.0",
     "concat-stream": "^2.0.0",
     "convert-hrtime": "^3.0.0",
@@ -69,9 +72,8 @@
     "nyc": "^14.1.1",
     "pre-commit": "^1.2.2",
     "snazzy": "^8.0.0",
-    "standard": "^13.0.2",
+    "standard": "^13.1.0",
     "tape": "^4.11.0",
-    "tslint-config-standard": "^8.0.1",
     "typescript": "^3.5.3",
     "websocket-stream": "^5.5.0"
   },
