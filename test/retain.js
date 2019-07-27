@@ -438,7 +438,7 @@ test('not clean and retain messages with QoS 1', function (t) {
       t.equal(packet.cmd, 'puback')
 
       broker.on('clientError', function (client, err) {
-        t.fail('no error')
+        t.equal(err.message, 'connection closed')
       })
 
       subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {

@@ -292,20 +292,27 @@ test('disconnect', function (t) {
 })
 
 test('client closes', function (t) {
-  t.plan(3)
+  t.plan(7)
 
   var broker = aedes()
-  var client = noError(connect(setup(broker, false), { clientId: 'abcde' }))
-  eos(client.conn, t.pass.bind('client closes'))
-
-  setImmediate(() => {
-    broker.clients['abcde'].close(function () {
-      t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+  var brokerClient
+  var client = noError(connect(setup(broker, false), { clientId: 'abcde' }, function () {
+    brokerClient = broker.clients['abcde']
+    t.equal(brokerClient.connected, true, 'client connected')
+    t.equal(brokerClient.disconnected, false)
+    eos(client.conn, t.pass.bind('client closes'))
+    setImmediate(() => {
+      brokerClient.close(function () {
+        t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+      })
+      t.equal(brokerClient.connected, false, 'client disconnected')
+      t.equal(brokerClient.disconnected, true)
       broker.close(function (err) {
         t.error(err, 'no error')
+        t.end()
       })
     })
-  })
+  }))
 })
 
 test('broker closes', function (t) {

@@ -209,6 +209,7 @@ test('connect and connackSent event', function (t) {
 
   s.broker.on('connackSent', function (client) {
     t.equal(client.id, clientId, 'connackSent event and clientId matches')
+    t.end()
   })
 
   s.inStream.write({
@@ -232,6 +233,5 @@ test('connect and connackSent event', function (t) {
       payload: null,
       sessionPresent: false
     }, 'successful connack')
-    t.end()
   })
 })

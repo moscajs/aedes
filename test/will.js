@@ -170,11 +170,13 @@ test('delete the will in the persistence after publish', function (t) {
 test('delivers a will with authorization', function (t) {
   let authorized = false
   var opts = {}
+  var broker = aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })), opts)
+  var s = willConnect(setup(broker), opts)
 
-  s.broker.on('clientDisconnect', function () {
-    t.end()
+  s.broker.on('clientDisconnect', function (client) {
+    t.equal(client.connected, false)
+    t.equal(client.disconnected, true)
   })
 
   s.broker.mq.on('mywill', function (packet, cb) {
@@ -189,6 +191,7 @@ test('delivers a will with authorization', function (t) {
   process.nextTick(function () {
     s.conn.destroy()
   })
+  broker.on('closed', t.end.bind(t))
 })
 
 test('delivers a will waits for authorization', function (t) {
