@@ -35,7 +35,17 @@
   "keywords": [
     "mqtt",
     "broker",
+    "server",
+    "mqtt-server",
     "stream",
+    "streams",
+    "publish",
+    "subscribe",
+    "pubsub",
+    "messaging",
+    "mosca",
+    "mosquitto",
+    "iot",
     "internet",
     "of",
     "things"
