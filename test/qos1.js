@@ -33,6 +33,76 @@ test('publish QoS 1', function (t) {
   })
 })
 
+test('publish QoS 1 and check offline queue', function (t) {
+  t.plan(13)
+
+  var broker = aedes()
+  var publisher = connect(setup(broker), { clean: false })
+  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var subscriberClient = {
+    id: 'abcde'
+  }
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    qos: 1,
+    dup: false,
+    retain: false
+  }
+  var expectedAck = {
+    cmd: 'puback',
+    retain: false,
+    qos: 0,
+    dup: false,
+    length: 2,
+    messageId: 10
+  }
+  var sent = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 10,
+    retain: false
+  }
+  var queue = []
+  subscribe(t, subscriber, 'hello', 1, function () {
+    publisher.outStream.on('data', function (packet) {
+      t.deepEqual(packet, expectedAck, 'ack packet must patch')
+    })
+    subscriber.outStream.on('data', function (packet) {
+      queue.push(packet)
+      delete packet.payload
+      delete packet.length
+      t.notEqual(packet.messageId, undefined, 'messageId is assigned a value')
+      t.notEqual(packet.messageId, 10, 'messageId should be unique')
+      expected.messageId = packet.messageId
+      t.deepEqual(packet, expected, 'publish packet must patch')
+      if (queue.length === 2) {
+        setImmediate(() => {
+          for (var i = 0; i < queue.length; i++) {
+            broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
+              if (origPacket) {
+                delete origPacket.brokerId
+                delete origPacket.brokerCounter
+                delete origPacket.payload
+                delete origPacket.messageId
+                delete sent.payload
+                delete sent.messageId
+                t.deepEqual(origPacket, sent, 'origPacket must match')
+              }
+            })
+          }
+          t.end()
+        })
+      }
+    })
+    publisher.inStream.write(sent)
+    sent.payload = 'world2world'
+    publisher.inStream.write(sent)
+  })
+})
+
 test('subscribe QoS 1', function (t) {
   var broker = aedes()
   var publisher = connect(setup(broker))

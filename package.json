@@ -88,8 +88,8 @@
     "websocket-stream": "^5.5.0"
   },
   "dependencies": {
-    "aedes-packet": "^2.0.0",
-    "aedes-persistence": "^6.0.0",
+    "aedes-packet": "^2.1.0",
+    "aedes-persistence": "^7.1.1",
     "bulk-write-stream": "^2.0.0",
     "end-of-stream": "^1.4.1",
     "fastfall": "^1.5.1",
