@@ -353,6 +353,44 @@ test('subscribe a client programmatically', function (t) {
   })
 })
 
+test('subscribe a client programmatically - wildcard', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello/world/1',
+    payload: Buffer.from('world'),
+    dup: false,
+    length: 20,
+    qos: 0,
+    retain: false
+  }
+
+  broker.on('clientReady', function (client) {
+    client.subscribe({
+      topic: '+/world/1',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello/world/1',
+        payload: Buffer.from('world'),
+        qos: 0
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
+
 test('unsubscribe a client', function (t) {
   t.plan(2)
 
