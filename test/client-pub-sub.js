@@ -73,15 +73,19 @@ test('publish direct to a single client QoS 1', function (t) {
   })
 })
 
-test('emit a `ack` event on PUBACK for QoS 1', function (t) {
-  t.plan(6)
+test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
+  t.plan(3)
 
   var broker = aedes()
-  var messageId
-  var clientId
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    retain: false
+  }
 
-  broker.on('client', function (client) {
-    clientId = client.id
+  broker.on('clientReady', function (client) {
     client.publish({
       topic: 'hello',
       payload: Buffer.from('world'),
@@ -92,17 +96,16 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   })
 
   broker.once('ack', function (packet, client) {
-    t.equal(client.id, clientId)
-    t.equal(packet.messageId, messageId)
-    t.equal(packet.topic, 'hello')
-    t.equal(packet.payload.toString(), 'world')
+    expected.brokerId = packet.brokerId
+    expected.brokerCounter = packet.brokerCounter
+    expected.messageId = packet.messageId
+    t.deepEqual(packet, expected, 'ack packet is origianl packet')
     t.pass('got the ack event')
   })
 
-  var s = connect(setup(broker))
+  var s = connect(setup(broker), { clean: false })
 
   s.outStream.once('data', function (packet) {
-    messageId = packet.messageId
     s.inStream.write({
       cmd: 'puback',
       messageId: packet.messageId
@@ -110,14 +113,44 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   })
 })
 
-test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
-  t.plan(6)
+test('emit a `ack` event on PUBACK for QoS 1 [clean=true]', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+
+  broker.on('clientReady', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+
+  broker.once('ack', function (packet, client) {
+    t.equal(packet, undefined, 'ack packet is undefined')
+    t.pass('got the ack event')
+  })
+
+  var s = connect(setup(broker), { clean: true })
+
+  s.outStream.once('data', function (packet) {
+    s.inStream.write({
+      cmd: 'puback',
+      messageId: packet.messageId
+    })
+  })
+})
+
+test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
+  t.plan(5)
 
   var broker = aedes()
   var messageId
   var clientId
 
-  broker.on('client', function (client) {
+  broker.on('clientReady', function (client) {
     clientId = client.id
     client.publish({
       topic: 'hello',
@@ -131,12 +164,12 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
   broker.once('ack', function (packet, client) {
     t.equal(client.id, clientId)
     t.equal(packet.messageId, messageId)
-    t.equal(packet.topic, 'hello')
-    t.equal(packet.payload.toString(), 'world')
+    t.equal(packet.cmd, 'pubrel', 'ack packet is purel')
     t.pass('got the ack event')
+    t.end()
   })
 
-  var s = connect(setup(broker))
+  var s = connect(setup(broker), { clean: false })
 
   s.outStream.on('data', function (packet) {
     if (packet.cmd === 'publish') {
@@ -146,6 +179,44 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
       })
     } else {
       messageId = packet.messageId
+      s.inStream.write({
+        cmd: 'pubcomp',
+        messageId: packet.messageId
+      })
+    }
+  })
+})
+
+test('emit a `ack` event on PUBCOMP for QoS 2 [clean=true]', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+
+  broker.on('clientReady', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 2
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+
+  broker.once('ack', function (packet, client) {
+    t.equal(packet, undefined, 'ack packet is undefined')
+    t.pass('got the ack event')
+    t.end()
+  })
+
+  var s = connect(setup(broker), { clean: true })
+
+  s.outStream.on('data', function (packet) {
+    if (packet.cmd === 'publish') {
+      s.inStream.write({
+        cmd: 'pubrec',
+        messageId: packet.messageId
+      })
+    } else {
       s.inStream.write({
         cmd: 'pubcomp',
         messageId: packet.messageId
