@@ -1,6 +1,5 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var Client = require('../lib/client')
 var helper = require('./helper')

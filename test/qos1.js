@@ -1,7 +1,6 @@
 'use strict'
 
 var concat = require('concat-stream')
-var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')

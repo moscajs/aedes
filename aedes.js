@@ -1,6 +1,5 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var mqemitter = require('mqemitter')
 var EE = require('events').EventEmitter
 var util = require('util')
