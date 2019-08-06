@@ -40,10 +40,10 @@ test('publish QoS 1 and check offline queue', function (t) {
 
   var broker = aedes()
   var publisher = connect(setup(broker), { clean: false })
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var subscriberClient = {
     id: 'abcde'
   }
+  var subscriber = connect(setup(broker), { clean: false, clientId: subscriberClient.id })
   var expected = {
     cmd: 'publish',
     topic: 'hello',

@@ -1,7 +1,7 @@
 'use strict'
 
 var mqtt = require('mqtt')
-var test = require('tape')
+var test = require('tape').test
 var aedes = require('../')
 var net = require('net')
 var port = 4883
