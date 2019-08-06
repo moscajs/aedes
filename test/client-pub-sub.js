@@ -73,6 +73,51 @@ test('publish direct to a single client QoS 1', function (t) {
   })
 })
 
+test('publish direct to a single client QoS 2', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var publishCount = 0
+  var nonPublishCount = 0
+
+  broker.on('clientReady', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 2
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+    client.on('error', function (err) {
+      t.error(err)
+    })
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.on('data', function (packet) {
+    if (packet.cmd === 'publish') {
+      publishCount++
+      s.inStream.write({
+        cmd: 'pubrec',
+        messageId: packet.messageId
+      })
+    } else {
+      nonPublishCount++
+      s.inStream.write({
+        cmd: 'pubcomp',
+        messageId: packet.messageId
+      })
+    }
+  })
+
+  broker.on('closed', function () {
+    t.equal(publishCount, 1)
+    t.equal(nonPublishCount, 1)
+    t.end()
+  })
+})
+
 test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
   t.plan(3)
 
