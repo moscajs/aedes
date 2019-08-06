@@ -2,7 +2,7 @@
 
 var test = require('tape').test
 var EE = require('events').EventEmitter
-var handleConnect = require('../../lib/handlers/connect')
+var handle = require('../../lib/handlers/index')
 
 test('reject clients with no clientId running on MQTT 3.1', function (t) {
   t.plan(2)
@@ -13,12 +13,16 @@ test('reject clients with no clientId running on MQTT 3.1', function (t) {
   }
 
   client.broker = broker
+  client.conn = {
+    destroy: function () {}
+  }
 
   client.on('error', function (err) {
     t.equal(err.message, 'Empty clientIds are supported only on MQTT 3.1.1', 'error message')
   })
 
-  handleConnect(client, {
+  handle(client, {
+    cmd: 'connect',
     protocolVersion: 3,
     protocolId: 'MQIsdp'
   }, function (err) {
