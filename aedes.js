@@ -209,7 +209,6 @@ function removeSharp (sub) {
 
 function callPublished (_, done) {
   this.broker.published(this.packet, this.client, done)
-  this.broker.emit('publish', this.packet, this.client)
 }
 
 var publishFuncsSimple = [
@@ -229,11 +228,14 @@ Aedes.prototype.publish = function (packet, client, done) {
     client = null
   }
   var p = new Packet(packet, this)
-  var publishFuncs = publishFuncsSimple
-  if (p.qos > 0) {
-    publishFuncs = publishFuncsQoS
-  }
-  this._series(new PublishState(this, client, p), publishFuncs, null, done)
+  var publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
+
+  this._series(new PublishState(this, client, p), publishFuncs, null, function (err) {
+    this.broker.emit('publish', packet, this.client)
+    if (done) {
+      done(err)
+    }
+  })
 }
 
 Aedes.prototype.subscribe = function (topic, func, done) {
