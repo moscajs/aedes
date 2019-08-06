@@ -4,6 +4,7 @@ var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
+var eos = require('end-of-stream')
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
