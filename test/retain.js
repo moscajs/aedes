@@ -546,10 +546,9 @@ test('not clean and retain messages with QoS 1', function (t) {
           })
           delete packet2.messageId
           t.deepEqual(packet, expected, 'packet must match')
-
-          t.end()
         })
       })
     })
   })
+  broker.on('closed', t.end.bind(t))
 })
