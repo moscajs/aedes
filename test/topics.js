@@ -8,6 +8,113 @@ var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
 
+// [MQTT-4.7.3-1]
+test('publish empty topic', function (t) {
+  t.plan(4)
+
+  var s = connect(setup())
+
+  subscribe(t, s, '#', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet')
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: '',
+      payload: 'world'
+    })
+  })
+
+  eos(s.conn, function () {
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+    t.end()
+  })
+})
+
+test('publish invalid topic with #', function (t) {
+  t.plan(3)
+
+  var s = connect(setup())
+
+  subscribe(t, s, '#', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet')
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello/#',
+      payload: 'world'
+    })
+  })
+
+  s.broker.on('clientError', function () {
+    t.end()
+  })
+})
+
+test('publish invalid topic with +', function (t) {
+  t.plan(3)
+
+  var s = connect(setup())
+
+  subscribe(t, s, '#', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.fail('no packet')
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello/+/eee',
+      payload: 'world'
+    })
+  })
+
+  s.broker.on('clientError', function () {
+    t.end()
+  })
+})
+
+;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub'].forEach(function (topic) {
+  test('subscribe to invalid topic with "' + topic + '"', function (t) {
+    t.plan(0)
+
+    var s = connect(setup())
+
+    s.broker.on('clientError', function () {
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'subscribe',
+      messageId: 24,
+      subscriptions: [{
+        topic: topic,
+        qos: 0
+      }]
+    })
+  })
+
+  test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
+    t.plan(0)
+
+    var s = connect(setup())
+
+    s.broker.on('clientError', function () {
+      t.end()
+    })
+
+    s.inStream.write({
+      cmd: 'unsubscribe',
+      messageId: 24,
+      unsubscriptions: [topic]
+    })
+  })
+})
+
 test('topics are case-sensitive', function (t) {
   t.plan(4)
 
