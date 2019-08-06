@@ -45,6 +45,8 @@ test('live retain packets', function (t) {
 })
 
 test('retain messages', function (t) {
+  t.plan(4)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -77,6 +79,8 @@ test('retain messages', function (t) {
 })
 
 test('avoid wrong deduping of retain messages', function (t) {
+  t.plan(7)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -242,6 +246,8 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
 
 // [MQTT-3.3.1-10]
 test('clean retained messages', function (t) {
+  t.plan(3)
+
   var broker = aedes()
   var publisher = connect(setup(broker), { clean: true })
   publisher.inStream.write({
@@ -269,6 +275,8 @@ test('clean retained messages', function (t) {
 
 // [MQTT-3.3.1-11]
 test('broker not store zero-byte retained messages', function (t) {
+  t.plan(0)
+
   var broker = aedes()
   var s = connect(setup(broker))
 
@@ -365,6 +373,8 @@ test('only get the last retained messages in same topic', function (t) {
 })
 
 test('deliver QoS 1 retained messages to new subscriptions', function (t) {
+  t.plan(4)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -399,6 +409,8 @@ test('deliver QoS 1 retained messages to new subscriptions', function (t) {
 })
 
 test('deliver QoS 1 retained messages to established subscriptions', function (t) {
+  t.plan(4)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -430,6 +442,8 @@ test('deliver QoS 1 retained messages to established subscriptions', function (t
 })
 
 test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
+  t.plan(4)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -469,6 +483,8 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
 })
 
 test('not clean and retain messages with QoS 1', function (t) {
+  t.plan(9)
+
   var broker = aedes()
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })

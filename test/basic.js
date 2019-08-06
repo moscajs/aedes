@@ -11,6 +11,8 @@ var noError = helper.noError
 var subscribe = helper.subscribe
 
 test('connect and connack (minimal)', function (t) {
+  t.plan(1)
+
   var s = setup()
 
   s.inStream.write({
@@ -86,6 +88,8 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
 })
 
 test('publish QoS 0', function (t) {
+  t.plan(2)
+
   var s = connect(setup())
   var expected = {
     cmd: 'publish',
@@ -112,6 +116,8 @@ test('publish QoS 0', function (t) {
 })
 
 test('subscribe QoS 0', function (t) {
+  t.plan(4)
+
   var s = connect(setup())
   var expected = {
     cmd: 'publish',
@@ -139,6 +145,7 @@ test('subscribe QoS 0', function (t) {
 
 test('does not die badly on connection error', function (t) {
   t.plan(3)
+
   var s = connect(setup())
 
   s.inStream.write({
@@ -228,6 +235,8 @@ test('unsubscribe without subscribe', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=true client', function (t) {
+  t.plan(6)
+
   var opts = { clean: true }
   var s = noError(connect(setup(), opts), t)
 
@@ -238,10 +247,10 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
     })
     s.broker.once('unsubscribe', function () {
       t.pass('should emit unsubscribe')
-      t.end()
     })
     s.broker.once('closed', function () {
       t.ok(true)
+      t.end()
     })
     s.broker.publish({
       cmd: 'publish',
@@ -254,6 +263,8 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=false client', function (t) {
+  t.plan(5)
+
   var opts = { clean: false }
   var s = noError(connect(setup(), opts), t)
 
@@ -280,6 +291,8 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
 })
 
 test('disconnect', function (t) {
+  t.plan(0)
+
   var s = noError(connect(setup()), t)
 
   s.outStream.on('finish', function () {
@@ -353,6 +366,8 @@ test('broker closes gracefully', function (t) {
 })
 
 test('testing other event', function (t) {
+  t.plan(1)
+
   var broker = aedes()
   var client = setup(broker)
 
@@ -364,6 +379,8 @@ test('testing other event', function (t) {
 })
 
 test('connect without a clientId for MQTT 3.1.1', function (t) {
+  t.plan(1)
+
   var s = setup()
 
   s.inStream.write({
@@ -454,6 +471,8 @@ test('publish to $SYS/broker/new/clients', function (t) {
 })
 
 test('restore QoS 0 subscriptions not clean', function (t) {
+  t.plan(5)
+
   var broker = aedes()
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
@@ -490,6 +509,8 @@ test('restore QoS 0 subscriptions not clean', function (t) {
 })
 
 test('do not restore QoS 0 subscriptions when clean', function (t) {
+  t.plan(6)
+
   var broker = aedes()
   var publisher
   var subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' })
@@ -522,6 +543,8 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
 })
 
 test('double sub does not double deliver', function (t) {
+  t.plan(7)
+
   var s = connect(setup())
   var expected = {
     cmd: 'publish',
@@ -554,6 +577,8 @@ test('double sub does not double deliver', function (t) {
 })
 
 test('overlapping sub does not double deliver', function (t) {
+  t.plan(7)
+
   var s = connect(setup())
   var expected = {
     cmd: 'publish',
@@ -586,6 +611,8 @@ test('overlapping sub does not double deliver', function (t) {
 })
 
 test('publish empty topic', function (t) {
+  t.plan(4)
+
   var s = connect(setup())
 
   subscribe(t, s, '#', 0, function () {
@@ -608,6 +635,8 @@ test('publish empty topic', function (t) {
 })
 
 test('publish invalid topic with #', function (t) {
+  t.plan(3)
+
   var s = connect(setup())
 
   subscribe(t, s, '#', 0, function () {
@@ -629,6 +658,8 @@ test('publish invalid topic with #', function (t) {
 })
 
 test('publish invalid topic with +', function (t) {
+  t.plan(3)
+
   var s = connect(setup())
 
   subscribe(t, s, '#', 0, function () {
@@ -650,6 +681,8 @@ test('publish invalid topic with +', function (t) {
 
 ;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub'].forEach(function (topic) {
   test('subscribe to invalid topic with "' + topic + '"', function (t) {
+    t.plan(0)
+
     var s = connect(setup())
 
     s.broker.on('clientError', function () {
@@ -667,6 +700,8 @@ test('publish invalid topic with +', function (t) {
   })
 
   test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
+    t.plan(0)
+
     var s = connect(setup())
 
     s.broker.on('clientError', function () {

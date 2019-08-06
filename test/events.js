@@ -9,6 +9,7 @@ var subscribe = helper.subscribe
 
 test('publishes an hearbeat', function (t) {
   t.plan(3)
+
   var broker = aedes({
     heartbeatInterval: 10 // ms
   })
@@ -23,6 +24,7 @@ test('publishes an hearbeat', function (t) {
 
 test('does not forward $SYS topics to # subscription', function (t) {
   t.plan(4)
+
   var s = connect(setup())
 
   subscribe(t, s, '#', 0, function () {
@@ -42,6 +44,7 @@ test('does not forward $SYS topics to # subscription', function (t) {
 
 test('does not forward $SYS topics to +/# subscription', function (t) {
   t.plan(4)
+
   var s = connect(setup())
 
   subscribe(t, s, '+/#', 0, function () {
@@ -89,6 +92,7 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
 test('Emit event when receives a ping', function (t) {
   t.plan(6)
   t.timeoutAfter(2000)
+
   var broker = aedes()
 
   broker.on('ping', function (packet, client) {
@@ -98,8 +102,8 @@ test('Emit event when receives a ping', function (t) {
       t.equal(packet.payload, null)
       t.equal(packet.topic, null)
       t.equal(packet.length, 0)
-      broker.close()
       t.pass('ended')
+      broker.close()
     }
   })
 
@@ -112,6 +116,7 @@ test('Emit event when receives a ping', function (t) {
 
 test('Emit event when broker closed', function (t) {
   t.plan(1)
+
   var broker = aedes()
   broker.once('closed', function () {
     t.ok(true)

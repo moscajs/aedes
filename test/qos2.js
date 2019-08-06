@@ -79,6 +79,8 @@ function receive (t, subscriber, expected, done) {
 }
 
 test('publish QoS 2', function (t) {
+  t.plan(2)
+
   var s = connect(setup())
   var packet = {
     cmd: 'publish',
@@ -91,6 +93,8 @@ test('publish QoS 2', function (t) {
 })
 
 test('subscribe QoS 2', function (t) {
+  t.plan(8)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -113,6 +117,8 @@ test('subscribe QoS 2', function (t) {
 })
 
 test('client.publish with clean=true subscribption QoS 2', function (t) {
+  t.plan(8)
+
   var broker = aedes()
   var toPublish = {
     cmd: 'publish',
@@ -178,9 +184,11 @@ test('call published method with client with QoS 2', function (t) {
 })
 
 test('subscribe QoS 0, but publish QoS 2', function (t) {
+  t.plan(6)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
+  var subscriber = connect(setup(broker, false))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -194,7 +202,6 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.once('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
-      t.end()
     })
 
     publish(t, publisher, {
@@ -207,12 +214,15 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
       dup: false
     })
   })
+  broker.on('closed', t.end.bind(t))
 })
 
 test('subscribe QoS 1, but publish QoS 2', function (t) {
+  t.plan(6)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
+  var subscriber = connect(setup(broker, false))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -227,7 +237,6 @@ test('subscribe QoS 1, but publish QoS 2', function (t) {
     subscriber.outStream.once('data', function (packet) {
       delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
-      t.end()
     })
 
     publish(t, publisher, {
@@ -240,9 +249,12 @@ test('subscribe QoS 1, but publish QoS 2', function (t) {
       dup: false
     })
   })
+  broker.on('closed', t.end.bind(t))
 })
 
 test('restore QoS 2 subscriptions not clean', function (t) {
+  t.plan(9)
+
   var broker = aedes()
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
@@ -272,6 +284,8 @@ test('restore QoS 2 subscriptions not clean', function (t) {
 })
 
 test('resend publish on non-clean reconnect QoS 2', function (t) {
+  t.plan(8)
+
   var broker = aedes()
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
@@ -301,6 +315,8 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
 })
 
 test('resend pubrel on non-clean reconnect QoS 2', function (t) {
+  t.plan(9)
+
   var broker = aedes()
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
@@ -375,6 +391,8 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
 })
 
 test('publish after disconnection', function (t) {
+  t.plan(10)
+
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))

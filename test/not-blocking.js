@@ -7,6 +7,8 @@ var net = require('net')
 var port = 4883
 
 test('do not block after a subscription', function (t) {
+  t.plan(3)
+
   var instance = aedes()
   var server = net.createServer(instance.handle)
   var total = 10000
@@ -73,6 +75,8 @@ test('do not block after a subscription', function (t) {
 })
 
 test('do not block with overlapping subscription', function (t) {
+  t.plan(3)
+
   var instance = aedes({ concurrency: 15 })
   var server = net.createServer(instance.handle)
   var total = 10000
