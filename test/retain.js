@@ -483,7 +483,7 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
 })
 
 test('not clean and retain messages with QoS 1', function (t) {
-  t.plan(9)
+  t.plan(10)
 
   var broker = aedes()
   var publisher

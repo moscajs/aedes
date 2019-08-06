@@ -176,7 +176,7 @@ test('delete the will in the persistence after publish', function (t) {
 })
 
 test('delivers a will with authorization', function (t) {
-  t.plan(5)
+  t.plan(7)
 
   let authorized = false
   var opts = {}
