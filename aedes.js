@@ -19,6 +19,7 @@ var defaultOptions = {
   concurrency: 100,
   heartbeatInterval: 60000, // 1 minute
   connectTimeout: 30000, // 30 secs
+  preConnect: defaultPreConnect,
   authenticate: defaultAuthenticate,
   authorizePublish: defaultAuthorizePublish,
   authorizeSubscribe: defaultAuthorizeSubscribe,
@@ -50,6 +51,7 @@ function Aedes (opts) {
   this._series = series()
   this._enqueuers = reusify(DoEnqueues)
 
+  this.preConnect = opts.preConnect
   this.authenticate = opts.authenticate
   this.authorizePublish = opts.authorizePublish
   this.authorizeSubscribe = opts.authorizeSubscribe
@@ -299,6 +301,9 @@ Aedes.prototype.close = function (cb = noop) {
 
 Aedes.prototype.version = require('./package.json').version
 
+function defaultPreConnect (client) {
+  return true
+}
 function defaultAuthenticate (client, username, password, callback) {
   callback(null, true)
 }

@@ -38,8 +38,8 @@ function connect (s, opts, connected) {
   opts = opts || {}
 
   opts.cmd = 'connect'
-  opts.protocolId = 'MQTT'
-  opts.version = 4
+  opts.protocolId = opts.protocolId || 'MQTT'
+  opts.protocolVersion = opts.protocolVersion || 4
   opts.clean = !!opts.clean
   opts.clientId = opts.clientId || 'my-client-' + clients++
   opts.keepalive = opts.keepalive || 0

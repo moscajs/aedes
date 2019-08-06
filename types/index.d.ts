@@ -34,6 +34,8 @@ declare namespace aedes {
     close (callback?: () => void): void
   }
 
+  export type PreConnectCallback = (client: Client) => boolean
+
   export type AuthenticateError = Error & { returnCode: AuthErrorCode }
 
   export type AuthenticateCallback = (
@@ -57,6 +59,7 @@ declare namespace aedes {
     concurrency?: number
     heartbeatInterval?: number
     connectTimeout?: number
+    preConnect?: PreConnectCallback
     authenticate?: AuthenticateCallback
     authorizePublish?: AuthorizePublishCallback
     authorizeSubscribe?: AuthorizeSubscribeCallback
@@ -67,6 +70,7 @@ declare namespace aedes {
   export interface Aedes extends EventEmitter {
     handle: (stream: Duplex) => void
 
+    preConnect: PreConnectCallback
     authenticate: AuthenticateCallback
     authorizePublish: AuthorizePublishCallback
     authorizeSubscribe: AuthorizeSubscribeCallback
@@ -74,7 +78,7 @@ declare namespace aedes {
     published: PublishedCallback
 
     on (event: 'closed', cb: () => void): this
-    on (event: 'client' | 'clientDisconnect' | 'keepaliveTimeout' | 'connackSent', cb: (client: Client) => void): this
+    on (event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout' | 'connackSent', cb: (client: Client) => void): this
     on (event: 'clientError' | 'connectionError', cb: (client: Client, error: Error) => void): this
     on (event: 'ping' | 'publish' | 'ack', cb: (packet: any, client: Client) => void): this
     on (event: 'subscribe' | 'unsubscribe', cb: (subscriptions: ISubscription | ISubscription[] | ISubscribePacket, client: Client) => void): this

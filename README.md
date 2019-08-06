@@ -120,7 +120,9 @@ Options:
 
 Events:
 
-* `client`: when a new [Client](#client) connects, arguments:
+* `client`: when a new [Client](#client) successfully connects and register itself to server, [connackSent event will be come after], arguments:
+  1. `client`
+* `clientReady`: when a new [Client](#client) received all its offline messages, it is ready, arguments:
   1. `client`
 * `clientDisconnect`: when a [Client](#client) disconnects, arguments:
   1. `client`
@@ -152,8 +154,9 @@ packet.
      [UNSUBSCRIBE](https://github.com/mqttjs/mqtt-packet#unsubscribe)
 packet.
   2. `client`
-* `connackSent`: when a CONNACK packet is sent to a client [Client](#client) (happens after `'client'`), arguments:
-  1. `client`
+* `connackSent`: when a CONNACK packet is sent to a client, arguments:
+  1. `packet`
+  2. `client`
 * `closed`: when the broker is closed
 
 -------------------------------------------------------

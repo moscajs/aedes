@@ -1,0 +1,379 @@
+'use strict'
+
+var test = require('tape').test
+var helper = require('./helper')
+var aedes = require('../')
+var setup = helper.setup
+var connect = helper.connect
+
+;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
+  test('connect and connack (minimal)', function (t) {
+    t.plan(1)
+
+    var s = setup()
+
+    s.inStream.write({
+      cmd: 'connect',
+      protocolId: ele.id,
+      protocolVersion: ele.ver,
+      clean: true,
+      clientId: 'my-client',
+      keepalive: 0
+    })
+
+    s.outStream.on('data', function (packet) {
+      t.deepEqual(packet, {
+        cmd: 'connack',
+        returnCode: 0,
+        length: 2,
+        qos: 0,
+        retain: false,
+        dup: false,
+        topic: null,
+        payload: null,
+        sessionPresent: false
+      }, 'successful connack')
+      t.end()
+    })
+  })
+})
+
+// [MQTT-3.1.2-2]
+test('reject client requested for unacceptable protocol version', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQIsdp',
+    protocolVersion: 5,
+    clean: true,
+    clientId: 'my-client',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.equal(packet.cmd, 'connack')
+    t.equal(packet.returnCode, 1, 'unacceptable protocol version')
+    t.equal(broker.connectedClients, 0)
+  })
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'unacceptable protocol version')
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+// [MQTT-3.1.2-1], Guarded in mqtt-packet
+test('reject client requested for unsupported protocol version', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 2,
+    clean: true,
+    clientId: 'my-client',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.fail('no data sent')
+  })
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'Invalid protocol version')
+    t.equal(broker.connectedClients, 0)
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+// Guarded in mqtt-packet
+test('reject clients with no clientId running on MQTT 3.1.0', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQIsdp',
+    protocolVersion: 3,
+    clean: true,
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.fail('no data sent')
+  })
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'clientId must be supplied before 3.1.1')
+    t.equal(broker.connectedClients, 0)
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+// [MQTT-3.1.3-7], Guarded in mqtt-packet
+test('reject clients without clientid and clean=false on MQTT 3.1.1', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: false,
+    clientId: '',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.fail('no data sent')
+  })
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'clientId must be given if cleanSession set to 0')
+    t.equal(broker.connectedClients, 0)
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.equal(packet.cmd, 'connack')
+    t.equal(packet.returnCode, 0)
+    t.equal(broker.connectedClients, 1)
+  })
+  broker.on('connectionError', function (client, err) {
+    t.error(err, 'no error')
+  })
+  broker.on('client', function (client) {
+    t.ok(client.id.startsWith('aedes_'))
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: '',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.equal(packet.cmd, 'connack')
+    t.equal(packet.returnCode, 0)
+    t.equal(broker.connectedClients, 1)
+  })
+  broker.on('connectionError', function (client, err) {
+    t.error(err, 'no error')
+  })
+  broker.on('client', function (client) {
+    t.ok(client.id.startsWith('aedes_'))
+  })
+  broker.on('closed', function () {
+    t.end()
+  })
+})
+
+// [MQTT-3.1.3-7]
+test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQIsdp',
+    protocolVersion: 3,
+    clean: true,
+    clientId: 'abcdefghijklmnopqrstuvwxyz',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.equal(packet.cmd, 'connack')
+    t.equal(packet.returnCode, 2, 'identifier rejected')
+    t.equal(broker.connectedClients, 0)
+  })
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'identifier rejected')
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'abcdefghijklmnopqrstuvwxyz',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.equal(packet.cmd, 'connack')
+    t.equal(packet.returnCode, 0)
+    t.equal(broker.connectedClients, 1)
+  })
+  broker.on('connectionError', function (client, err) {
+    t.error(err, 'no error')
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+// [MQTT-3.1.0-1]
+test('the first Packet MUST be a CONNECT Packet', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+  var s = setup(broker, false)
+
+  var packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false
+  }
+  s.inStream.write(packet)
+  setImmediate(() => {
+    t.ok(s.conn.destroyed, 'close connection if first packet is not a CONNECT')
+    s.conn.destroy()
+    broker.close()
+    t.end()
+  })
+})
+
+// [MQTT-3.1.0-2]
+test('second CONNECT Packet sent from a Client as a protocol violation and disconnect the Client ', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var packet = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    keepalive: 0
+  }
+  var s = connect(setup(broker, false), { clientId: 'abcde' }, function () {
+    t.ok(broker.clients['abcde'].connected)
+    s.inStream.write(packet)
+    setImmediate(() => {
+      t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+      t.ok(s.conn.destroyed, 'close connection if packet is a CONNECT after network is established')
+      broker.close()
+      t.end()
+    })
+  })
+})
+
+// [MQTT-3.1.2-1], Guarded in mqtt-packet
+test('reject clients with wrong protocol name', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT_hello',
+    protocolVersion: 3,
+    clean: true,
+    clientId: 'my-client',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.fail('no data sent')
+  })
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'Invalid protocolId')
+    t.equal(broker.connectedClients, 0)
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+test('preConnect handler', function (t) {
+  t.plan(0)
+
+  var broker = aedes({
+    preConnect: function (client, done) {
+      return false
+    }
+  })
+  var s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    keepalive: 0
+  })
+  broker.on('client', function (client) {
+    t.fail('no reach here')
+  })
+  broker.on('clientError', function (client, err) {
+    t.fail('no reach here')
+  })
+  broker.on('connectionError', function (client, err) {
+    t.fail('no reach here')
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
+/*
+- We do some checks in earliest connect phrase, and destory connections if there are invalid checks. Designed for WAF.
+* checking of zero-byte client id [MQTT 3.1.0 only]
+* improper MQTT version and protocol id mapping in CONNECT
+* includes https://github.com/mcollina/aedes/pull/260/commits/06fc8392a1ffea822d003ff6f4c01d100b0e616d
+* raised an "invalid protocol" callback error if there is
+
+- Normal connect checks with CONNACK responses, and raised clientError
+* Unsupported aedes supported mqtt version [MQTT-3.1.2-2]: CONNACK return Code = 1
+* Empty clientid but clean=false [MQTT-3.1.3-7]: CONNACK return Code = 2
+* client id length > 23 [MQTT 3.1.0 only]: CONNACK return Code = 2
+
+- Emit `connackSent` event and set connactSent=true if CONNACK is sent, not only after `client` event but also when normal connect checks phrase if necessary
+
+- Added packet arguments in `connackSent` event
+
+- Added preConnect handler in handleConnect between earliest connect checks and normal checks. This is useful for users if they want to do some earilest DDoS check before server send any responses back, in this phrase connected=false
+
+- set clientID to 'aedes_' + shortid() if empty [MQTT 3.1.1], it is better to keep it within 23 chars for better compatibility
+
+- Emit `clientReady` event after we send back all offline messages to client
+
+- Optimize negate function
+
+- Optimize doConnack function and we could re-use it
+
+- Set keepalive after authentication, save some resoures if there are plenty of failed authentication
+*/
