@@ -14,6 +14,7 @@ var reusify = require('reusify')
 var Client = require('./lib/client')
 
 module.exports = Aedes
+module.exports.version = require('./package.json').version
 Aedes.Server = Aedes
 
 var defaultOptions = {
