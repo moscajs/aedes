@@ -2,6 +2,7 @@
 
 var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
+var through = require('through2')
 var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
@@ -9,6 +10,7 @@ var connect = helper.connect
 var noError = helper.noError
 var subscribe = helper.subscribe
 
+// [MQTT-3.3.1-9]
 test('live retain packets', function (t) {
   t.plan(5)
   var expected = {
@@ -160,8 +162,8 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
 })
 
 // [MQTT-3.3.1-6]
-test('new subscribers receive retained messages when QoS 0 and clean', function (t) {
-  t.plan(8)
+test('new QoS 0 subscribers receive QoS 0 retained messages when clean', function (t) {
+  t.plan(9)
 
   var broker = aedes()
   var publisher = connect(setup(broker), { clean: true })
@@ -193,7 +195,49 @@ test('new subscribers receive retained messages when QoS 0 and clean', function 
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
-  broker.on('closed', t.end.bind(t))
+  broker.on('closed', function () {
+    t.equal(broker.counter, 9)
+    t.end()
+  })
+})
+
+// [MQTT-3.3.1-5]
+test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clean', function (t) {
+  t.plan(6)
+
+  var broker = aedes()
+  var publisher = connect(setup(broker), { clean: true })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: true,
+    dup: false,
+    length: 12
+  }
+  publisher.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    retain: true,
+    messageId: 42
+  })
+  publisher.outStream.on('data', function (packet) {
+    var subscriber = connect(setup(broker, false), { clean: true })
+    subscribe(t, subscriber, 'hello', 0, function () {
+      subscriber.outStream.on('data', function (packet) {
+        t.notEqual(packet.messageId, 42, 'messageId should not be the same')
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+      })
+    })
+  })
+  broker.on('closed', function () {
+    t.equal(broker.counter, 6)
+    t.end()
+  })
 })
 
 // [MQTT-3.3.1-10]
@@ -221,6 +265,29 @@ test('clean retained messages', function (t) {
     })
   })
   broker.on('closed', t.end.bind(t))
+})
+
+// [MQTT-3.3.1-11]
+test('broker not store zero-byte retained messages', function (t) {
+  var broker = aedes()
+  var s = connect(setup(broker))
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: '',
+    retain: true
+  })
+  s.broker.on('publish', function (packet, client) {
+    if (packet.topic.startsWith('$SYS/')) {
+      return
+    }
+    var stream = s.broker.persistence.createRetainedStream(packet.topic)
+    stream.pipe(through.obj(function sendRetained (packet, enc, cb) {
+      t.fail('not store zero-byte retained messages')
+    }))
+  })
+  s.broker.on('closed', t.end.bind(t))
 })
 
 test('fail to clean retained messages without retain flag', function (t) {
@@ -251,9 +318,9 @@ test('fail to clean retained messages without retain flag', function (t) {
     qos: 0,
     retain: false
   })
-  var subscriber1 = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber1, 'hello', 0, function () {
-    subscriber1.outStream.on('data', function (packet) {
+  var subscriber = connect(setup(broker, false), { clean: true })
+  subscribe(t, subscriber, 'hello', 0, function () {
+    subscriber.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
@@ -288,16 +355,16 @@ test('only get the last retained messages in same topic', function (t) {
     qos: 0,
     retain: true
   })
-  var subscriber1 = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber1, 'hello', 0, function () {
-    subscriber1.outStream.on('data', function (packet) {
+  var subscriber = connect(setup(broker, false), { clean: true })
+  subscribe(t, subscriber, 'hello', 0, function () {
+    subscriber.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
   broker.on('closed', t.end.bind(t))
 })
 
-test('deliver QoS 1 retained messages', function (t) {
+test('deliver QoS 1 retained messages to new subscriptions', function (t) {
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -305,9 +372,9 @@ test('deliver QoS 1 retained messages', function (t) {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
-    qos: 0,
+    qos: 1,
     dup: false,
-    length: 12,
+    length: 14,
     retain: true
   }
 
@@ -323,6 +390,7 @@ test('deliver QoS 1 retained messages', function (t) {
   publisher.outStream.on('data', function (packet) {
     subscribe(t, subscriber, 'hello', 1, function () {
       subscriber.outStream.once('data', function (packet) {
+        delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
         t.end()
       })
@@ -330,7 +398,7 @@ test('deliver QoS 1 retained messages', function (t) {
   })
 })
 
-test('deliver QoS 1 retained messages', function (t) {
+test('deliver QoS 1 retained messages to established subscriptions', function (t) {
   var broker = aedes()
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
@@ -447,10 +515,8 @@ test('not clean and retain messages with QoS 1', function (t) {
 
       subscriber.outStream.once('data', function (packet) {
         t.notEqual(packet.messageId, 42, 'messageId must differ')
-        t.equal(packet.qos, 0, 'qos degraded to 0 for retained')
         var prevId = packet.messageId
         delete packet.messageId
-        packet.qos = 1
         packet.length = 14
         t.deepEqual(packet, expected, 'packet must match')
 
