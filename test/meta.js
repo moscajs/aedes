@@ -81,14 +81,15 @@ test('call published method with client', function (t) {
   })
 })
 
-test('emit publish event with client', function (t) {
-  t.plan(2)
+test('emit publish event with client - QoS 0', function (t) {
+  t.plan(3)
 
   var broker = aedes()
 
   broker.on('publish', function (packet, client) {
     // for internal messages, client will be null
     if (client) {
+      t.equal(packet.qos, 0)
       t.equal(packet.topic, 'hello', 'topic matches')
       t.equal(packet.payload.toString(), 'world', 'payload matches')
       broker.close()
@@ -100,7 +101,35 @@ test('emit publish event with client', function (t) {
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
-    payload: Buffer.from('world')
+    payload: Buffer.from('world'),
+    qos: 0
+  })
+})
+
+test('emit publish event with client - QoS 1', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+
+  broker.on('publish', function (packet, client) {
+    // for internal messages, client will be null
+    if (client) {
+      t.equal(packet.qos, 1)
+      t.equal(packet.messageId, 42)
+      t.equal(packet.topic, 'hello', 'topic matches')
+      t.equal(packet.payload.toString(), 'world', 'payload matches')
+      broker.close()
+    }
+  })
+
+  var s = connect(setup(broker))
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    messageId: 42
   })
 })
 
