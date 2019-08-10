@@ -138,8 +138,7 @@ function Aedes (opts) {
 
 util.inherits(Aedes, EE)
 
-function storeRetained (_, done) {
-  var packet = this.packet
+function storeRetained (packet, done) {
   if (packet.retain) {
     this.broker.persistence.storeRetained(packet, done)
   } else {
@@ -147,14 +146,12 @@ function storeRetained (_, done) {
   }
 }
 
-function emitPacket (_, done) {
-  this.packet.retain = false
-  this.broker.mq.emit(this.packet, done)
+function emitPacket (packet, done) {
+  packet.retain = false
+  this.broker.mq.emit(packet, done)
 }
 
-function enqueueOffline (_, done) {
-  var packet = this.packet
-
+function enqueueOffline (packet, done) {
   var enqueuer = this.broker._enqueuers.get()
 
   enqueuer.complete = done
@@ -210,6 +207,7 @@ function removeSharp (sub) {
 
 function callPublished (_, done) {
   this.broker.published(this.packet, this.client, done)
+  this.broker.emit('publish', this.packet, this.client)
 }
 
 var publishFuncsSimple = [
@@ -231,12 +229,7 @@ Aedes.prototype.publish = function (packet, client, done) {
   var p = new Packet(packet, this)
   var publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
 
-  this._series(new PublishState(this, client, p), publishFuncs, null, function (err) {
-    this.broker.emit('publish', packet, this.client)
-    if (done) {
-      done(err)
-    }
-  })
+  this._series(new PublishState(this, client, packet), publishFuncs, p, done)
 }
 
 Aedes.prototype.subscribe = function (topic, func, done) {
