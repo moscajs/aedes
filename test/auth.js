@@ -567,7 +567,15 @@ test('negate multiple subscriptions', function (t) {
 })
 
 test('negate subscription with correct persistence', function (t) {
-  t.plan(7)
+  t.plan(6)
+
+  var expected = [{
+    topic: 'hello',
+    qos: 0
+  }, {
+    topic: 'world',
+    qos: 0
+  }]
 
   var broker = aedes()
   broker.authorizeSubscribe = function (client, sub, cb) {
@@ -582,8 +590,9 @@ test('negate subscription with correct persistence', function (t) {
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
     t.deepEqual(packet.granted, [128, 0])
-    t.notEqual(broker.persistence._subscriptions.get('abcde'), undefined)
-    t.deepEqual(broker.persistence._subscriptions.get('abcde').size, 2)
+    broker.persistence.subscriptionsByClient(broker.clients['abcde'], function (_, subs, client) {
+      t.deepEqual(subs, expected)
+    })
     t.equal(packet.messageId, 24)
   })
 
