@@ -346,6 +346,7 @@ test('subscribe a client programmatically with full packet', function (t) {
 
 test('get message when client connects', function (t) {
   t.plan(2)
+
   var client1 = 'gav'
   var broker = aedes()
 
@@ -369,6 +370,7 @@ test('get message when client connects', function (t) {
 
 test('get message when client disconnects', function (t) {
   t.plan(2)
+
   var client1 = 'gav'
   var client2 = 'friend'
   var broker = aedes()

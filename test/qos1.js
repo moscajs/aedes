@@ -370,14 +370,10 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
         subscriber2.outStream.once('data', function (packet) {
           t.fail('this should never happen')
         })
-
-        // TODO wait all packets to be sent
-        setTimeout(function () {
-          t.end()
-        }, 50)
       })
     })
   })
+  broker.on('closed', t.end.bind(t))
 })
 
 test('do not resend QoS 1 packets if reconnect is clean', function (t) {
@@ -408,13 +404,9 @@ test('do not resend QoS 1 packets if reconnect is clean', function (t) {
       subscriber.outStream.once('data', function (packet) {
         t.fail('this should never happen')
       })
-
-      // TODO wait all packets to be sent
-      setTimeout(function () {
-        t.end()
-      }, 50)
     })
   })
+  broker.on('closed', t.end.bind(t))
 })
 
 test('do not resend QoS 1 packets at reconnect if puback was received', function (t) {
@@ -462,13 +454,9 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
       subscriber.outStream.once('data', function (packet) {
         t.fail('this should never happen')
       })
-
-      // TODO wait all packets to be sent
-      setTimeout(function () {
-        t.end()
-      }, 50)
     })
   })
+  broker.on('closed', t.end.bind(t))
 })
 
 test('remove stored subscriptions after unsubscribe', function (t) {

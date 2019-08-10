@@ -107,9 +107,9 @@ test('delivers old will in case of a crash', function (t) {
       broker.mq.on('mywill', function (packet) {
         t.fail('the will must be delivered only once')
       })
-      setTimeout(function () {
+      setImmediate(function () {
         broker.close(t.pass.bind(t, 'server closes'))
-      }, 15)
+      })
       cb()
     }
   })
