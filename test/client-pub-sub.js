@@ -397,7 +397,7 @@ test('get message when client disconnects', function (t) {
 })
 
 test('should not receive a message on negated subscription', function (t) {
-  t.plan(3)
+  t.plan(2)
 
   var broker = aedes()
   broker.authorizeSubscribe = function (client, sub, callback) {
@@ -422,16 +422,8 @@ test('should not receive a message on negated subscription', function (t) {
   })
 
   var s = connect(setup(broker))
-  var receivedPacket = null
   s.outStream.once('data', function (packet) {
-    receivedPacket = packet
+    t.fail('Packet should not be received')
   })
-
-  setTimeout(function () {
-    if (receivedPacket != null) {
-      t.fail('Packet should not be received')
-    } else {
-      t.pass('Message not received')
-    }
-  }, 100)
+  broker.on('closed', t.end.bind(t))
 })
