@@ -155,9 +155,9 @@ function enqueueOffline (packet, done) {
   var enqueuer = this.broker._enqueuers.get()
 
   enqueuer.complete = done
-  enqueuer.status = this
+  enqueuer.packet = packet
   enqueuer.topic = packet.topic
-
+  enqueuer.broker = this.broker
   this.broker.persistence.subscriptionsByTopic(
     packet.topic,
     enqueuer.done
@@ -166,35 +166,36 @@ function enqueueOffline (packet, done) {
 
 function DoEnqueues () {
   this.next = null
-  this.status = null
   this.complete = null
+  this.packet = null
   this.topic = null
+  this.broker = null
 
   var that = this
 
   this.done = function doneEnqueue (err, subs) {
-    var status = that.status
-    var broker = status.broker
+    var broker = that.broker
 
     if (err) {
       // is this really recoverable?
       // let's just error the whole aedes
       broker.emit('error', err)
-    } else {
-      var complete = that.complete
-
-      if (that.topic.indexOf('$SYS') === 0) {
-        subs = subs.filter(removeSharp)
-      }
-
-      that.status = null
-      that.complete = null
-      that.topic = null
-
-      broker.persistence.outgoingEnqueueCombi(subs, status.packet, complete)
-
-      broker._enqueuers.release(that)
+      return
     }
+
+    if (that.topic.indexOf('$SYS') === 0) {
+      subs = subs.filter(removeSharp)
+    }
+
+    var packet = that.packet
+    var complete = that.complete
+
+    that.packet = null
+    that.complete = null
+    that.topic = null
+
+    broker.persistence.outgoingEnqueueCombi(subs, packet, complete)
+    broker._enqueuers.release(that)
   }
 }
 
