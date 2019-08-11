@@ -425,3 +425,35 @@ test('publish after disconnection', function (t) {
     })
   })
 })
+
+test('multiple publish and store one', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+  var sid = {
+    id: 'abcde'
+  }
+  var s = connect(setup(broker), { clientId: sid.id })
+  var toPublish = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 2,
+    retain: false,
+    messageId: 42
+  }
+
+  var count = 5
+  while (--count) {
+    s.inStream.write(toPublish)
+  }
+  broker.on('closed', function () {
+    broker.persistence.incomingGetPacket(sid, toPublish, function (err, origPacket) {
+      delete origPacket.brokerId
+      delete origPacket.brokerCounter
+      t.deepEqual(origPacket, toPublish, 'packet must match')
+      t.error(err)
+      t.end()
+    })
+  })
+})

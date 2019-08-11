@@ -1,5 +1,6 @@
 'use strict'
 
+var concat = require('concat-stream')
 var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
@@ -273,12 +274,15 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
 })
 
 test('resend publish on non-clean reconnect QoS 1', function (t) {
-  t.plan(6)
+  t.plan(8)
 
   var broker = aedes()
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
+  var subscriberClient = {
+    id: opts.clientId
+  }
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -301,7 +305,13 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
       qos: 1,
       messageId: 42
     })
-
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world world',
+      qos: 1,
+      messageId: 42
+    })
     publisher.outStream.once('data', function (packet) {
       t.equal(packet.cmd, 'puback')
 
@@ -315,7 +325,13 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
         t.notEqual(packet.messageId, 42, 'messageId must differ')
         delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
-        t.end()
+        setImmediate(() => {
+          var stream = broker.persistence.outgoingStream(subscriberClient)
+          stream.pipe(concat(function (list) {
+            t.equal(list.length, 1, 'should remain one item in queue')
+            t.deepEqual(list[0].payload, Buffer.from('world world'), 'packet must match')
+          }))
+        })
       })
     })
   })
