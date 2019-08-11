@@ -229,6 +229,17 @@ test('emits client', function (t) {
   })
 })
 
+test('get aedes version', function (t) {
+  t.plan(0)
+
+  var broker = aedes()
+  if (broker.constructor.version === undefined) {
+    t.fail('version undefined')
+  }
+  broker.close()
+  t.end()
+})
+
 test('connect and connackSent event', function (t) {
   var s = setup()
   var clientId = 'my-client'
