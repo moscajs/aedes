@@ -21,6 +21,8 @@ function willConnect (s, opts, connected) {
 }
 
 test('delivers a will', function (t) {
+  t.plan(4)
+
   var opts = {}
   // willConnect populates opts with a will
   var s = willConnect(setup(), opts)
@@ -41,6 +43,7 @@ test('delivers a will', function (t) {
 
 test('calling close two times should not deliver two wills', function (t) {
   t.plan(4)
+
   var opts = {}
   var broker = aedes()
 
@@ -67,6 +70,7 @@ test('calling close two times should not deliver two wills', function (t) {
 
 test('delivers old will in case of a crash', function (t) {
   t.plan(7)
+
   var persistence = memory()
   var will = {
     topic: 'mywill',
@@ -103,15 +107,17 @@ test('delivers old will in case of a crash', function (t) {
       broker.mq.on('mywill', function (packet) {
         t.fail('the will must be delivered only once')
       })
-      setTimeout(function () {
+      setImmediate(function () {
         broker.close(t.pass.bind(t, 'server closes'))
-      }, 15)
+      })
       cb()
     }
   })
 })
 
 test('store the will in the persistence', function (t) {
+  t.plan(5)
+
   var opts = {
     clientId: 'abcde'
   }
@@ -135,6 +141,8 @@ test('store the will in the persistence', function (t) {
 })
 
 test('delete the will in the persistence after publish', function (t) {
+  t.plan(2)
+
   var opts = {
     clientId: 'abcde'
   }
@@ -168,6 +176,8 @@ test('delete the will in the persistence after publish', function (t) {
 })
 
 test('delivers a will with authorization', function (t) {
+  t.plan(7)
+
   let authorized = false
   var opts = {}
   var broker = aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })
@@ -195,13 +205,16 @@ test('delivers a will with authorization', function (t) {
 })
 
 test('delivers a will waits for authorization', function (t) {
+  t.plan(6)
+
   let authorized = false
   var opts = {}
+  var broker = aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })), opts)
+  var s = willConnect(setup(broker), opts)
 
   s.broker.on('clientDisconnect', function () {
-    t.end()
+    t.pass('client is disconnected')
   })
 
   s.broker.mq.on('mywill', function (packet, cb) {
@@ -216,9 +229,12 @@ test('delivers a will waits for authorization', function (t) {
   process.nextTick(function () {
     s.conn.destroy()
   })
+  broker.on('closed', t.end.bind(t))
 })
 
 test('does not deliver a will without authorization', function (t) {
+  t.plan(1)
+
   let authorized = false
   var opts = {}
   // willConnect populates opts with a will
@@ -240,6 +256,8 @@ test('does not deliver a will without authorization', function (t) {
 })
 
 test('does not deliver a will without authentication', function (t) {
+  t.plan(1)
+
   let authenticated = false
   var opts = {}
   // willConnect populates opts with a will
@@ -257,6 +275,8 @@ test('does not deliver a will without authentication', function (t) {
 })
 
 test('does not deliver will if keepalive is triggered during authentication', function (t) {
+  t.plan(0)
+
   var opts = {}
   opts.keepalive = 1
   var broker = aedes({

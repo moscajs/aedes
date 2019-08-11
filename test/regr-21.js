@@ -7,6 +7,7 @@ var connect = helper.connect
 
 test('after an error, outstanding packets are discarded', function (t) {
   t.plan(1)
+
   var s = connect(setup(), {
     keepalive: 1000
   })

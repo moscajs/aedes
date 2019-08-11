@@ -57,7 +57,7 @@ test('supports keep alive disconnections after a pingreq', function (t) {
 
 test('disconnect if a connect does not arrive in time', function (t) {
   t.plan(2)
-  t.timeoutAfter(200)
+  t.timeoutAfter(500)
 
   var s = setup(aedes({
     connectTimeout: 100
