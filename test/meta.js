@@ -233,7 +233,7 @@ test('get aedes version', function (t) {
   t.plan(0)
 
   var broker = aedes()
-  if (broker.constructor.version === undefined) {
+  if (broker.version === undefined) {
     t.fail('version undefined')
   }
   broker.close()

@@ -14,7 +14,6 @@ var reusify = require('reusify')
 var Client = require('./lib/client')
 
 module.exports = Aedes
-module.exports.version = require('./package.json').version
 Aedes.Server = Aedes
 
 var defaultOptions = {
@@ -298,6 +297,8 @@ Aedes.prototype.close = function (cb = noop) {
     that.mq.close(cb)
   }
 }
+
+Aedes.prototype.version = require('./package.json').version
 
 function defaultAuthenticate (client, username, password, callback) {
   callback(null, true)
