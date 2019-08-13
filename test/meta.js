@@ -230,12 +230,10 @@ test('emits client', function (t) {
 })
 
 test('get aedes version', function (t) {
-  t.plan(0)
+  t.plan(1)
 
   var broker = aedes()
-  if (broker.version === undefined) {
-    t.fail('version undefined')
-  }
+  t.equal(broker.version, require('../package.json').version)
   broker.close()
   t.end()
 })
