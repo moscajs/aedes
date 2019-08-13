@@ -228,6 +228,15 @@ test('emits client', function (t) {
   })
 })
 
+test('get aedes version', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+  t.equal(broker.version, require('../package.json').version)
+  broker.close()
+  t.end()
+})
+
 test('connect and connackSent event', function (t) {
   var s = setup()
   var clientId = 'my-client'

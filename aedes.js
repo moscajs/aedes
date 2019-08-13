@@ -297,6 +297,8 @@ Aedes.prototype.close = function (cb = noop) {
   }
 }
 
+Aedes.prototype.version = require('./package.json').version
+
 function defaultAuthenticate (client, username, password, callback) {
   callback(null, true)
 }
