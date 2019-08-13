@@ -1,6 +1,5 @@
 'use strict'
 
-var assert = require('assert')
 var test = require('tape').test
 var EE = require('events').EventEmitter
 var handle = require('../../lib/handlers/index')
@@ -15,7 +14,9 @@ test('reject clients with no clientId running on MQTT 3.1', function (t) {
 
   client.broker = broker
   client.conn = {
-    destroy: function () { assert.fail('should not destroy') }
+    destroy: function () {
+      t.fail('should not destroy')
+    }
   }
 
   client.on('error', function (err) {
