@@ -348,32 +348,3 @@ test('preConnect handler', function (t) {
   })
   broker.on('closed', t.end.bind(t))
 })
-
-/*
-- We do some checks in earliest connect phrase, and destory connections if there are invalid checks. Designed for WAF.
-* checking of zero-byte client id [MQTT 3.1.0 only]
-* improper MQTT version and protocol id mapping in CONNECT
-* includes https://github.com/mcollina/aedes/pull/260/commits/06fc8392a1ffea822d003ff6f4c01d100b0e616d
-* raised an "invalid protocol" callback error if there is
-
-- Normal connect checks with CONNACK responses, and raised clientError
-* Unsupported aedes supported mqtt version [MQTT-3.1.2-2]: CONNACK return Code = 1
-* Empty clientid but clean=false [MQTT-3.1.3-7]: CONNACK return Code = 2
-* client id length > 23 [MQTT 3.1.0 only]: CONNACK return Code = 2
-
-- Emit `connackSent` event and set connactSent=true if CONNACK is sent, not only after `client` event but also when normal connect checks phrase if necessary
-
-- Added packet arguments in `connackSent` event
-
-- Added preConnect handler in handleConnect between earliest connect checks and normal checks. This is useful for users if they want to do some earilest DDoS check before server send any responses back, in this phrase connected=false
-
-- set clientID to 'aedes_' + shortid() if empty [MQTT 3.1.1], it is better to keep it within 23 chars for better compatibility
-
-- Emit `clientReady` event after we send back all offline messages to client
-
-- Optimize negate function
-
-- Optimize doConnack function and we could re-use it
-
-- Set keepalive after authentication, save some resoures if there are plenty of failed authentication
-*/
