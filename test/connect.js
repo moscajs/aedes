@@ -323,7 +323,7 @@ test('preConnect handler', function (t) {
   t.plan(0)
 
   var broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client) {
       return false
     }
   })
