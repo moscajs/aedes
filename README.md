@@ -69,6 +69,7 @@ server.listen(8883, function () {
   * <a href="#subscribe"><code>instance.<b>subscribe()</b></code></a>
   * <a href="#publish"><code>instance.<b>publish()</b></code></a>
   * <a href="#unsubscribe"><code>instance.<b>unsubscribe()</b></code></a>
+  * <a href="#preConnect"><code>instance.<b>preConnect()</b></code></a>
   * <a href="#authenticate"><code>instance.<b>authenticate()</b></code></a>
   * <a href="#authorizePublish"><code>instance.<b>authorizePublish()</b></code></a>
   * <a href="#authorizeSubscribe"><code>instance.<b>authorizeSubscribe()</b></code></a>
@@ -107,6 +108,8 @@ Options:
   packet to arrive, defaults to `30000` milliseconds
 * `id`: id used to identify this broker instance in `$SYS` messages,
   defaults to `shortid()`
+* `preConnect`: function called when a valid CONNECT is received, see
+  instance.preConnect()](#preConnect)
 * `authenticate`: function used to authenticate clients, see
   [instance.authenticate()](#authenticate)
 * `authorizePublish`: function used to authorize PUBLISH packets, see
@@ -216,6 +219,26 @@ Both `topic` and `payload` can be `Buffer` objects instead of strings.
 
 The reverse of [subscribe](#subscribe).
 
+-------------------------------------------------------
+<a name="preConnect"></a>
+### instance.preConnect(client)
+
+It will be called when aedes instance receives a first valid CONNECT packet from client. client object state is in default and its connected state is false. Any values in CONNECT packet (like clientId, clean flag, keepalive) will pass to client object after this call. Override to supply custom preConnect logic.
+Some use cases:
+1. Rate Limit / Throttle by `client.conn.remoteAddress`
+2. Check `instance.connectedClient` to limit maximum connections
+3. IP blacklisting
+
+```js
+instance.preConnect = function(client) {
+  if (client.conn.remoteAddress === '::1') {
+    // true => ok
+    return true
+  }
+  // false => client connection will be destroyed
+  return false
+}
+```
 -------------------------------------------------------
 <a name="authenticate"></a>
 ### instance.authenticate(client, username, password, done(err, successful))
