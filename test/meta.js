@@ -14,14 +14,12 @@ test('count connected clients', function (t) {
 
   t.equal(broker.connectedClients, 0, 'no connected clients')
 
-  connect(setup(broker))
-
-  process.nextTick(function () {
+  connect(setup(broker), {
+  }, function () {
     t.equal(broker.connectedClients, 1, 'one connected clients')
 
-    var last = connect(setup(broker))
-
-    process.nextTick(function () {
+    var last = connect(setup(broker), {
+    }, function () {
       t.equal(broker.connectedClients, 2, 'two connected clients')
 
       last.conn.destroy()

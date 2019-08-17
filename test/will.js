@@ -24,7 +24,11 @@ test('delivers a will', function (t) {
 
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(), opts)
+  var s = willConnect(setup(),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
@@ -33,10 +37,6 @@ test('delivers a will', function (t) {
     t.equal(packet.retain, opts.will.retain, 'retain matches')
     cb()
     t.end()
-  })
-
-  process.nextTick(() => {
-    s.conn.destroy()
   })
 })
 
@@ -179,9 +179,13 @@ test('delivers a will with authorization', function (t) {
 
   let authorized = false
   var opts = {}
-  var broker = aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })
   // willConnect populates opts with a will
-  var s = willConnect(setup(broker), opts)
+  var s = willConnect(
+    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
   s.broker.on('clientDisconnect', function (client) {
     t.equal(client.connected, false)
@@ -197,10 +201,7 @@ test('delivers a will with authorization', function (t) {
     cb()
   })
 
-  process.nextTick(function () {
-    s.conn.destroy()
-  })
-  broker.on('closed', t.end.bind(t))
+  s.broker.on('closed', t.end.bind(t))
 })
 
 test('delivers a will waits for authorization', function (t) {
@@ -208,9 +209,13 @@ test('delivers a will waits for authorization', function (t) {
 
   let authorized = false
   var opts = {}
-  var broker = aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })
   // willConnect populates opts with a will
-  var s = willConnect(setup(broker), opts)
+  var s = willConnect(
+    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
   s.broker.on('clientDisconnect', function () {
     t.pass('client is disconnected')
@@ -225,10 +230,7 @@ test('delivers a will waits for authorization', function (t) {
     cb()
   })
 
-  process.nextTick(function () {
-    s.conn.destroy()
-  })
-  broker.on('closed', t.end.bind(t))
+  s.broker.on('closed', t.end.bind(t))
 })
 
 test('does not deliver a will without authorization', function (t) {
@@ -237,7 +239,12 @@ test('does not deliver a will without authorization', function (t) {
   let authorized = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(new Error()) } })), opts)
+  var s = willConnect(
+    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(new Error()) } })),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
   s.broker.on('clientDisconnect', function () {
     t.equal(authorized, true, 'authorization called')
@@ -248,10 +255,6 @@ test('does not deliver a will without authorization', function (t) {
     t.fail('received will without authorization')
     cb()
   })
-
-  process.nextTick(function () {
-    s.conn.destroy()
-  })
 })
 
 test('does not deliver a will without authentication', function (t) {
@@ -260,7 +263,9 @@ test('does not deliver a will without authentication', function (t) {
   let authenticated = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authenticate: (_1, _2, _3, callback) => { authenticated = true; callback(new Error(), false) } })), opts)
+  var s = willConnect(
+    setup(aedes({ authenticate: (_1, _2, _3, callback) => { authenticated = true; callback(new Error(), false) } })),
+    opts)
 
   s.broker.once('clientError', function () {
     t.equal(authenticated, true, 'authentication called')
