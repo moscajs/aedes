@@ -301,8 +301,8 @@ Aedes.prototype.close = function (cb = noop) {
 
 Aedes.prototype.version = require('./package.json').version
 
-function defaultPreConnect (client) {
-  return true
+function defaultPreConnect (client, callback) {
+  callback(null, true)
 }
 function defaultAuthenticate (client, username, password, callback) {
   callback(null, true)

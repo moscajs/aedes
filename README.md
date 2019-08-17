@@ -109,7 +109,7 @@ Options:
 * `id`: id used to identify this broker instance in `$SYS` messages,
   defaults to `shortid()`
 * `preConnect`: function called when a valid CONNECT is received, see
-  instance.preConnect()](#preConnect)
+  [instance.preConnect()](#preConnect)
 * `authenticate`: function used to authenticate clients, see
   [instance.authenticate()](#authenticate)
 * `authorizePublish`: function used to authorize PUBLISH packets, see
@@ -221,7 +221,7 @@ The reverse of [subscribe](#subscribe).
 
 -------------------------------------------------------
 <a name="preConnect"></a>
-### instance.preConnect(client)
+### instance.preConnect(client, done(err, successful))
 
 It will be called when aedes instance receives a first valid CONNECT packet from client. client object state is in default and its connected state is false. Any values in CONNECT packet (like clientId, clean flag, keepalive) will pass to client object after this call. Override to supply custom preConnect logic.
 Some use cases:
@@ -230,13 +230,13 @@ Some use cases:
 3. IP blacklisting
 
 ```js
-instance.preConnect = function(client) {
-  if (client.conn.remoteAddress === '::1') {
-    // true => ok
-    return true
-  }
-  // false => client connection will be destroyed
-  return false
+instance.preConnect = function(client, callback) {
+  callback(null, client.conn.remoteAddress === '::1') {
+}
+```
+```js
+instance.preConnect = function(client, callback) {
+  callback(new Error('connection error'), client.conn.remoteAddress !== '::1') {
 }
 ```
 -------------------------------------------------------
