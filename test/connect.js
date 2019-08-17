@@ -319,32 +319,45 @@ test('reject clients with wrong protocol name', function (t) {
   broker.on('closed', t.end.bind(t))
 })
 
-test('preConnect handler', function (t) {
-  t.plan(0)
+;[[0, null, false], [1, null, true], [1, new Error('connection banned'), false], [1, new Error('connection banned'), true]].forEach(function (ele) {
+  var plan = ele[0]
+  var err = ele[1]
+  var ok = ele[2]
+  test('preConnect handler', function (t) {
+    t.plan(plan)
 
-  var broker = aedes({
-    preConnect: function (client) {
-      return false
-    }
-  })
-  var s = setup(broker)
+    var broker = aedes({
+      preConnect: function (client, done) {
+        return done(err, ok)
+      }
+    })
+    var s = setup(broker)
 
-  s.inStream.write({
-    cmd: 'connect',
-    protocolId: 'MQTT',
-    protocolVersion: 4,
-    clean: true,
-    clientId: 'my-client',
-    keepalive: 0
+    s.inStream.write({
+      cmd: 'connect',
+      protocolId: 'MQTT',
+      protocolVersion: 4,
+      clean: true,
+      clientId: 'my-client',
+      keepalive: 0
+    })
+    broker.on('client', function (client) {
+      if (ok) {
+        t.pass('connect ok')
+      } else {
+        t.fail('no reach here')
+      }
+    })
+    broker.on('clientError', function (client, err) {
+      t.fail('no client error')
+    })
+    broker.on('connectionError', function (client, err) {
+      if (err) {
+        t.equal(err.message, 'connection banned')
+      } else {
+        t.fail('no connection error')
+      }
+    })
+    broker.on('closed', t.end.bind(t))
   })
-  broker.on('client', function (client) {
-    t.fail('no reach here')
-  })
-  broker.on('clientError', function (client, err) {
-    t.fail('no reach here')
-  })
-  broker.on('connectionError', function (client, err) {
-    t.fail('no reach here')
-  })
-  broker.on('closed', t.end.bind(t))
 })
