@@ -14,14 +14,12 @@ test('count connected clients', function (t) {
 
   t.equal(broker.connectedClients, 0, 'no connected clients')
 
-  connect(setup(broker))
-
-  process.nextTick(function () {
+  connect(setup(broker), {
+  }, function () {
     t.equal(broker.connectedClients, 1, 'one connected clients')
 
-    var last = connect(setup(broker))
-
-    process.nextTick(function () {
+    var last = connect(setup(broker), {
+    }, function () {
       t.equal(broker.connectedClients, 2, 'two connected clients')
 
       last.conn.destroy()
@@ -238,13 +236,14 @@ test('get aedes version', function (t) {
 })
 
 test('connect and connackSent event', function (t) {
+  t.plan(3)
+  t.timeoutAfter(50)
+
   var s = setup()
   var clientId = 'my-client'
 
-  t.plan(2)
-  t.timeoutAfter(50)
-
-  s.broker.on('connackSent', function (client) {
+  s.broker.on('connackSent', function (packet, client) {
+    t.equal(packet.returnCode, 0)
     t.equal(client.id, clientId, 'connackSent event and clientId matches')
     t.end()
   })
