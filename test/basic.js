@@ -24,7 +24,7 @@ test('publish QoS 0', function (t) {
   s.broker.mq.on('hello', function (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    t.equal(packet['messageId'], undefined, 'MUST not contain a packet identifier in QoS 0')
+    t.equal(packet.messageId, undefined, 'MUST not contain a packet identifier in QoS 0')
     t.deepEqual(packet, expected, 'packet matches')
     cb()
     t.end()
@@ -232,13 +232,13 @@ test('client closes', function (t) {
   var broker = aedes()
   var brokerClient
   var client = noError(connect(setup(broker, false), { clientId: 'abcde' }, function () {
-    brokerClient = broker.clients['abcde']
+    brokerClient = broker.clients.abcde
     t.equal(brokerClient.connected, true, 'client connected')
     t.equal(brokerClient.disconnected, false)
     eos(client.conn, t.pass.bind('client closes'))
     setImmediate(() => {
       brokerClient.close(function () {
-        t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+        t.equal(broker.clients.abcde, undefined, 'client instance is removed')
       })
       t.equal(brokerClient.connected, false, 'client disconnected')
       t.equal(brokerClient.disconnected, true)
@@ -260,7 +260,7 @@ test('broker closes', function (t) {
     eos(client.conn, t.pass.bind('client closes'))
     broker.close(function (err) {
       t.error(err, 'no error')
-      t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+      t.equal(broker.clients.abcde, undefined, 'client instance is removed')
     })
   }))
 })
@@ -442,7 +442,7 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
   }, function () {
     subscribe(t, subscriber, 'hello', 0, function () {
       subscriber.inStream.end()
-      subscriber.broker.persistence.subscriptionsByClient(broker.clients['abcde'], function (_, subs, client) {
+      subscriber.broker.persistence.subscriptionsByClient(broker.clients.abcde, function (_, subs, client) {
         t.equal(subs, null, 'no previous subscriptions restored')
       })
       publisher = connect(setup(broker), {

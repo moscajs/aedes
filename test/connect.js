@@ -283,10 +283,10 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
     keepalive: 0
   }
   var s = connect(setup(broker, false), { clientId: 'abcde' }, function () {
-    t.ok(broker.clients['abcde'].connected)
+    t.ok(broker.clients.abcde.connected)
     s.inStream.write(packet)
     setImmediate(() => {
-      t.equal(broker.clients['abcde'], undefined, 'client instance is removed')
+      t.equal(broker.clients.abcde, undefined, 'client instance is removed')
       t.ok(s.conn.destroyed, 'close connection if packet is a CONNECT after network is established')
       broker.close()
       t.end()

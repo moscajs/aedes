@@ -67,13 +67,13 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^12.6.8",
-    "@typescript-eslint/eslint-plugin": "^1.13.0",
-    "@typescript-eslint/parser": "^1.13.0",
+    "@types/node": "^12.7.2",
+    "@typescript-eslint/eslint-plugin": "^2.0.0",
+    "@typescript-eslint/parser": "^2.0.0",
     "compute-mode": "^1.0.0",
     "concat-stream": "^2.0.0",
     "convert-hrtime": "^3.0.0",
-    "coveralls": "^3.0.5",
+    "coveralls": "^3.0.6",
     "duplexify": "^4.1.1",
     "faucet": "0.0.1",
     "license-checker": "^25.0.1",
@@ -82,7 +82,7 @@
     "nyc": "^14.1.1",
     "pre-commit": "^1.2.2",
     "snazzy": "^8.0.0",
-    "standard": "^13.1.0",
+    "standard": "^14.0.2",
     "tape": "^4.11.0",
     "typescript": "^3.5.3",
     "websocket-stream": "^5.5.0"
@@ -97,12 +97,12 @@
     "fastseries": "^1.7.2",
     "from2": "^2.3.0",
     "mqemitter": "^3.0.0",
-    "mqtt-packet": "^6.2.0",
+    "mqtt-packet": "^6.2.1",
     "pump": "^3.0.0",
     "retimer": "^2.0.0",
     "reusify": "^1.0.4",
     "shortid": "^2.2.14",
     "through2": "^3.0.1",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.3"
   }
 }
