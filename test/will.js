@@ -3,9 +3,9 @@
 var test = require('tape').test
 var memory = require('aedes-persistence')
 var helper = require('./helper')
+var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
-var aedes = require('../')
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
