@@ -34,7 +34,7 @@ declare namespace aedes {
     close (callback?: () => void): void
   }
 
-  export type PreConnectCallback = (client: Client) => boolean
+  export type PreConnectCallback = (client: Client, done: (err: Error | null, success: boolean) => void) => void
 
   export type AuthenticateError = Error & { returnCode: AuthErrorCode }
 
