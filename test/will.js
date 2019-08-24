@@ -302,3 +302,20 @@ test('does not deliver will if keepalive is triggered during authentication', fu
 
   willConnect(setup(broker), opts)
 })
+
+// [MQTT-3.14.4-1]
+test('does not deliver will when client sends a DISCONNECT', function (t) {
+  var broker = aedes()
+  var s = willConnect(setup(broker), {},
+    function () {
+      s.inStream.end({
+        cmd: 'disconnect'
+      })
+    }
+  )
+
+  s.broker.mq.on('mywill', function (packet, cb) {
+    t.fail(packet)
+  })
+  broker.on('closed', t.end.bind(t))
+})
