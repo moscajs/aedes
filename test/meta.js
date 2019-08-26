@@ -55,7 +55,7 @@ test('call published method', function (t) {
 })
 
 test('call published method with client', function (t) {
-  t.plan(2)
+  t.plan(4)
 
   var broker = aedes()
 
@@ -64,6 +64,8 @@ test('call published method with client', function (t) {
     if (client) {
       t.equal(packet.topic, 'hello', 'topic matches')
       t.equal(packet.payload.toString(), 'world', 'payload matches')
+      t.equal(packet.qos, 1)
+      t.equal(packet.messageId, 42)
       broker.close()
       done()
     }
@@ -74,7 +76,9 @@ test('call published method with client', function (t) {
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
-    payload: Buffer.from('world')
+    payload: Buffer.from('world'),
+    qos: 1,
+    messageId: 42
   })
 })
 
