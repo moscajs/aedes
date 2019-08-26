@@ -142,7 +142,7 @@ Events:
   2. `client`, it will be null if the message is published using
      [`publish`](#publish). It is by design that the broker heartbeat will be on publish event, in this case `client` is null
 * `ack`: when a packet published to a client is delivered successfully with QoS 1 or QoS 2, arguments:
-  1. `packet`
+  1. `packet`, this will be the original PUBLISH packet in QoS 1, and PUBREL in QoS 2
   2. `client`
 * `ping`: when a [Client](#client) sends a ping, arguments:
   1. `packet`
