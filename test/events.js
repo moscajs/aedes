@@ -22,42 +22,44 @@ test('publishes an hearbeat', function (t) {
   })
 })
 
-test('does not forward $SYS topics to # subscription', function (t) {
-  t.plan(4)
+;['$mcollina', '$SYS'].forEach(function (topic) {
+  test('does not forward $ prefixed topics to # subscription - ' + topic, function (t) {
+    t.plan(4)
 
-  var s = connect(setup())
+    var s = connect(setup())
 
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet should be received')
-    })
+    subscribe(t, s, '#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet should be received')
+      })
 
-    s.broker.mq.emit({
-      cmd: 'publish',
-      topic: '$SYS/hello',
-      payload: 'world'
-    }, function () {
-      t.pass('nothing happened')
+      s.broker.mq.emit({
+        cmd: 'publish',
+        topic: topic + '/hello',
+        payload: 'world'
+      }, function () {
+        t.pass('nothing happened')
+      })
     })
   })
-})
 
-test('does not forward $SYS topics to +/# subscription', function (t) {
-  t.plan(4)
+  test('does not forward $ prefixed topics to +/# subscription - ' + topic, function (t) {
+    t.plan(4)
 
-  var s = connect(setup())
+    var s = connect(setup())
 
-  subscribe(t, s, '+/#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet should be received')
-    })
+    subscribe(t, s, '+/#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet should be received')
+      })
 
-    s.broker.mq.emit({
-      cmd: 'publish',
-      topic: '$SYS/hello',
-      payload: 'world'
-    }, function () {
-      t.pass('nothing happened')
+      s.broker.mq.emit({
+        cmd: 'publish',
+        topic: topic + '/hello',
+        payload: 'world'
+      }, function () {
+        t.pass('nothing happened')
+      })
     })
   })
 })
