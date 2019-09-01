@@ -7,6 +7,7 @@ var aedes = require('../')
 var eos = require('end-of-stream')
 var setup = helper.setup
 var subscribe = helper.subscribe
+var subscribeMultiple = helper.subscribeMultiple
 var connect = helper.connect
 
 test('authenticate successfully a client with username and password', function (t) {
@@ -487,6 +488,62 @@ test('authorize subscribe', function (t) {
   }
 
   subscribe(t, s, 'hello', 0)
+})
+
+test('authorize subscribe multiple same topics with same qos', function (t) {
+  t.plan(4)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.deepEqual(sub, {
+      topic: 'hello',
+      qos: 0
+    }, 'topic matches')
+    cb(null, sub)
+  }
+
+  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 0 }], [0])
+})
+
+test('authorize subscribe multiple same topics with different qos', function (t) {
+  t.plan(4)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.deepEqual(sub, {
+      topic: 'hello',
+      qos: 1
+    }, 'topic matches')
+    cb(null, sub)
+  }
+
+  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 1 }], [1])
+})
+
+test('authorize subscribe multiple different topics', function (t) {
+  t.plan(7)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.ok(client, 'client exists')
+    if (sub.topic === 'hello') {
+      t.deepEqual(sub, {
+        topic: 'hello',
+        qos: 0
+      }, 'topic matches')
+    } else if (sub.topic === 'foo') {
+      t.deepEqual(sub, {
+        topic: 'foo',
+        qos: 0
+      }, 'topic matches')
+    }
+    cb(null, sub)
+  }
+
+  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'foo', qos: 0 }], [0, 0])
 })
 
 test('authorize subscribe from config options', function (t) {

@@ -95,9 +95,29 @@ function subscribe (t, subscriber, topic, qos, done) {
   })
 }
 
+// subs: [{topic:, qos:}]
+function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
+  subscriber.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: subs
+  })
+
+  subscriber.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, expectedGranted)
+    t.equal(packet.messageId, 24)
+
+    if (done) {
+      done(null, packet)
+    }
+  })
+}
+
 module.exports = {
   setup: setup,
   connect: connect,
   noError: noError,
-  subscribe: subscribe
+  subscribe: subscribe,
+  subscribeMultiple: subscribeMultiple
 }
