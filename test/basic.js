@@ -65,6 +65,24 @@ test('subscribe QoS 0', function (t) {
   })
 })
 
+test('test empty subscriptions', function (t) {
+  t.plan(0)
+
+  var broker = aedes()
+  var s = connect(setup(broker))
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: []
+  })
+
+  s.outStream.once('data', function (packet) {
+    t.fail('message received')
+  })
+  broker.on('closed', t.end.bind(t))
+})
+
 test('does not die badly on connection error', function (t) {
   t.plan(3)
 
