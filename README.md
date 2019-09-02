@@ -107,7 +107,7 @@ Options:
 * `connectTimeout`: the max number of milliseconds to wait for the CONNECT
   packet to arrive, defaults to `30000` milliseconds
 * `id`: id used to identify this broker instance in `$SYS` messages,
-  defaults to `uuidv5()`
+  defaults to `uuidv4()`
 * `preConnect`: function called when a valid CONNECT is received, see
   [instance.preConnect()](#preConnect)
 * `authenticate`: function used to authenticate clients, see
