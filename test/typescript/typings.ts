@@ -48,7 +48,7 @@ const broker = Server({
 
     callback(null, sub)
   },
-  authorizeForward: (client, packet: IPublishPacket) => {
+  authorizeForward: (client: Client, packet: IPublishPacket) => {
     if (packet.topic === 'aaaa' && client.id === 'I should not see this') {
       return null
       // also works with return undefined
