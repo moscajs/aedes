@@ -6,7 +6,7 @@ var util = require('util')
 var memory = require('aedes-persistence')
 var parallel = require('fastparallel')
 var series = require('fastseries')
-var shortid = require('shortid')
+var uuidv5 = require('uuid/v5')
 var Packet = require('aedes-packet')
 var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
@@ -36,12 +36,13 @@ function Aedes (opts) {
 
   opts = Object.assign({}, defaultOptions, opts)
 
-  this.id = opts.id || shortid()
+  this.id = opts.id || uuidv5('https://github.com/mcollina/aedes', uuidv5.URL)
   this.counter = 0
   this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
   this.handle = function handle (conn) {
     conn.setMaxListeners(opts.concurrency * 2)
+    // create a new Client instance for a new connection
     // return, just to please standard
     return new Client(that, conn)
   }
@@ -244,8 +245,7 @@ Aedes.prototype.unsubscribe = function (topic, func, done) {
 Aedes.prototype.registerClient = function (client) {
   var that = this
   if (this.clients[client.id]) {
-    // moving out so we wait for this, so we don't
-    // unregister a good client
+    // [MQTT-3.1.4-2]
     this.clients[client.id].close(function closeClient () {
       that._finishRegisterClient(client)
     })
