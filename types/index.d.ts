@@ -6,6 +6,7 @@
 
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { Duplex } from 'stream'
+import { Socket } from 'net'
 import EventEmitter = NodeJS.EventEmitter
 
 declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
@@ -22,6 +23,7 @@ declare namespace aedes {
   export interface Client extends EventEmitter {
     id: string
     clean: boolean
+    conn: Socket
 
     on (event: 'error', cb: (err: Error) => void): this
 
@@ -34,7 +36,7 @@ declare namespace aedes {
     close (callback?: () => void): void
   }
 
-  export type PreConnectCallback = (client: Client) => boolean
+  export type PreConnectCallback = (client: Client, done: (err: Error | null, success: boolean) => void) => void
 
   export type AuthenticateError = Error & { returnCode: AuthErrorCode }
 

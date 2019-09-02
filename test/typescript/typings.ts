@@ -8,6 +8,13 @@ const broker = Server({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
+  preConnect: (client: Client, callback) => {
+    if (client.conn.remoteAddress === '::1') {
+      callback(null, true)
+    } else {
+      callback(new Error('connection error'), false)
+    }
+  },
   authenticate: (client: Client, username: string, password: string, callback) => {
     if (username === 'test' && password === 'test') {
       callback(null, true)
