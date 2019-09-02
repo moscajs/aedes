@@ -6,7 +6,7 @@ var util = require('util')
 var memory = require('aedes-persistence')
 var parallel = require('fastparallel')
 var series = require('fastseries')
-var uuidv5 = require('uuid/v5')
+var uuidv4 = require('uuid/v4')
 var Packet = require('aedes-packet')
 var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
@@ -36,7 +36,7 @@ function Aedes (opts) {
 
   opts = Object.assign({}, defaultOptions, opts)
 
-  this.id = opts.id || uuidv5('https://github.com/mcollina/aedes', uuidv5.URL)
+  this.id = opts.id || uuidv4()
   this.counter = 0
   this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
