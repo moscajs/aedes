@@ -40,11 +40,11 @@ function Aedes (opts) {
   this.counter = 0
   this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
-  this.handle = function handle (conn) {
+  this.handle = function handle (conn, req) {
     conn.setMaxListeners(opts.concurrency * 2)
     // create a new Client instance for a new connection
     // return, just to please standard
-    return new Client(that, conn)
+    return new Client(that, conn, req)
   }
   this.persistence = opts.persistence || memory()
   this.persistence.broker = this
