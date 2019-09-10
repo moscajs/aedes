@@ -79,6 +79,8 @@ server.listen(8883, function () {
   * <a href="#client"><code><b>Client</b></code></a>
   * <a href="#clientid"><code>client.<b>id</b></code></a>
   * <a href="#clientclean"><code>client.<b>clean</b></code></a>
+  * <a href="#clientconn"><code>client.<b>conn</b></code></a>
+  * <a href="#clientreq"><code>client.<b>req</b></code></a>
   * <a href="#clientpublish"><code>client.<b>publish()</b></code></a>
   * <a href="#clientsubscribe"><code>client.<b>subscribe()</b></code></a>
   * <a href="#clientunsubscribe"><code>client.<b>unsubscribe()</b></code></a>
@@ -384,6 +386,24 @@ The id of the client, as specified by the CONNECT packet, defaults to 'aedes_' +
 
 `true` if the client connected (CONNECT) with `clean: true`, `false`
 otherwise. Check the MQTT spec for what this means.
+
+-------------------------------------------------------
+<a name="clientconn"></a>
+### client#conn
+
+The client's connection stream object.
+
+In the case of `net.createServer` brokers, it's the connection passed to the `connectionlistener` function by node's [net.createServer](https://nodejs.org/api/net.html#net_net_createserver_options_connectionlistener) API.
+
+In the case of [websocket-stream](https://www.npmjs.com/package/websocket-stream) brokers, it's the `stream` argument passed to the `handle` function described in [that library's documentation](https://github.com/maxogden/websocket-stream/blob/e2a51644bb35132d7aa477ae1a27ff083fedbf08/readme.md#on-the-server).
+
+-------------------------------------------------------
+<a name="clientreq"></a>
+### client#req
+
+The HTTP Websocket upgrade request object passed to websocket broker's `handle` function by the [`websocket-stream` library](https://github.com/maxogden/websocket-stream/blob/e2a51644bb35132d7aa477ae1a27ff083fedbf08/readme.md#on-the-server).
+
+If your clients are connecting to aedes via websocket and you need access to headers or cookies, you can get them here.
 
 -------------------------------------------------------
 <a name="clientpublish"></a>
