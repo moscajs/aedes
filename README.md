@@ -403,7 +403,7 @@ In the case of [websocket-stream](https://www.npmjs.com/package/websocket-stream
 
 The HTTP Websocket upgrade request object passed to websocket broker's `handle` function by the [`websocket-stream` library](https://github.com/maxogden/websocket-stream/blob/e2a51644bb35132d7aa477ae1a27ff083fedbf08/readme.md#on-the-server).
 
-If your clients are connecting to aedes via websocket and you need access to headers or cookies, you can get them here.
+If your clients are connecting to aedes via websocket and you need access to headers or cookies, you can get them here. **NOTE:** this property is only present for websocket connections.
 
 -------------------------------------------------------
 <a name="clientpublish"></a>
