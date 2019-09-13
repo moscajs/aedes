@@ -74,6 +74,10 @@ broker.on('client', client => {
   console.log(`client: ${client.id} connected`)
 })
 
+broker.on('clientReady', client => {
+  console.log(`client: ${client.id} is ready`)
+})
+
 broker.on('clientDisconnect', client => {
   console.log(`client: ${client.id} disconnected`)
 })
