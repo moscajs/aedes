@@ -251,11 +251,9 @@ test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
 
 // [MQTT-3.1.0-1]
 test('the first Packet MUST be a CONNECT Packet', function (t) {
-  t.plan(1)
+  t.plan(2)
 
   var broker = aedes()
-  var s = setup(broker, false)
-
   var packet = {
     cmd: 'publish',
     topic: 'hello',
@@ -263,7 +261,12 @@ test('the first Packet MUST be a CONNECT Packet', function (t) {
     qos: 0,
     retain: false
   }
+  var s = setup(broker, false)
   s.inStream.write(packet)
+
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'Invalid protocol')
+  })
   setImmediate(() => {
     t.ok(s.conn.destroyed, 'close connection if first packet is not a CONNECT')
     s.conn.destroy()
@@ -273,8 +276,8 @@ test('the first Packet MUST be a CONNECT Packet', function (t) {
 })
 
 // [MQTT-3.1.0-2]
-test('second CONNECT Packet sent from a Client as a protocol violation and disconnect the Client ', function (t) {
-  t.plan(3)
+test('second CONNECT Packet sent from a Client as a protocol violation and disconnect the Client', function (t) {
+  t.plan(4)
 
   var broker = aedes()
   var packet = {
@@ -285,8 +288,12 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
     clientId: 'my-client',
     keepalive: 0
   }
+  broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'Invalid protocol')
+  })
   var s = connect(setup(broker, false), { clientId: 'abcde' }, function () {
     t.ok(broker.clients.abcde.connected)
+    // destory client when there is a 2nd cmd:connect, even the clientId is dfferent
     s.inStream.write(packet)
     setImmediate(() => {
       t.equal(broker.clients.abcde, undefined, 'client instance is removed')
