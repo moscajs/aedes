@@ -5,6 +5,9 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var http = require('http')
+var ws = require('websocket-stream')
+var mqtt = require('mqtt')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
@@ -360,4 +363,49 @@ test('reject clients with wrong protocol name', function (t) {
     })
     broker.on('closed', t.end.bind(t))
   })
+})
+
+// websocket-stream based connections
+test('websocket clients have access to the request object', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var server = http.createServer()
+  ws.createServer({
+    server: server
+  }, broker.handle)
+
+  server.listen(4883, function (err) {
+    t.error(err, 'no error')
+  })
+
+  broker.on('client', function (client) {
+    if (client.req) {
+      t.pass('client request object present')
+      if (client.req.headers) {
+        t.equal('sample', client.req.headers['x-test-protocol'])
+        finish()
+      }
+    } else {
+      t.fail('no request object present')
+    }
+  })
+
+  var client = mqtt.connect('ws://localhost:4883', {
+    wsOptions: {
+      headers: {
+        'X-Test-Protocol': 'sample'
+      }
+    }
+  })
+
+  var timer = setTimeout(finish, 1000)
+
+  function finish () {
+    clearTimeout(timer)
+    broker.close()
+    server.close()
+    client.end()
+    t.end()
+  }
 })
