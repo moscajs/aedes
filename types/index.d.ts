@@ -7,6 +7,7 @@
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { Duplex } from 'stream'
 import { Socket } from 'net'
+import { IncomingMessage } from 'http'
 import EventEmitter = NodeJS.EventEmitter
 
 declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
@@ -24,6 +25,7 @@ declare namespace aedes {
     id: string
     clean: boolean
     conn: Socket
+    req?: IncomingMessage
 
     on (event: 'error', cb: (err: Error) => void): this
 

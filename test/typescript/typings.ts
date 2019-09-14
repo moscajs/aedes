@@ -9,6 +9,9 @@ const broker = Server({
   heartbeatInterval: 60000,
   connectTimeout: 30000,
   preConnect: (client: Client, callback) => {
+    if (client.req) {
+      callback(new Error('not websocket stream'), false)
+    }
     if (client.conn.remoteAddress === '::1') {
       callback(null, true)
     } else {
