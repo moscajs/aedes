@@ -1,0 +1,16 @@
+{
+  "name": "aedes_clusters",
+  "version": "1.0.0",
+  "description": "Testing Aedes Broker with clusters",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "robertsLando",
+  "license": "MIT",
+  "dependencies": {
+    "aedes": "^0.39.0",
+    "aedes-persistence-mongodb": "^6.2.0",
+    "mqemitter-child-process": "^1.0.0"
+  }
+}
