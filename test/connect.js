@@ -8,6 +8,9 @@ var connect = helper.connect
 var http = require('http')
 var ws = require('websocket-stream')
 var mqtt = require('mqtt')
+var mqttPacket = require('mqtt-packet')
+var net = require('net')
+var proxyProtocol = require('proxy-protocol-js')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
@@ -413,6 +416,175 @@ test('websocket clients have access to the request object', function (t) {
     broker.close()
     server.close()
     client.end()
+    t.end()
+  }
+})
+
+// test ipAddress property presence
+test('tcp clients have access to the ipAddress property', function (t) {
+  t.plan(1)
+
+  var port = 1883
+  var broker = aedes({
+    preConnect: function (client, done) {
+      client.ip = client.ipAddress
+      return done()
+    },
+    trustProxy: false
+  })
+
+  var server = net
+    .createServer(broker.handle)
+    .listen(port, function (err) {
+      t.error(err, 'no error')
+    })
+
+  broker.on('client', function (client) {
+    if (client.ip) {
+      t.pass('ip address present')
+      t.equal('ff::127.0.0.1', client.ip)
+      finish()
+    } else {
+      t.fail('no ip address present')
+    }
+  })
+
+  var client = mqtt.connect(`mqtt://localhost:${port}`, {
+    clean: true,
+    clientId: 'mqtt-client'
+  })
+
+  var timer = setTimeout(finish, 1000)
+
+  function finish () {
+    clearTimeout(timer)
+    client.end(true)
+    broker.close()
+    server.close()
+    t.end()
+  }
+})
+
+test('websocket proxied clients have access to the ip property', function (t) {
+  t.plan(1)
+
+  var clientIp = '192.168.0.140'
+  var port = 4883
+  var broker = aedes({
+    preConnect: function (client, done) {
+      client.ip = client.ipAddress
+      return done()
+    },
+    trustProxy: true
+  })
+
+  var server = http.createServer()
+  ws.createServer({
+    server: server
+  }, broker.handle)
+
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  broker.on('client', function (client) {
+    if (client.ip) {
+      t.pass('client ip address present')
+      t.equal(clientIp, client.ip)
+      finish()
+    } else {
+      t.fail('no ip address present')
+    }
+  })
+
+  var client = mqtt.connect(`ws://localhost:${port}`, {
+    wsOptions: {
+      headers: {
+        'X-Real-Ip': clientIp
+      }
+    }
+  })
+
+  var timer = setTimeout(finish, 1000)
+
+  function finish () {
+    clearTimeout(timer)
+    client.end(true)
+    broker.close()
+    server.close()
+    t.end()
+  }
+})
+
+// mocking mqtt packet delivered by a server using proxy protocol
+test('tcp proxied clients have access to the ipAddress property', function (t) {
+  t.plan(1)
+
+  var port = 1885
+  var packet = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    keepalive: 0
+  }
+  var data = mqttPacket.generate(packet)
+
+  var src = new proxyProtocol.Peer('127.0.0.1', 12345)
+  var dst = new proxyProtocol.Peer('127.0.0.1', port)
+  var protocol = new proxyProtocol.V1BinaryProxyProtocol(
+    proxyProtocol.INETProtocol.TCP4,
+    src,
+    dst,
+    data
+  ).build()
+
+  var broker = aedes({
+    preConnect: function (client, done) {
+      client.ip = client.ipAddress
+      return done()
+    },
+    trustProxy: true
+  })
+
+  var server = net
+    .createServer(broker.handle)
+    .listen(port, function (err) {
+      t.error(err, 'no error')
+    })
+
+  broker.on('client', function (client) {
+    if (client.ip) {
+      t.pass('ip address present')
+      t.equal('127.0.0.1', client.ip)
+      finish()
+    } else {
+      t.fail('no ip address present')
+    }
+  })
+
+  var client = net.createConnection(
+    {
+      port,
+      // host: parsedProto.destination.ipAddress,
+      // localAddress: parsedProto.source.ipAddress,
+      // localPort: parsedProto.source.port,
+      timeout: 250
+    }
+  )
+
+  client.on('timeout', function () {
+    client.write(protocol)
+  })
+
+  var timer = setTimeout(finish, 1000)
+
+  function finish () {
+    clearTimeout(timer)
+    client.end()
+    broker.close()
+    server.close()
     t.end()
   }
 })
