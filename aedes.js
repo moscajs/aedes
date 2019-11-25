@@ -60,8 +60,7 @@ function Aedes (opts) {
   this.authorizeSubscribe = opts.authorizeSubscribe
   this.authorizeForward = opts.authorizeForward
   this.published = opts.published
-
-  this.trustProxy =  opts.trustProxy
+  this.trustProxy = opts.trustProxy
   this.trustedProxies = opts.trustedProxies
 
   this.clients = {}
