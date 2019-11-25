@@ -24,7 +24,9 @@ var defaultOptions = {
   authorizePublish: defaultAuthorizePublish,
   authorizeSubscribe: defaultAuthorizeSubscribe,
   authorizeForward: defaultAuthorizeForward,
-  published: defaultPublished
+  published: defaultPublished,
+  trustProxy: false,
+  trustedProxies: []
 }
 
 function Aedes (opts) {
@@ -58,6 +60,9 @@ function Aedes (opts) {
   this.authorizeSubscribe = opts.authorizeSubscribe
   this.authorizeForward = opts.authorizeForward
   this.published = opts.published
+
+  this.trustProxy =  opts.trustProxy
+  this.trustedProxies = opts.trustedProxies
 
   this.clients = {}
   this.brokers = {}
