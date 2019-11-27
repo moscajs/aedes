@@ -1,3 +1,5 @@
+'use strict'
+
 var aedes = require('../../aedes')
 var mqemitter = require('mqemitter')
 var persistence = require('aedes-persistence')
@@ -57,7 +59,7 @@ function sendProxyPacket (version = 1) {
     {
       port: dstPort,
       host: dstHost,
-      timeout: 300
+      timeout: 150
     }
   )
 
@@ -85,8 +87,10 @@ function startAedes () {
     }),
     persistence: persistence(),
     preConnect: function (client, done) {
-      console.log('Aedes preConnect check client ip:', client.ipAddress)
-      client.ip = client.ipAddress
+      console.log('Aedes preConnect check client ip:', client.connDetails)
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+      }
       client.close()
       return done(null, true)
     },

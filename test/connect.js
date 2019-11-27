@@ -413,68 +413,188 @@ test('websocket clients have access to the request object', function (t) {
 
   function finish () {
     clearTimeout(timer)
+    client.end()
     broker.close()
     server.close()
-    client.end()
     t.end()
   }
 })
 
 // test ipAddress property presence
 test('tcp clients have access to the ipAddress property', function (t) {
-  t.plan(3)
+  t.plan(2)
 
-  var port = 1883
+  var port = 4883
   var broker = aedes({
     preConnect: function (client, done) {
-      client.ip = client.ipAddress
-      return done(null, true)
+      if (client && client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal('::ffff:127.0.0.1', client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+      setImmediate(finish)
     },
-    trustProxy: false
+    trustProxy: true
   })
 
-  var server = net
-    .createServer(broker.handle)
-    .listen(port, function (err) {
-      t.error(err, 'no error')
-    })
-
-  broker.on('client', function (client) {
-    if (client.ip) {
-      t.pass('ip address present')
-      t.equal('::ffff:127.0.0.1', client.ip)
-      // t.equal('ff::127.0.0.1', client.ip)
-      finish()
-    } else {
-      t.fail('no ip address present')
-    }
+  var server = net.createServer(broker.handle)
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
   })
 
-  var client = mqtt.connect(`mqtt://localhost:${port}`, {
-    clean: true,
-    clientId: 'mqtt-client'
+  var client = mqtt.connect({
+    port,
+    keepalive: 0,
+    clientId: 'mqtt-client',
+    clean: false
   })
-
-  var timer = setTimeout(finish, 1000)
 
   function finish () {
-    clearTimeout(timer)
-    client.end(true)
+    client.end()
     broker.close()
     server.close()
     t.end()
   }
 })
 
-test('websocket proxied clients have access to the ip property', function (t) {
-  t.plan(3)
+// mocking mqtt packet delivered by a proxy / load balancer using proxy protocol v1
+test('tcp proxied (protocol v1) clients have access to the ipAddress property', function (t) {
+  t.plan(2)
+
+  var port = 4883
+  var clientIp = '192.168.0.140'
+  var packet = {
+    cmd: 'connect',
+    protocolId: 'MQIsdp',
+    protocolVersion: 3,
+    clean: true,
+    clientId: 'my-client-proxyV1',
+    keepalive: 0
+  }
+
+  var buf = mqttPacket.generate(packet)
+  var src = new proxyProtocol.Peer(clientIp, 12345)
+  var dst = new proxyProtocol.Peer('127.0.0.1', port)
+  var protocol = new proxyProtocol.V1BinaryProxyProtocol(
+    proxyProtocol.INETProtocol.TCP4,
+    src,
+    dst,
+    buf
+  ).build()
+
+  var broker = aedes({
+    preConnect: function (client, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+      setImmediate(finish)
+    },
+    trustProxy: true
+  })
+
+  var server = net.createServer(broker.handle)
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  var client = net.connect({
+    port,
+    timeout: 0
+  }, function () {
+    client.write(protocol)
+  })
+
+  function finish () {
+    client.end()
+    broker.close()
+    server.close()
+    t.end()
+  }
+})
+
+// mocking mqtt packet delivered by a proxy / load balancer using proxy protocol v2
+test('tcp proxied (protocol v2) clients have access to the ipAddress property', function (t) {
+  t.plan(2)
+
+  var port = 4883
+  var clientIp = '192.168.0.140'
+  var packet = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-proxyV2'
+  }
+
+  var protocol = new proxyProtocol.V2ProxyProtocol(
+    proxyProtocol.Command.LOCAL,
+    proxyProtocol.TransportProtocol.DGRAM,
+    new proxyProtocol.IPv4ProxyAddress(
+      proxyProtocol.IPv4Address.createFrom(clientIp.split('.')),
+      12345,
+      proxyProtocol.IPv4Address.createFrom([127, 0, 0, 1]),
+      port
+    ),
+    mqttPacket.generate(packet)
+  ).build()
+
+  var broker = aedes({
+    preConnect: function (client, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+      setImmediate(finish)
+    },
+    trustProxy: true
+  })
+
+  var server = net.createServer(broker.handle)
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  var client = net.createConnection(
+    {
+      port,
+      timeout: 0
+    }, function () {
+      client.write(protocol)
+    }
+  )
+
+  function finish () {
+    client.end()
+    broker.close()
+    server.close()
+    t.end()
+  }
+})
+
+test('websocket proxied clients have access to the ipAddress property', function (t) {
+  t.plan(2)
 
   var clientIp = '192.168.0.140'
   var port = 4883
   var broker = aedes({
     preConnect: function (client, done) {
-      client.ip = client.ipAddress
-      return done(null, true)
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -488,16 +608,6 @@ test('websocket proxied clients have access to the ip property', function (t) {
     t.error(err, 'no error')
   })
 
-  broker.on('client', function (client) {
-    if (client.ip) {
-      t.pass('client ip address present')
-      t.equal(clientIp, client.ip)
-      finish()
-    } else {
-      t.fail('no ip address present')
-    }
-  })
-
   var client = mqtt.connect(`ws://localhost:${port}`, {
     wsOptions: {
       headers: {
@@ -506,158 +616,10 @@ test('websocket proxied clients have access to the ip property', function (t) {
     }
   })
 
-  var timer = setTimeout(finish, 1000)
-
   function finish () {
-    clearTimeout(timer)
-    client.end(true)
     broker.close()
     server.close()
-    t.end()
-  }
-})
-
-// mocking mqtt packet delivered by a server using proxy protocol v1
-test('tcp proxied (protocol v1) clients have access to the ipAddress property', function (t) {
-  t.plan(1)
-
-  var port = 1885
-  var packet = {
-    cmd: 'connect',
-    protocolId: 'MQTT',
-    protocolVersion: 4,
-    clean: true,
-    clientId: 'my-client-proxyV1',
-    keepalive: 0
-  }
-
-  var src = new proxyProtocol.Peer('127.0.0.1', 12345)
-  var dst = new proxyProtocol.Peer('127.0.0.1', port)
-  var protocol = new proxyProtocol.V1BinaryProxyProtocol(
-    proxyProtocol.INETProtocol.TCP4,
-    src,
-    dst,
-    mqttPacket.generate(packet)
-  ).build()
-
-  var broker = aedes({
-    preConnect: function (client, done) {
-      client.ip = client.ipAddress
-      return done()
-    },
-    trustProxy: true
-  })
-
-  var server = net
-    .createServer(broker.handle)
-    .listen(port, function (err) {
-      t.error(err, 'no error')
-    })
-
-  broker.on('client', function (client) {
-    if (client.ip) {
-      t.pass('ip address present')
-      t.equal('127.0.0.1', client.ip)
-      finish()
-    } else {
-      t.fail('no ip address present')
-    }
-  })
-
-  var client = net.createConnection(
-    {
-      port,
-      // host: parsedProto.destination.ipAddress,
-      // localAddress: parsedProto.source.ipAddress,
-      // localPort: parsedProto.source.port,
-      timeout: 250
-    }
-  )
-
-  client.on('timeout', function () {
-    client.write(protocol)
-  })
-
-  var timer = setTimeout(finish, 1000)
-
-  function finish () {
-    clearTimeout(timer)
     client.end()
-    broker.close()
-    server.close()
-    t.end()
-  }
-})
-
-// mocking mqtt packet delivered by a server using proxy protocol v2
-test('tcp proxied (protocol v2) clients have access to the ipAddress property', function (t) {
-  t.plan(3)
-
-  var port = 1883
-  var packet = {
-    cmd: 'connect',
-    protocolId: 'MQTT',
-    protocolVersion: 4,
-    clean: true,
-    clientId: 'my-client-proxyV2',
-    keepalive: 0
-  }
-
-  var protocol = new proxyProtocol.V2ProxyProtocol(
-    proxyProtocol.Command.LOCAL,
-    proxyProtocol.TransportProtocol.DGRAM,
-    new proxyProtocol.IPv4ProxyAddress(
-      proxyProtocol.IPv4Address.createFrom([127, 0, 0, 1]),
-      12345,
-      proxyProtocol.IPv4Address.createFrom([127, 0, 0, 1]),
-      1883
-    ),
-    mqttPacket.generate(packet)
-  ).build()
-
-  var broker = aedes({
-    preConnect: function (client, done) {
-      client.ip = client.ipAddress
-      return done(null, true)
-    },
-    trustProxy: true
-  })
-
-  var server = net
-    .createServer(broker.handle)
-    .listen(port, function (err) {
-      t.error(err, 'no error')
-    })
-
-  broker.on('client', function (client) {
-    if (client.ip) {
-      t.pass('ip address present')
-      t.equal('127.0.0.1', client.ip)
-      finish()
-    } else {
-      t.fail('no ip address present')
-    }
-  })
-
-  var client = net.createConnection(
-    {
-      port,
-      // host: parsedProto.proxyAddress.destinationAddress.address.join('.),
-      timeout: 250
-    }
-  )
-
-  client.on('timeout', function () {
-    client.write(protocol)
-  })
-
-  var timer = setTimeout(finish, 1000)
-
-  function finish () {
-    clearTimeout(timer)
-    client.end()
-    broker.close()
-    server.close()
     t.end()
   }
 })

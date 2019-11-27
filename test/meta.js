@@ -26,7 +26,9 @@ test('count connected clients', function (t) {
 
       // needed because destroy() will do the trick before
       // the next tick
-      process.nextTick(function () {
+      // replaced process.nextTick with setImmediate,
+      // before there were still 2 clients connected after the tick, is this fix wrong ?
+      setImmediate(function () {
         t.equal(broker.connectedClients, 1, 'one connected clients')
       })
     })
