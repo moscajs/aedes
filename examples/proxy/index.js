@@ -7,6 +7,8 @@ var mqttPacket = require('mqtt-packet')
 var net = require('net')
 var proxyProtocol = require('proxy-protocol-js')
 
+var brokerPort = 4883
+
 function sendProxyPacket (version = 1) {
   var packet = {
     cmd: 'connect',
@@ -16,11 +18,11 @@ function sendProxyPacket (version = 1) {
     clientId: `my-client-${version}`,
     keepalive: 0
   }
-
+  var clientIp = '192.168.0.12'
   var protocol
   if (version === 1) {
-    var src = new proxyProtocol.Peer('127.0.0.1', 12345)
-    var dst = new proxyProtocol.Peer('127.0.0.1', 1883)
+    var src = new proxyProtocol.Peer(clientIp, 12345)
+    var dst = new proxyProtocol.Peer('127.0.0.1', brokerPort)
     protocol = new proxyProtocol.V1BinaryProxyProtocol(
       proxyProtocol.INETProtocol.TCP4,
       src,
@@ -32,10 +34,10 @@ function sendProxyPacket (version = 1) {
       proxyProtocol.Command.LOCAL,
       proxyProtocol.TransportProtocol.DGRAM,
       new proxyProtocol.IPv4ProxyAddress(
-        proxyProtocol.IPv4Address.createFrom([127, 0, 0, 1]),
+        proxyProtocol.IPv4Address.createFrom(clientIp.split('.')),
         12346,
         proxyProtocol.IPv4Address.createFrom([127, 0, 0, 1]),
-        1883
+        brokerPort
       ),
       mqttPacket.generate(packet)
     ).build()
@@ -72,15 +74,11 @@ function sendProxyPacket (version = 1) {
 
   mqttConn.on('timeout', function () {
     // console.log("protocol proxy buffer", data)
-    mqttConn.write(data, () => {
-      mqttConn.end()
-    })
+    mqttConn.end(data)
   })
 }
 
 function startAedes () {
-  var port = 1883
-
   var broker = aedes({
     mq: mqemitter({
       concurrency: 100
@@ -99,8 +97,8 @@ function startAedes () {
 
   var server = require('net').createServer(broker.handle)
 
-  server.listen(port, function () {
-    console.log('Aedes listening on port:', port)
+  server.listen(brokerPort, function () {
+    console.log('Aedes listening on port:', brokerPort)
     broker.publish({ topic: 'aedes/hello', payload: "I'm broker " + broker.id })
     setTimeout(() => sendProxyPacket(1), 250)
     setTimeout(() => sendProxyPacket(2), 500)

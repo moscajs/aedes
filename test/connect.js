@@ -568,7 +568,7 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress property', 
       port,
       timeout: 0
     }, function () {
-      client.write(protocol)
+      client.write(Buffer.from(protocol))
     }
   )
 
