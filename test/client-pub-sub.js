@@ -1,6 +1,5 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -74,15 +73,64 @@ test('publish direct to a single client QoS 1', function (t) {
   })
 })
 
-test('emit a `ack` event on PUBACK for QoS 1', function (t) {
-  t.plan(6)
+test('publish direct to a single client QoS 2', function (t) {
+  t.plan(3)
 
   var broker = aedes()
-  var messageId
-  var clientId
+  var publishCount = 0
+  var nonPublishCount = 0
 
-  broker.on('client', function (client) {
-    clientId = client.id
+  broker.on('clientReady', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 2
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+    client.on('error', function (err) {
+      t.error(err)
+    })
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.on('data', function (packet) {
+    if (packet.cmd === 'publish') {
+      publishCount++
+      s.inStream.write({
+        cmd: 'pubrec',
+        messageId: packet.messageId
+      })
+    } else {
+      nonPublishCount++
+      s.inStream.write({
+        cmd: 'pubcomp',
+        messageId: packet.messageId
+      })
+    }
+  })
+
+  broker.on('closed', function () {
+    t.equal(publishCount, 1)
+    t.equal(nonPublishCount, 1)
+    t.end()
+  })
+})
+
+test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    retain: false
+  }
+
+  broker.on('clientReady', function (client) {
     client.publish({
       topic: 'hello',
       payload: Buffer.from('world'),
@@ -93,17 +141,16 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   })
 
   broker.once('ack', function (packet, client) {
-    t.equal(client.id, clientId)
-    t.equal(packet.messageId, messageId)
-    t.equal(packet.topic, 'hello')
-    t.equal(packet.payload.toString(), 'world')
+    expected.brokerId = packet.brokerId
+    expected.brokerCounter = packet.brokerCounter
+    expected.messageId = packet.messageId
+    t.deepEqual(packet, expected, 'ack packet is origianl packet')
     t.pass('got the ack event')
   })
 
-  var s = connect(setup(broker))
+  var s = connect(setup(broker), { clean: false })
 
   s.outStream.once('data', function (packet) {
-    messageId = packet.messageId
     s.inStream.write({
       cmd: 'puback',
       messageId: packet.messageId
@@ -111,14 +158,44 @@ test('emit a `ack` event on PUBACK for QoS 1', function (t) {
   })
 })
 
-test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
-  t.plan(6)
+test('emit a `ack` event on PUBACK for QoS 1 [clean=true]', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+
+  broker.on('clientReady', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+
+  broker.once('ack', function (packet, client) {
+    t.equal(packet, undefined, 'ack packet is undefined')
+    t.pass('got the ack event')
+  })
+
+  var s = connect(setup(broker), { clean: true })
+
+  s.outStream.once('data', function (packet) {
+    s.inStream.write({
+      cmd: 'puback',
+      messageId: packet.messageId
+    })
+  })
+})
+
+test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
+  t.plan(5)
 
   var broker = aedes()
   var messageId
   var clientId
 
-  broker.on('client', function (client) {
+  broker.on('clientReady', function (client) {
     clientId = client.id
     client.publish({
       topic: 'hello',
@@ -132,12 +209,12 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
   broker.once('ack', function (packet, client) {
     t.equal(client.id, clientId)
     t.equal(packet.messageId, messageId)
-    t.equal(packet.topic, 'hello')
-    t.equal(packet.payload.toString(), 'world')
+    t.equal(packet.cmd, 'pubrel', 'ack packet is purel')
     t.pass('got the ack event')
+    t.end()
   })
 
-  var s = connect(setup(broker))
+  var s = connect(setup(broker), { clean: false })
 
   s.outStream.on('data', function (packet) {
     if (packet.cmd === 'publish') {
@@ -147,6 +224,44 @@ test('emit a `ack` event on PUBCOMP for QoS 2', function (t) {
       })
     } else {
       messageId = packet.messageId
+      s.inStream.write({
+        cmd: 'pubcomp',
+        messageId: packet.messageId
+      })
+    }
+  })
+})
+
+test('emit a `ack` event on PUBCOMP for QoS 2 [clean=true]', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+
+  broker.on('clientReady', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 2
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+
+  broker.once('ack', function (packet, client) {
+    t.equal(packet, undefined, 'ack packet is undefined')
+    t.pass('got the ack event')
+    t.end()
+  })
+
+  var s = connect(setup(broker), { clean: true })
+
+  s.outStream.on('data', function (packet) {
+    if (packet.cmd === 'publish') {
+      s.inStream.write({
+        cmd: 'pubrec',
+        messageId: packet.messageId
+      })
+    } else {
       s.inStream.write({
         cmd: 'pubcomp',
         messageId: packet.messageId
@@ -223,6 +338,44 @@ test('subscribe a client programmatically', function (t) {
 
       broker.publish({
         topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 0
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  var s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
+
+test('subscribe a client programmatically - wildcard', function (t) {
+  t.plan(3)
+
+  var broker = aedes()
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello/world/1',
+    payload: Buffer.from('world'),
+    dup: false,
+    length: 20,
+    qos: 0,
+    retain: false
+  }
+
+  broker.on('clientReady', function (client) {
+    client.subscribe({
+      topic: '+/world/1',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello/world/1',
         payload: Buffer.from('world'),
         qos: 0
       }, function (err) {
@@ -346,6 +499,7 @@ test('subscribe a client programmatically with full packet', function (t) {
 
 test('get message when client connects', function (t) {
   t.plan(2)
+
   var client1 = 'gav'
   var broker = aedes()
 
@@ -369,6 +523,7 @@ test('get message when client connects', function (t) {
 
 test('get message when client disconnects', function (t) {
   t.plan(2)
+
   var client1 = 'gav'
   var client2 = 'friend'
   var broker = aedes()
@@ -397,7 +552,7 @@ test('get message when client disconnects', function (t) {
 })
 
 test('should not receive a message on negated subscription', function (t) {
-  t.plan(3)
+  t.plan(2)
 
   var broker = aedes()
   broker.authorizeSubscribe = function (client, sub, callback) {
@@ -422,16 +577,8 @@ test('should not receive a message on negated subscription', function (t) {
   })
 
   var s = connect(setup(broker))
-  var receivedPacket = null
   s.outStream.once('data', function (packet) {
-    receivedPacket = packet
+    t.fail('Packet should not be received')
   })
-
-  setTimeout(function () {
-    if (receivedPacket != null) {
-      t.fail('Packet should not be received')
-    } else {
-      t.pass('Message not received')
-    }
-  }, 100)
+  broker.on('closed', t.end.bind(t))
 })

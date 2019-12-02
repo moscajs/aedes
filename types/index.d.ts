@@ -1,9 +1,18 @@
+/* eslint no-unused-vars: 0 */
+/* eslint no-undef: 0 */
+/* eslint space-infix-ops: 0 */
+
 /// <reference types="node" />
 
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { Duplex } from 'stream'
+import { Socket } from 'net'
+import { IncomingMessage } from 'http'
 import EventEmitter = NodeJS.EventEmitter
 
+declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
+
+// eslint-disable-next-line no-redeclare
 declare namespace aedes {
   export enum AuthErrorCode {
     UNNACCEPTABLE_PROTOCOL = 1,
@@ -15,6 +24,8 @@ declare namespace aedes {
   export interface Client extends EventEmitter {
     id: string
     clean: boolean
+    conn: Socket
+    req?: IncomingMessage
 
     on (event: 'error', cb: (err: Error) => void): this
 
@@ -26,6 +37,8 @@ declare namespace aedes {
     unsubscribe (topicObjects: ISubscription | ISubscription[], callback?: () => void): void
     close (callback?: () => void): void
   }
+
+  export type PreConnectCallback = (client: Client, done: (err: Error | null, success: boolean) => void) => void
 
   export type AuthenticateError = Error & { returnCode: AuthErrorCode }
 
@@ -50,6 +63,7 @@ declare namespace aedes {
     concurrency?: number
     heartbeatInterval?: number
     connectTimeout?: number
+    preConnect?: PreConnectCallback
     authenticate?: AuthenticateCallback
     authorizePublish?: AuthorizePublishCallback
     authorizeSubscribe?: AuthorizeSubscribeCallback
@@ -60,6 +74,7 @@ declare namespace aedes {
   export interface Aedes extends EventEmitter {
     handle: (stream: Duplex) => void
 
+    preConnect: PreConnectCallback
     authenticate: AuthenticateCallback
     authorizePublish: AuthorizePublishCallback
     authorizeSubscribe: AuthorizeSubscribeCallback
@@ -67,7 +82,7 @@ declare namespace aedes {
     published: PublishedCallback
 
     on (event: 'closed', cb: () => void): this
-    on (event: 'client' | 'clientDisconnect' | 'keepaliveTimeout' | 'connackSent', cb: (client: Client) => void): this
+    on (event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout' | 'connackSent', cb: (client: Client) => void): this
     on (event: 'clientError' | 'connectionError', cb: (client: Client, error: Error) => void): this
     on (event: 'ping' | 'publish' | 'ack', cb: (packet: any, client: Client) => void): this
     on (event: 'subscribe' | 'unsubscribe', cb: (subscriptions: ISubscription | ISubscription[] | ISubscribePacket, client: Client) => void): this
@@ -84,7 +99,5 @@ declare namespace aedes {
 
   export function Server (options?: aedes.AedesOptions): aedes.Aedes
 }
-
-declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
 
 export = aedes

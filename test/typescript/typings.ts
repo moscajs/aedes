@@ -8,6 +8,16 @@ const broker = Server({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
+  preConnect: (client: Client, callback) => {
+    if (client.req) {
+      callback(new Error('not websocket stream'), false)
+    }
+    if (client.conn.remoteAddress === '::1') {
+      callback(null, true)
+    } else {
+      callback(new Error('connection error'), false)
+    }
+  },
   authenticate: (client: Client, username: string, password: string, callback) => {
     if (username === 'test' && password === 'test') {
       callback(null, true)
@@ -41,7 +51,7 @@ const broker = Server({
 
     callback(null, sub)
   },
-  authorizeForward: (client, packet: IPublishPacket) => {
+  authorizeForward: (client: Client, packet: IPublishPacket) => {
     if (packet.topic === 'aaaa' && client.id === 'I should not see this') {
       return null
       // also works with return undefined
@@ -65,6 +75,10 @@ broker.on('closed', () => {
 
 broker.on('client', client => {
   console.log(`client: ${client.id} connected`)
+})
+
+broker.on('clientReady', client => {
+  console.log(`client: ${client.id} is ready`)
 })
 
 broker.on('clientDisconnect', client => {

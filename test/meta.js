@@ -1,6 +1,5 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -15,14 +14,12 @@ test('count connected clients', function (t) {
 
   t.equal(broker.connectedClients, 0, 'no connected clients')
 
-  connect(setup(broker))
-
-  process.nextTick(function () {
+  connect(setup(broker), {
+  }, function () {
     t.equal(broker.connectedClients, 1, 'one connected clients')
 
-    var last = connect(setup(broker))
-
-    process.nextTick(function () {
+    var last = connect(setup(broker), {
+    }, function () {
       t.equal(broker.connectedClients, 2, 'two connected clients')
 
       last.conn.destroy()
@@ -58,7 +55,7 @@ test('call published method', function (t) {
 })
 
 test('call published method with client', function (t) {
-  t.plan(2)
+  t.plan(4)
 
   var broker = aedes()
 
@@ -67,6 +64,8 @@ test('call published method with client', function (t) {
     if (client) {
       t.equal(packet.topic, 'hello', 'topic matches')
       t.equal(packet.payload.toString(), 'world', 'payload matches')
+      t.equal(packet.qos, 1)
+      t.equal(packet.messageId, 42)
       broker.close()
       done()
     }
@@ -77,18 +76,21 @@ test('call published method with client', function (t) {
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
-    payload: Buffer.from('world')
+    payload: Buffer.from('world'),
+    qos: 1,
+    messageId: 42
   })
 })
 
-test('emit publish event with client', function (t) {
-  t.plan(2)
+test('emit publish event with client - QoS 0', function (t) {
+  t.plan(3)
 
   var broker = aedes()
 
   broker.on('publish', function (packet, client) {
     // for internal messages, client will be null
     if (client) {
+      t.equal(packet.qos, 0)
       t.equal(packet.topic, 'hello', 'topic matches')
       t.equal(packet.payload.toString(), 'world', 'payload matches')
       broker.close()
@@ -100,7 +102,35 @@ test('emit publish event with client', function (t) {
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
-    payload: Buffer.from('world')
+    payload: Buffer.from('world'),
+    qos: 0
+  })
+})
+
+test('emit publish event with client - QoS 1', function (t) {
+  t.plan(4)
+
+  var broker = aedes()
+
+  broker.on('publish', function (packet, client) {
+    // for internal messages, client will be null
+    if (client) {
+      t.equal(packet.qos, 1)
+      t.equal(packet.messageId, 42)
+      t.equal(packet.topic, 'hello', 'topic matches')
+      t.equal(packet.payload.toString(), 'world', 'payload matches')
+      broker.close()
+    }
+  })
+
+  var s = connect(setup(broker))
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    messageId: 42
   })
 })
 
@@ -200,15 +230,26 @@ test('emits client', function (t) {
   })
 })
 
+test('get aedes version', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+  t.equal(broker.version, require('../package.json').version)
+  broker.close()
+  t.end()
+})
+
 test('connect and connackSent event', function (t) {
+  t.plan(3)
+  t.timeoutAfter(50)
+
   var s = setup()
   var clientId = 'my-client'
 
-  t.plan(2)
-  t.timeoutAfter(50)
-
-  s.broker.on('connackSent', function (client) {
+  s.broker.on('connackSent', function (packet, client) {
+    t.equal(packet.returnCode, 0)
     t.equal(client.id, clientId, 'connackSent event and clientId matches')
+    t.end()
   })
 
   s.inStream.write({
@@ -232,6 +273,5 @@ test('connect and connackSent event', function (t) {
       payload: null,
       sessionPresent: false
     }, 'successful connack')
-    t.end()
   })
 })

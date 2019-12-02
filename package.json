@@ -1,23 +1,24 @@
 {
   "name": "aedes",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "Stream-based MQTT broker",
   "main": "aedes.js",
   "types": "types/index.d.ts",
   "scripts": {
-    "lint": "standard",
-    "tslint": "tslint types/**/*.d.ts",
-    "typescript-compile-test": "tsc -p test/typescript/tsconfig.json",
+    "lint": "npm run lint:standard && npm run lint:typescript",
+    "lint:standard": "standard --verbose | snazzy",
+    "lint:typescript": "standard --parser @typescript-eslint/parser --plugin @typescript-eslint/eslint-plugin types/**/*.d.ts",
+    "typescript-compile-test": "tsc --project test/typescript/tsconfig.json",
     "typescript-compile-execute": "node test/typescript/*.js",
     "typescript-test": "npm run typescript-compile-test && npm run typescript-compile-execute",
     "test": "tape test/*.js test/*/*.js | faucet",
     "ci": "npm run lint &&  npm run typescript-test && npm run coverage",
-    "coverage": "istanbul cover tape test/*.js test/*/*.js",
-    "coveralls": "cat coverage/lcov.info | coveralls"
+    "coverage": "nyc --reporter=lcov tape test/*.js test/*/*.js",
+    "coveralls": "cat coverage/lcov.info | coveralls",
+    "license-checker": "license-checker --production --onlyAllow='MIT;ISC;BSD-3-Clause;BSD-2-Clause'"
   },
   "pre-commit": [
     "lint",
-    "tslint",
     "test",
     "typescript-test"
   ],
@@ -28,52 +29,80 @@
   "bugs": {
     "url": "http://github.com/mcollina/aedes/issues"
   },
+  "engines": {
+    "node": ">=8"
+  },
   "keywords": [
     "mqtt",
     "broker",
+    "server",
+    "mqtt-server",
     "stream",
+    "streams",
+    "publish",
+    "subscribe",
+    "pubsub",
+    "messaging",
+    "mosca",
+    "mosquitto",
+    "iot",
     "internet",
     "of",
     "things"
   ],
   "author": "Matteo Collina <hello@matteocollina.com>",
+  "contributors": [
+    {
+      "name": "Gavin D'mello",
+      "url": "https://github.com/GavinDmello"
+    },
+    {
+      "name": "Behrad Zari",
+      "url": "https://github.com/behrad"
+    },
+    {
+      "name": "Gnought",
+      "url": "https://github.com/gnought"
+    }
+  ],
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^8.10.40",
+    "@types/node": "^12.7.2",
+    "@typescript-eslint/eslint-plugin": "^2.0.0",
+    "@typescript-eslint/parser": "^2.0.0",
     "compute-mode": "^1.0.0",
     "concat-stream": "^2.0.0",
-    "convert-hrtime": "^2.0.0",
-    "coveralls": "^3.0.2",
-    "duplexify": "^4.0.0",
+    "convert-hrtime": "^3.0.0",
+    "coveralls": "^3.0.6",
+    "duplexify": "^4.1.1",
     "faucet": "0.0.1",
-    "istanbul": "^0.4.1",
-    "mqtt": "^2.18.8",
+    "license-checker": "^25.0.1",
+    "mqtt": "^3.0.0",
     "mqtt-connection": "^4.0.0",
-    "pre-commit": "^1.0.10",
-    "standard": "^12.0.0",
-    "tape": "^4.10.0",
-    "tslint": "^5.12.1",
-    "tslint-config-standard": "^8.0.1",
-    "typescript": "^3.3.3",
-    "websocket-stream": "^5.1.2"
+    "nyc": "^14.1.1",
+    "pre-commit": "^1.2.2",
+    "snazzy": "^8.0.0",
+    "standard": "^14.0.2",
+    "tape": "^4.11.0",
+    "typescript": "^3.5.3",
+    "websocket-stream": "^5.5.0"
   },
   "dependencies": {
-    "aedes-packet": "^1.0.0",
-    "aedes-persistence": "^6.0.0",
+    "aedes-packet": "^2.1.0",
+    "aedes-persistence": "^7.1.1",
     "bulk-write-stream": "^2.0.0",
     "end-of-stream": "^1.4.1",
-    "fastfall": "^1.0.0",
-    "fastparallel": "^2.0.0",
-    "fastseries": "^1.5.0",
-    "from2": "^2.1.0",
-    "mqemitter": "^2.2.0",
-    "mqtt-packet": "^6.0.0",
+    "fastfall": "^1.5.1",
+    "fastparallel": "^2.3.0",
+    "fastseries": "^1.7.2",
+    "from2": "^2.3.0",
+    "mqemitter": "^3.0.0",
+    "mqtt-packet": "^6.2.1",
     "pump": "^3.0.0",
     "retimer": "^2.0.0",
     "reusify": "^1.0.4",
     "shortid": "^2.2.14",
-    "through2": "^3.0.0",
-    "uuid": "^3.3.2",
-    "why-is-node-running": "^2.0.3"
+    "through2": "^3.0.1",
+    "uuid": "^3.3.3"
   }
 }

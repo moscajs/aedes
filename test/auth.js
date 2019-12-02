@@ -1,6 +1,5 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var Client = require('../lib/client')
 var helper = require('./helper')
@@ -8,6 +7,7 @@ var aedes = require('../')
 var eos = require('end-of-stream')
 var setup = helper.setup
 var subscribe = helper.subscribe
+var subscribeMultiple = helper.subscribeMultiple
 var connect = helper.connect
 
 test('authenticate successfully a client with username and password', function (t) {
@@ -310,7 +310,7 @@ test('authentication error when non numeric return code is passed', function (t)
 })
 
 test('authorize publish', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   var s = connect(setup())
   var expected = {
@@ -330,9 +330,9 @@ test('authorize publish', function (t) {
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
+    t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    expected.messageId = 0
     delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
@@ -347,7 +347,7 @@ test('authorize publish', function (t) {
 })
 
 test('authorize waits for authenticate', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   var s = setup()
 
@@ -377,9 +377,9 @@ test('authorize waits for authenticate', function (t) {
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
+    t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    expected.messageId = 0
     delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
@@ -405,7 +405,7 @@ test('authorize waits for authenticate', function (t) {
 })
 
 test('authorize publish from configOptions', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   var s = connect(setup(aedes({
     authorizePublish: function (client, packet, cb) {
@@ -426,9 +426,9 @@ test('authorize publish from configOptions', function (t) {
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
+    t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    expected.messageId = 0
     delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
@@ -488,6 +488,62 @@ test('authorize subscribe', function (t) {
   }
 
   subscribe(t, s, 'hello', 0)
+})
+
+test('authorize subscribe multiple same topics with same qos', function (t) {
+  t.plan(4)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.deepEqual(sub, {
+      topic: 'hello',
+      qos: 0
+    }, 'topic matches')
+    cb(null, sub)
+  }
+
+  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 0 }], [0])
+})
+
+test('authorize subscribe multiple same topics with different qos', function (t) {
+  t.plan(4)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.deepEqual(sub, {
+      topic: 'hello',
+      qos: 1
+    }, 'topic matches')
+    cb(null, sub)
+  }
+
+  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 1 }], [1])
+})
+
+test('authorize subscribe multiple different topics', function (t) {
+  t.plan(7)
+
+  var s = connect(setup())
+
+  s.broker.authorizeSubscribe = function (client, sub, cb) {
+    t.ok(client, 'client exists')
+    if (sub.topic === 'hello') {
+      t.deepEqual(sub, {
+        topic: 'hello',
+        qos: 0
+      }, 'topic matches')
+    } else if (sub.topic === 'foo') {
+      t.deepEqual(sub, {
+        topic: 'foo',
+        qos: 0
+      }, 'topic matches')
+    }
+    cb(null, sub)
+  }
+
+  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'foo', qos: 0 }], [0, 0])
 })
 
 test('authorize subscribe from config options', function (t) {
@@ -567,7 +623,15 @@ test('negate multiple subscriptions', function (t) {
 })
 
 test('negate subscription with correct persistence', function (t) {
-  t.plan(7)
+  t.plan(6)
+
+  var expected = [{
+    topic: 'hello',
+    qos: 0
+  }, {
+    topic: 'world',
+    qos: 0
+  }]
 
   var broker = aedes()
   broker.authorizeSubscribe = function (client, sub, cb) {
@@ -582,8 +646,9 @@ test('negate subscription with correct persistence', function (t) {
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
     t.deepEqual(packet.granted, [128, 0])
-    t.notEqual(broker.persistence._subscriptions.get('abcde'), undefined)
-    t.deepEqual(broker.persistence._subscriptions.get('abcde').size, 2)
+    broker.persistence.subscriptionsByClient(broker.clients.abcde, function (_, subs, client) {
+      t.deepEqual(subs, expected)
+    })
     t.equal(packet.messageId, 24)
   })
 

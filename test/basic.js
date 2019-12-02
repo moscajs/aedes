@@ -1,6 +1,5 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var helper = require('./helper')
 var aedes = require('../')
@@ -10,48 +9,22 @@ var connect = helper.connect
 var noError = helper.noError
 var subscribe = helper.subscribe
 
-test('connect and connack (minimal)', function (t) {
-  var s = setup()
-
-  s.inStream.write({
-    cmd: 'connect',
-    protocolId: 'MQTT',
-    protocolVersion: 4,
-    clean: true,
-    clientId: 'my-client',
-    keepalive: 0
-  })
-
-  s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
-      cmd: 'connack',
-      returnCode: 0,
-      length: 2,
-      qos: 0,
-      retain: false,
-      dup: false,
-      topic: null,
-      payload: null,
-      sessionPresent: false
-    }, 'successful connack')
-    t.end()
-  })
-})
-
 test('publish QoS 0', function (t) {
+  t.plan(2)
+
   var s = connect(setup())
   var expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 0,
-    retain: false,
-    messageId: 0
+    retain: false
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
+    t.equal(packet.messageId, undefined, 'MUST not contain a packet identifier in QoS 0')
     t.deepEqual(packet, expected, 'packet matches')
     cb()
     t.end()
@@ -65,6 +38,8 @@ test('publish QoS 0', function (t) {
 })
 
 test('subscribe QoS 0', function (t) {
+  t.plan(4)
+
   var s = connect(setup())
   var expected = {
     cmd: 'publish',
@@ -92,6 +67,7 @@ test('subscribe QoS 0', function (t) {
 
 test('does not die badly on connection error', function (t) {
   t.plan(3)
+
   var s = connect(setup())
 
   s.inStream.write({
@@ -157,39 +133,6 @@ test('unsubscribe', function (t) {
   })
 })
 
-test('live retain packets', function (t) {
-  t.plan(5)
-  var expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    retain: false,
-    dup: false,
-    length: 12,
-    qos: 0
-  }
-
-  var s = noError(connect(setup()), t)
-
-  subscribe(t, s, 'hello', 0, function () {
-    s.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected)
-    })
-
-    s.broker.publish({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: Buffer.from('world'),
-      retain: true,
-      dup: false,
-      length: 12,
-      qos: 0
-    }, function () {
-      t.pass('publish finished')
-    })
-  })
-})
-
 test('unsubscribe without subscribe', function (t) {
   t.plan(1)
 
@@ -214,6 +157,8 @@ test('unsubscribe without subscribe', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=true client', function (t) {
+  t.plan(6)
+
   var opts = { clean: true }
   var s = noError(connect(setup(), opts), t)
 
@@ -224,10 +169,10 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
     })
     s.broker.once('unsubscribe', function () {
       t.pass('should emit unsubscribe')
-      t.end()
     })
     s.broker.once('closed', function () {
       t.ok(true)
+      t.end()
     })
     s.broker.publish({
       cmd: 'publish',
@@ -240,6 +185,8 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=false client', function (t) {
+  t.plan(5)
+
   var opts = { clean: false }
   var s = noError(connect(setup(), opts), t)
 
@@ -266,6 +213,8 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
 })
 
 test('disconnect', function (t) {
+  t.plan(0)
+
   var s = noError(connect(setup()), t)
 
   s.outStream.on('finish', function () {
@@ -277,51 +226,70 @@ test('disconnect', function (t) {
   })
 })
 
-test('retain messages', function (t) {
+test('client closes', function (t) {
+  t.plan(7)
+
   var broker = aedes()
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 12,
-    retain: true
-  }
-
-  broker.subscribe('hello', function (packet, cb) {
-    cb()
-
-    // defer this or it will receive the message which
-    // is being published
-    setImmediate(function () {
-      subscribe(t, subscriber, 'hello', 0, function () {
-        subscriber.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet must match')
-          t.end()
-        })
+  var brokerClient
+  var client = noError(connect(setup(broker, false), { clientId: 'abcde' }, function () {
+    brokerClient = broker.clients.abcde
+    t.equal(brokerClient.connected, true, 'client connected')
+    t.equal(brokerClient.disconnected, false)
+    eos(client.conn, t.pass.bind('client closes'))
+    setImmediate(() => {
+      brokerClient.close(function () {
+        t.equal(broker.clients.abcde, undefined, 'client instance is removed')
+      })
+      t.equal(brokerClient.connected, false, 'client disconnected')
+      t.equal(brokerClient.disconnected, true)
+      broker.close(function (err) {
+        t.error(err, 'no error')
+        t.end()
       })
     })
-  })
-
-  publisher.inStream.write(expected)
+  }))
 })
 
-test('closes', function (t) {
-  t.plan(2)
+test('broker closes', function (t) {
+  t.plan(3)
 
   var broker = aedes()
-  var client = noError(connect(setup(broker)))
-  eos(client.conn, t.pass.bind('client closes'))
+  var client = noError(connect(setup(broker, false), {
+    clientId: 'abcde'
+  }, function () {
+    eos(client.conn, t.pass.bind('client closes'))
+    broker.close(function (err) {
+      t.error(err, 'no error')
+      t.equal(broker.clients.abcde, undefined, 'client instance is removed')
+    })
+  }))
+})
 
-  broker.close(function (err) {
-    t.error(err, 'no error')
-  })
+test('broker closes gracefully', function (t) {
+  t.plan(7)
+
+  var broker = aedes()
+  var client1, client2
+  client1 = noError(connect(setup(broker, false), {
+  }, function () {
+    client2 = noError(connect(setup(broker, false), {
+    }, function () {
+      t.equal(broker.connectedClients, 2, '2 connected clients')
+      eos(client1.conn, t.pass.bind('client1 closes'))
+      eos(client2.conn, t.pass.bind('client2 closes'))
+      broker.close(function (err) {
+        t.error(err, 'no error')
+        t.ok(broker.mq.closed, 'broker mq closes')
+        t.ok(broker.closed, 'broker closes')
+        t.equal(broker.connectedClients, 0, 'no connected clients')
+      })
+    }))
+  }))
 })
 
 test('testing other event', function (t) {
+  t.plan(1)
+
   var broker = aedes()
   var client = setup(broker)
 
@@ -333,6 +301,8 @@ test('testing other event', function (t) {
 })
 
 test('connect without a clientId for MQTT 3.1.1', function (t) {
+  t.plan(1)
+
   var s = setup()
 
   s.inStream.write({
@@ -423,9 +393,9 @@ test('publish to $SYS/broker/new/clients', function (t) {
 })
 
 test('restore QoS 0 subscriptions not clean', function (t) {
+  t.plan(5)
+
   var broker = aedes()
-  var publisher
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -435,63 +405,75 @@ test('restore QoS 0 subscriptions not clean', function (t) {
     length: 12,
     retain: false
   }
+  var publisher
+  var subscriber = connect(setup(broker), {
+    clean: false, clientId: 'abcde'
+  }, function () {
+    subscribe(t, subscriber, 'hello', 0, function () {
+      subscriber.inStream.end()
 
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.inStream.end()
-
-    publisher = connect(setup(broker))
-
-    subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
-      t.equal(connect.sessionPresent, true, 'session present is set to true')
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'world',
-        qos: 0
+      publisher = connect(setup(broker), {
+      }, function () {
+        subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
+          t.equal(connect.sessionPresent, true, 'session present is set to true')
+          publisher.inStream.write({
+            cmd: 'publish',
+            topic: 'hello',
+            payload: 'world',
+            qos: 0
+          })
+        })
+        subscriber.outStream.once('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+          t.end()
+        })
       })
-    })
-
-    subscriber.outStream.once('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
-      t.end()
     })
   })
 })
 
 test('do not restore QoS 0 subscriptions when clean', function (t) {
+  t.plan(6)
+
   var broker = aedes()
   var publisher
-  var subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' })
-
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.inStream.end()
-    t.equal(subscriber.broker.persistence._subscriptions.size, 0, 'no previous subscriptions restored')
-
-    publisher = connect(setup(broker))
-
-    subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' }, function (connect) {
-      t.equal(connect.sessionPresent, false, 'session present is set to false')
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'world',
-        qos: 0
+  var subscriber = connect(setup(broker), {
+    clean: true, clientId: 'abcde'
+  }, function () {
+    subscribe(t, subscriber, 'hello', 0, function () {
+      subscriber.inStream.end()
+      subscriber.broker.persistence.subscriptionsByClient(broker.clients.abcde, function (_, subs, client) {
+        t.equal(subs, null, 'no previous subscriptions restored')
       })
-    })
-
-    subscriber.outStream.once('data', function (packet) {
-      t.fail('packet received')
-      t.end()
-    })
-    eos(subscriber.conn, function () {
-      t.equal(subscriber.broker.connectedClients, 0, 'no connected clients')
-      t.end()
+      publisher = connect(setup(broker), {
+      }, function () {
+        subscriber = connect(setup(broker), {
+          clean: true, clientId: 'abcde'
+        }, function (connect) {
+          t.equal(connect.sessionPresent, false, 'session present is set to false')
+          publisher.inStream.write({
+            cmd: 'publish',
+            topic: 'hello',
+            payload: 'world',
+            qos: 0
+          })
+        })
+        subscriber.outStream.once('data', function (packet) {
+          t.fail('packet received')
+          t.end()
+        })
+        eos(subscriber.conn, function () {
+          t.equal(subscriber.broker.connectedClients, 0, 'no connected clients')
+          t.end()
+        })
+      })
     })
   })
 })
 
 test('double sub does not double deliver', function (t) {
-  var s = connect(setup())
+  t.plan(7)
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -501,29 +483,32 @@ test('double sub does not double deliver', function (t) {
     qos: 0,
     retain: false
   }
-
-  subscribe(t, s, 'hello', 0, function () {
+  var s = connect(setup(), {
+  }, function () {
     subscribe(t, s, 'hello', 0, function () {
-      s.outStream.once('data', function (packet) {
-        t.deepEqual(packet, expected, 'packet matches')
-        s.outStream.on('data', function () {
-          t.fail('double deliver')
+      subscribe(t, s, 'hello', 0, function () {
+        s.outStream.once('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet matches')
+          s.outStream.on('data', function () {
+            t.fail('double deliver')
+          })
+          // wait for a tick, so it will double deliver
+          setImmediate(t.end.bind(t))
         })
-        // wait for a tick, so it will double deliver
-        setImmediate(t.end.bind(t))
-      })
 
-      s.broker.publish({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'world'
+        s.broker.publish({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world'
+        })
       })
     })
   })
 })
 
 test('overlapping sub does not double deliver', function (t) {
-  var s = connect(setup())
+  t.plan(7)
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -533,161 +518,25 @@ test('overlapping sub does not double deliver', function (t) {
     qos: 0,
     retain: false
   }
-
-  subscribe(t, s, 'hello', 0, function () {
-    subscribe(t, s, 'hello/#', 0, function () {
-      s.outStream.once('data', function (packet) {
-        t.deepEqual(packet, expected, 'packet matches')
-        s.outStream.on('data', function () {
-          t.fail('double deliver')
-        })
-        // wait for a tick, so it will double deliver
-        setImmediate(t.end.bind(t))
-      })
-
-      s.broker.publish({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'world'
-      })
-    })
-  })
-})
-
-test('avoid wrong deduping of retain messages', function (t) {
-  var broker = aedes()
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 12,
-    retain: true
-  }
-
-  broker.subscribe('hello', function (packet, cb) {
-    cb()
-    // subscribe and publish another topic
-    subscribe(t, subscriber, 'hello2', 0, function () {
-      cb()
-
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: 'hello2',
-        payload: Buffer.from('world'),
-        qos: 0,
-        dup: false
-      })
-
-      subscriber.outStream.once('data', function (packet) {
-        subscribe(t, subscriber, 'hello', 0, function () {
-          subscriber.outStream.once('data', function (packet) {
-            t.deepEqual(packet, expected, 'packet must match')
-            t.end()
+  var s = connect(setup(), {
+  }, function () {
+    subscribe(t, s, 'hello', 0, function () {
+      subscribe(t, s, 'hello/#', 0, function () {
+        s.outStream.once('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet matches')
+          s.outStream.on('data', function () {
+            t.fail('double deliver')
           })
+          // wait for a tick, so it will double deliver
+          setImmediate(t.end.bind(t))
+        })
+
+        s.broker.publish({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world'
         })
       })
-    })
-  })
-
-  publisher.inStream.write(expected)
-})
-
-test('publish empty topic', function (t) {
-  var s = connect(setup())
-
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-      t.end()
-    })
-
-    s.inStream.write({
-      cmd: 'publish',
-      topic: '',
-      payload: 'world'
-    })
-  })
-
-  eos(s.conn, function () {
-    t.equal(s.broker.connectedClients, 0, 'no connected clients')
-    t.end()
-  })
-})
-
-test('publish invalid topic with #', function (t) {
-  var s = connect(setup())
-
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-      t.end()
-    })
-
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello/#',
-      payload: 'world'
-    })
-  })
-
-  s.broker.on('clientError', function () {
-    t.end()
-  })
-})
-
-test('publish invalid topic with +', function (t) {
-  var s = connect(setup())
-
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-    })
-
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello/+/eee',
-      payload: 'world'
-    })
-  })
-
-  s.broker.on('clientError', function () {
-    t.end()
-  })
-})
-
-;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub'].forEach(function (topic) {
-  test('subscribe to invalid topic with "' + topic + '"', function (t) {
-    var s = connect(setup())
-
-    s.broker.on('clientError', function () {
-      t.end()
-    })
-
-    s.inStream.write({
-      cmd: 'subscribe',
-      messageId: 24,
-      subscriptions: [{
-        topic: topic,
-        qos: 0
-      }]
-    })
-  })
-
-  test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
-    var s = connect(setup())
-
-    s.broker.on('clientError', function () {
-      t.end()
-    })
-
-    s.inStream.write({
-      cmd: 'unsubscribe',
-      messageId: 24,
-      unsubscriptions: [topic]
     })
   })
 })
@@ -695,23 +544,24 @@ test('publish invalid topic with +', function (t) {
 test('clear drain', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  var s = connect(setup(), {
+  }, function () {
+    subscribe(t, s, 'hello', 0, function () {
+      // fake a busy socket
+      s.conn.write = function (chunk, enc, cb) {
+        return false
+      }
 
-  subscribe(t, s, 'hello', 0, function () {
-    // fake a busy socket
-    s.conn.write = function (chunk, enc, cb) {
-      return false
-    }
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world'
+      }, function () {
+        t.pass('callback called')
+      })
 
-    s.broker.publish({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world'
-    }, function () {
-      t.pass('callback called')
+      s.conn.destroy()
     })
-
-    s.conn.destroy()
   })
 })
 

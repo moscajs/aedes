@@ -1,12 +1,11 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var test = require('tape').test
 var memory = require('aedes-persistence')
 var helper = require('./helper')
+var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
-var aedes = require('../')
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -21,9 +20,15 @@ function willConnect (s, opts, connected) {
 }
 
 test('delivers a will', function (t) {
+  t.plan(4)
+
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(), opts)
+  var s = willConnect(setup(),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
@@ -33,14 +38,11 @@ test('delivers a will', function (t) {
     cb()
     t.end()
   })
-
-  process.nextTick(() => {
-    s.conn.destroy()
-  })
 })
 
 test('calling close two times should not deliver two wills', function (t) {
   t.plan(4)
+
   var opts = {}
   var broker = aedes()
 
@@ -67,6 +69,7 @@ test('calling close two times should not deliver two wills', function (t) {
 
 test('delivers old will in case of a crash', function (t) {
   t.plan(7)
+
   var persistence = memory()
   var will = {
     topic: 'mywill',
@@ -103,15 +106,17 @@ test('delivers old will in case of a crash', function (t) {
       broker.mq.on('mywill', function (packet) {
         t.fail('the will must be delivered only once')
       })
-      setTimeout(function () {
+      setImmediate(function () {
         broker.close(t.pass.bind(t, 'server closes'))
-      }, 15)
+      })
       cb()
     }
   })
 })
 
 test('store the will in the persistence', function (t) {
+  t.plan(5)
+
   var opts = {
     clientId: 'abcde'
   }
@@ -135,6 +140,8 @@ test('store the will in the persistence', function (t) {
 })
 
 test('delete the will in the persistence after publish', function (t) {
+  t.plan(2)
+
   var opts = {
     clientId: 'abcde'
   }
@@ -168,13 +175,21 @@ test('delete the will in the persistence after publish', function (t) {
 })
 
 test('delivers a will with authorization', function (t) {
+  t.plan(7)
+
   let authorized = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })), opts)
+  var s = willConnect(
+    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
-  s.broker.on('clientDisconnect', function () {
-    t.end()
+  s.broker.on('clientDisconnect', function (client) {
+    t.equal(client.connected, false)
+    t.equal(client.disconnected, true)
   })
 
   s.broker.mq.on('mywill', function (packet, cb) {
@@ -186,19 +201,24 @@ test('delivers a will with authorization', function (t) {
     cb()
   })
 
-  process.nextTick(function () {
-    s.conn.destroy()
-  })
+  s.broker.on('closed', t.end.bind(t))
 })
 
 test('delivers a will waits for authorization', function (t) {
+  t.plan(6)
+
   let authorized = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })), opts)
+  var s = willConnect(
+    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
   s.broker.on('clientDisconnect', function () {
-    t.end()
+    t.pass('client is disconnected')
   })
 
   s.broker.mq.on('mywill', function (packet, cb) {
@@ -210,16 +230,21 @@ test('delivers a will waits for authorization', function (t) {
     cb()
   })
 
-  process.nextTick(function () {
-    s.conn.destroy()
-  })
+  s.broker.on('closed', t.end.bind(t))
 })
 
 test('does not deliver a will without authorization', function (t) {
+  t.plan(1)
+
   let authorized = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(new Error()) } })), opts)
+  var s = willConnect(
+    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(new Error()) } })),
+    opts,
+    function () {
+      s.conn.destroy()
+    })
 
   s.broker.on('clientDisconnect', function () {
     t.equal(authorized, true, 'authorization called')
@@ -230,17 +255,17 @@ test('does not deliver a will without authorization', function (t) {
     t.fail('received will without authorization')
     cb()
   })
-
-  process.nextTick(function () {
-    s.conn.destroy()
-  })
 })
 
 test('does not deliver a will without authentication', function (t) {
+  t.plan(1)
+
   let authenticated = false
   var opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(aedes({ authenticate: (_1, _2, _3, callback) => { authenticated = true; callback(new Error(), false) } })), opts)
+  var s = willConnect(
+    setup(aedes({ authenticate: (_1, _2, _3, callback) => { authenticated = true; callback(new Error(), false) } })),
+    opts)
 
   s.broker.once('clientError', function () {
     t.equal(authenticated, true, 'authentication called')
@@ -254,6 +279,8 @@ test('does not deliver a will without authentication', function (t) {
 })
 
 test('does not deliver will if keepalive is triggered during authentication', function (t) {
+  t.plan(0)
+
   var opts = {}
   opts.keepalive = 1
   var broker = aedes({
@@ -274,4 +301,21 @@ test('does not deliver will if keepalive is triggered during authentication', fu
   })
 
   willConnect(setup(broker), opts)
+})
+
+// [MQTT-3.14.4-1]
+test('does not deliver will when client sends a DISCONNECT', function (t) {
+  var broker = aedes()
+  var s = willConnect(setup(broker), {},
+    function () {
+      s.inStream.end({
+        cmd: 'disconnect'
+      })
+    }
+  )
+
+  s.broker.mq.on('mywill', function (packet, cb) {
+    t.fail(packet)
+  })
+  broker.on('closed', t.end.bind(t))
 })

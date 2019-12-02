@@ -8,7 +8,7 @@ var setup = helper.setup
 var connect = helper.connect
 var noError = helper.noError
 
-test.skip('supports pingreq/pingresp', function (t) {
+test('supports pingreq/pingresp', function (t) {
   t.plan(1)
 
   var s = noError(connect(setup()))
@@ -57,15 +57,15 @@ test('supports keep alive disconnections after a pingreq', function (t) {
 
 test('disconnect if a connect does not arrive in time', function (t) {
   t.plan(2)
-  t.timeoutAfter(200)
+  t.timeoutAfter(500)
 
   var s = setup(aedes({
-    connectTimeout: 50
+    connectTimeout: 100
   }))
   var start = Date.now()
 
   eos(s.conn, function () {
-    t.ok(Date.now() >= start + 50, 'waits waitConnectTimeout before ending')
+    t.ok(Date.now() >= start + 100, 'waits waitConnectTimeout before ending')
     t.pass('ended')
   })
 })

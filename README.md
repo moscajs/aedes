@@ -1,4 +1,12 @@
-# Aedes&nbsp;&nbsp;[![Build Status](https://travis-ci.org/mcollina/aedes.svg?branch=master)](https://travis-ci.org/mcollina/aedes)&nbsp;[![Coverage Status](https://coveralls.io/repos/mcollina/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/mcollina/aedes?branch=master)
+# Aedes
+[![Build Status](https://travis-ci.org/mcollina/aedes.svg?branch=master)](https://travis-ci.org/mcollina/aedes)
+[![Dependencies Status](https://david-dm.org/mcollina/aedes/status.svg)](https://david-dm.org/mcollina/aedes)
+[![devDependencies Status](https://david-dm.org/mcollina/aedes/dev-status.svg)](https://david-dm.org/mcollina/aedes?type=dev)
+<br/>
+[![Known Vulnerabilities](https://snyk.io/test/github/mcollina/aedes/badge.svg)](https://snyk.io/test/github/mcollina/aedes)
+[![Coverage Status](https://coveralls.io/repos/mcollina/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/mcollina/aedes?branch=master)
+[![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
+[![NPM downloads](https://img.shields.io/npm/dm/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 
 Barebone MQTT server that can run on any stream server.
 
@@ -8,6 +16,7 @@ Barebone MQTT server that can run on any stream server.
 * [Example](#example)
 * [API](#api)
 * [TODO](#todo)
+* [Collaborators](#collaborators)
 * [Acknowledgements](#acknowledgements)
 * [License](#license)
 
@@ -60,6 +69,7 @@ server.listen(8883, function () {
   * <a href="#subscribe"><code>instance.<b>subscribe()</b></code></a>
   * <a href="#publish"><code>instance.<b>publish()</b></code></a>
   * <a href="#unsubscribe"><code>instance.<b>unsubscribe()</b></code></a>
+  * <a href="#preConnect"><code>instance.<b>preConnect()</b></code></a>
   * <a href="#authenticate"><code>instance.<b>authenticate()</b></code></a>
   * <a href="#authorizePublish"><code>instance.<b>authorizePublish()</b></code></a>
   * <a href="#authorizeSubscribe"><code>instance.<b>authorizeSubscribe()</b></code></a>
@@ -69,6 +79,8 @@ server.listen(8883, function () {
   * <a href="#client"><code><b>Client</b></code></a>
   * <a href="#clientid"><code>client.<b>id</b></code></a>
   * <a href="#clientclean"><code>client.<b>clean</b></code></a>
+  * <a href="#clientconn"><code>client.<b>conn</b></code></a>
+  * <a href="#clientreq"><code>client.<b>req</b></code></a>
   * <a href="#clientpublish"><code>client.<b>publish()</b></code></a>
   * <a href="#clientsubscribe"><code>client.<b>subscribe()</b></code></a>
   * <a href="#clientunsubscribe"><code>client.<b>unsubscribe()</b></code></a>
@@ -97,7 +109,9 @@ Options:
 * `connectTimeout`: the max number of milliseconds to wait for the CONNECT
   packet to arrive, defaults to `30000` milliseconds
 * `id`: id used to identify this broker instance in `$SYS` messages,
-  defaults to `shortid()`
+  defaults to `uuidv4()`
+* `preConnect`: function called when a valid CONNECT is received, see
+  [instance.preConnect()](#preConnect)
 * `authenticate`: function used to authenticate clients, see
   [instance.authenticate()](#authenticate)
 * `authorizePublish`: function used to authorize PUBLISH packets, see
@@ -111,7 +125,9 @@ Options:
 
 Events:
 
-* `client`: when a new [Client](#client) connects, arguments:
+* `client`: when a new [Client](#client) successfully connects and register itself to server, [connackSent event will be come after], arguments:
+  1. `client`
+* `clientReady`: when a new [Client](#client) received all its offline messages, it is ready, arguments:
   1. `client`
 * `clientDisconnect`: when a [Client](#client) disconnects, arguments:
   1. `client`
@@ -126,9 +142,9 @@ Events:
 * `publish`: when a new packet is published, arguments:
   1. `packet`
   2. `client`, it will be null if the message is published using
-     [`publish`](#publish).
+     [`publish`](#publish). It is by design that the broker heartbeat will be on publish event, in this case `client` is null
 * `ack`: when a packet published to a client is delivered successfully with QoS 1 or QoS 2, arguments:
-  1. `packet`
+  1. `packet`, this will be the original PUBLISH packet in QoS 1, and PUBREL in QoS 2
   2. `client`
 * `ping`: when a [Client](#client) sends a ping, arguments:
   1. `packet`
@@ -143,8 +159,9 @@ packet.
      [UNSUBSCRIBE](https://github.com/mqttjs/mqtt-packet#unsubscribe)
 packet.
   2. `client`
-* `connackSent`: when a CONNACK packet is sent to a client [Client](#client) (happens after `'client'`), arguments:
-  1. `client`
+* `connackSent`: when a CONNACK packet is sent to a client, arguments:
+  1. `packet`
+  2. `client`
 * `closed`: when the broker is closed
 
 -------------------------------------------------------
@@ -204,6 +221,26 @@ Both `topic` and `payload` can be `Buffer` objects instead of strings.
 
 The reverse of [subscribe](#subscribe).
 
+-------------------------------------------------------
+<a name="preConnect"></a>
+### instance.preConnect(client, done(err, successful))
+
+It will be called when aedes instance receives a first valid CONNECT packet from client. client object state is in default and its connected state is false. Any values in CONNECT packet (like clientId, clean flag, keepalive) will pass to client object after this call. Override to supply custom preConnect logic.
+Some use cases:
+1. Rate Limit / Throttle by `client.conn.remoteAddress`
+2. Check `instance.connectedClient` to limit maximum connections
+3. IP blacklisting
+
+```js
+instance.preConnect = function(client, callback) {
+  callback(null, client.conn.remoteAddress === '::1') {
+}
+```
+```js
+instance.preConnect = function(client, callback) {
+  callback(new Error('connection error'), client.conn.remoteAddress !== '::1') {
+}
+```
 -------------------------------------------------------
 <a name="authenticate"></a>
 ### instance.authenticate(client, username, password, done(err, successful))
@@ -341,7 +378,7 @@ Events:
 <a name="clientid"></a>
 ### client#id
 
-The id of the client, as specified by the CONNECT packet.
+The id of the client, as specified by the CONNECT packet, defaults to 'aedes_' + shortid()
 
 -------------------------------------------------------
 <a name="clientclean"></a>
@@ -349,6 +386,24 @@ The id of the client, as specified by the CONNECT packet.
 
 `true` if the client connected (CONNECT) with `clean: true`, `false`
 otherwise. Check the MQTT spec for what this means.
+
+-------------------------------------------------------
+<a name="clientconn"></a>
+### client#conn
+
+The client's connection stream object.
+
+In the case of `net.createServer` brokers, it's the connection passed to the `connectionlistener` function by node's [net.createServer](https://nodejs.org/api/net.html#net_net_createserver_options_connectionlistener) API.
+
+In the case of [websocket-stream](https://www.npmjs.com/package/websocket-stream) brokers, it's the `stream` argument passed to the `handle` function described in [that library's documentation](https://github.com/maxogden/websocket-stream/blob/e2a51644bb35132d7aa477ae1a27ff083fedbf08/readme.md#on-the-server).
+
+-------------------------------------------------------
+<a name="clientreq"></a>
+### client#req
+
+The HTTP Websocket upgrade request object passed to websocket broker's `handle` function by the [`websocket-stream` library](https://github.com/maxogden/websocket-stream/blob/e2a51644bb35132d7aa477ae1a27ff083fedbf08/readme.md#on-the-server).
+
+If your clients are connecting to aedes via websocket and you need access to headers or cookies, you can get them here. **NOTE:** this property is only present for websocket connections.
 
 -------------------------------------------------------
 <a name="clientpublish"></a>
@@ -405,6 +460,12 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/new/clients` - will inform about new clients connections
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
+
+## Collaborators
+
+* [__Gavin D'mello__](https://github.com/GavinDmello)
+* [__Behrad Zari__](https://github.com/behrad)
+* [__Gnought__](https://github.com/gnought)
 
 ## Acknowledgements
 

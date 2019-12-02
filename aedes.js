@@ -1,13 +1,12 @@
 'use strict'
 
-var Buffer = require('safe-buffer').Buffer
 var mqemitter = require('mqemitter')
 var EE = require('events').EventEmitter
 var util = require('util')
 var memory = require('aedes-persistence')
 var parallel = require('fastparallel')
 var series = require('fastseries')
-var shortid = require('shortid')
+var uuidv4 = require('uuid/v4')
 var Packet = require('aedes-packet')
 var bulk = require('bulk-write-stream')
 var reusify = require('reusify')
@@ -20,6 +19,7 @@ var defaultOptions = {
   concurrency: 100,
   heartbeatInterval: 60000, // 1 minute
   connectTimeout: 30000, // 30 secs
+  preConnect: defaultPreConnect,
   authenticate: defaultAuthenticate,
   authorizePublish: defaultAuthorizePublish,
   authorizeSubscribe: defaultAuthorizeSubscribe,
@@ -36,14 +36,15 @@ function Aedes (opts) {
 
   opts = Object.assign({}, defaultOptions, opts)
 
-  this.id = opts.id || shortid()
+  this.id = opts.id || uuidv4()
   this.counter = 0
   this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
-  this.handle = function handle (conn) {
+  this.handle = function handle (conn, req) {
     conn.setMaxListeners(opts.concurrency * 2)
+    // create a new Client instance for a new connection
     // return, just to please standard
-    return new Client(that, conn)
+    return new Client(that, conn, req)
   }
   this.persistence = opts.persistence || memory()
   this.persistence.broker = this
@@ -51,6 +52,7 @@ function Aedes (opts) {
   this._series = series()
   this._enqueuers = reusify(DoEnqueues)
 
+  this.preConnect = opts.preConnect
   this.authenticate = opts.authenticate
   this.authorizePublish = opts.authorizePublish
   this.authorizeSubscribe = opts.authorizeSubscribe
@@ -132,12 +134,12 @@ function Aedes (opts) {
 
   // metadata
   this.connectedClients = 0
+  this.closed = false
 }
 
 util.inherits(Aedes, EE)
 
-function storeRetained (_, done) {
-  var packet = this.packet
+function storeRetained (packet, done) {
   if (packet.retain) {
     this.broker.persistence.storeRetained(packet, done)
   } else {
@@ -145,20 +147,18 @@ function storeRetained (_, done) {
   }
 }
 
-function emitPacket (_, done) {
-  this.packet.retain = false
-  this.broker.mq.emit(this.packet, done)
+function emitPacket (packet, done) {
+  packet.retain = false
+  this.broker.mq.emit(packet, done)
 }
 
-function enqueueOffline (_, done) {
-  var packet = this.packet
-
+function enqueueOffline (packet, done) {
   var enqueuer = this.broker._enqueuers.get()
 
   enqueuer.complete = done
-  enqueuer.status = this
+  enqueuer.packet = packet
   enqueuer.topic = packet.topic
-
+  enqueuer.broker = this.broker
   this.broker.persistence.subscriptionsByTopic(
     packet.topic,
     enqueuer.done
@@ -167,35 +167,36 @@ function enqueueOffline (_, done) {
 
 function DoEnqueues () {
   this.next = null
-  this.status = null
   this.complete = null
+  this.packet = null
   this.topic = null
+  this.broker = null
 
   var that = this
 
   this.done = function doneEnqueue (err, subs) {
-    var status = that.status
-    var broker = status.broker
+    var broker = that.broker
 
     if (err) {
       // is this really recoverable?
       // let's just error the whole aedes
       broker.emit('error', err)
-    } else {
-      var complete = that.complete
-
-      if (that.topic.indexOf('$SYS') === 0) {
-        subs = subs.filter(removeSharp)
-      }
-
-      that.status = null
-      that.complete = null
-      that.topic = null
-
-      broker.persistence.outgoingEnqueueCombi(subs, status.packet, complete)
-
-      broker._enqueuers.release(that)
+      return
     }
+
+    if (that.topic.indexOf('$SYS') === 0) {
+      subs = subs.filter(removeSharp)
+    }
+
+    var packet = that.packet
+    var complete = that.complete
+
+    that.packet = null
+    that.complete = null
+    that.topic = null
+
+    broker.persistence.outgoingEnqueueCombi(subs, packet, complete)
+    broker._enqueuers.release(that)
   }
 }
 
@@ -228,11 +229,9 @@ Aedes.prototype.publish = function (packet, client, done) {
     client = null
   }
   var p = new Packet(packet, this)
-  var publishFuncs = publishFuncsSimple
-  if (p.qos > 0) {
-    publishFuncs = publishFuncsQoS
-  }
-  this._series(new PublishState(this, client, p), publishFuncs, null, done)
+  var publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
+
+  this._series(new PublishState(this, client, packet), publishFuncs, p, done)
 }
 
 Aedes.prototype.subscribe = function (topic, func, done) {
@@ -246,8 +245,7 @@ Aedes.prototype.unsubscribe = function (topic, func, done) {
 Aedes.prototype.registerClient = function (client) {
   var that = this
   if (this.clients[client.id]) {
-    // moving out so we wait for this, so we don't
-    // unregister a good client
+    // [MQTT-3.1.4-2]
     this.clients[client.id].close(function closeClient () {
       that._finishRegisterClient(client)
     })
@@ -280,18 +278,26 @@ function closeClient (client, cb) {
   this.clients[client].close(cb)
 }
 
-Aedes.prototype.close = function (cb) {
+Aedes.prototype.close = function (cb = noop) {
   var that = this
+  if (this.closed) {
+    return cb()
+  }
+  this.closed = true
   clearInterval(this._heartbeatInterval)
   clearInterval(this._clearWillInterval)
   this._parallel(this, closeClient, Object.keys(this.clients), doneClose)
   function doneClose () {
     that.emit('closed')
-    cb = cb || noop
-    cb()
+    that.mq.close(cb)
   }
 }
 
+Aedes.prototype.version = require('./package.json').version
+
+function defaultPreConnect (client, callback) {
+  callback(null, true)
+}
 function defaultAuthenticate (client, username, password, callback) {
   callback(null, true)
 }
