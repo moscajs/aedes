@@ -924,3 +924,33 @@ test('prevent publish in QoS0 mode', function (t) {
     t.fail('Should have not recieved this packet')
   })
 })
+
+test('unauthorized connection should not unregister the correct one', function (t) {
+  t.plan(2)
+
+  var broker = aedes({
+    authenticate: function (client, username, password, callback) {
+      if (username === 'correct') {
+        callback(null, true)
+      } else {
+        const error = new Error()
+        error.returnCode = 1
+        callback(error, false)
+      }
+    }
+  })
+
+  connect(setup(broker), {
+    clientId: 'my-client',
+    username: 'correct'
+  }, function () {
+    t.equal(broker.connectedClients, 1, 'my-client connected')
+    connect(setup(broker), {
+      clientId: 'my-client',
+      username: 'unauthorized'
+    }, function () {
+      // other unauthorized connection with the same clientId should not unregister the correct one.
+      t.equal(broker.connectedClients, 1, 'my-client still connected')
+    })
+  })
+})
