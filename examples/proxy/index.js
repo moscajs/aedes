@@ -9,7 +9,16 @@ var proxyProtocol = require('proxy-protocol-js')
 
 var brokerPort = 4883
 
-function sendProxyPacket (version = 1) {
+// from https://stackoverflow.com/questions/57077161/how-do-i-convert-hex-buffer-to-ipv6-in-javascript
+function parseIpV6 (ip) {
+  return ip.match(/.{1,4}/g)
+    .map((val) => val.replace(/^0+/, ''))
+    .join(':')
+    .replace(/0000:/g, ':')
+    .replace(/:{2,}/g, '::')
+}
+
+function sendProxyPacket (version = 1, ipFamily = 4) {
   var packet = {
     cmd: 'connect',
     protocolId: 'MQTT',
@@ -18,29 +27,53 @@ function sendProxyPacket (version = 1) {
     clientId: `my-client-${version}`,
     keepalive: 0
   }
-  var clientIp = '192.168.0.12'
+  var hostIpV4 = '0.0.0.0'
+  var clientIpV4 = '192.168.1.128'
+  var hostIpV6 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  var clientIpV6 = [0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 192, 168, 1, 128]
   var protocol
   if (version === 1) {
-    var src = new proxyProtocol.Peer(clientIp, 12345)
-    var dst = new proxyProtocol.Peer('127.0.0.1', brokerPort)
-    protocol = new proxyProtocol.V1BinaryProxyProtocol(
-      proxyProtocol.INETProtocol.TCP4,
-      src,
-      dst,
-      mqttPacket.generate(packet)
-    ).build()
+    if (ipFamily === 4) {
+      protocol = new proxyProtocol.V1BinaryProxyProtocol(
+        proxyProtocol.INETProtocol.TCP4,
+        new proxyProtocol.Peer(clientIpV4, 12345),
+        new proxyProtocol.Peer(hostIpV4, brokerPort),
+        mqttPacket.generate(packet)
+      ).build()
+    } else if (ipFamily === 6) {
+      protocol = new proxyProtocol.V1BinaryProxyProtocol(
+        proxyProtocol.INETProtocol.TCP6,
+        new proxyProtocol.Peer(parseIpV6(Buffer.from(clientIpV6).toString('hex')), 12345),
+        new proxyProtocol.Peer(parseIpV6(Buffer.from(hostIpV6).toString('hex')), brokerPort),
+        mqttPacket.generate(packet)
+      ).build()
+    }
   } else if (version === 2) {
-    protocol = new proxyProtocol.V2ProxyProtocol(
-      proxyProtocol.Command.LOCAL,
-      proxyProtocol.TransportProtocol.DGRAM,
-      new proxyProtocol.IPv4ProxyAddress(
-        proxyProtocol.IPv4Address.createFrom(clientIp.split('.')),
-        12346,
-        proxyProtocol.IPv4Address.createFrom([127, 0, 0, 1]),
-        brokerPort
-      ),
-      mqttPacket.generate(packet)
-    ).build()
+    if (ipFamily === 4) {
+      protocol = new proxyProtocol.V2ProxyProtocol(
+        proxyProtocol.Command.LOCAL,
+        proxyProtocol.TransportProtocol.STREAM,
+        new proxyProtocol.IPv4ProxyAddress(
+          proxyProtocol.IPv4Address.createFrom(clientIpV4.split('.')),
+          12346,
+          proxyProtocol.IPv4Address.createFrom(hostIpV4.split('.')),
+          brokerPort
+        ),
+        mqttPacket.generate(packet)
+      ).build()
+    } else if (ipFamily === 6) {
+      protocol = new proxyProtocol.V2ProxyProtocol(
+        proxyProtocol.Command.PROXY,
+        proxyProtocol.TransportProtocol.STREAM,
+        new proxyProtocol.IPv6ProxyAddress(
+          proxyProtocol.IPv6Address.createFrom(clientIpV6),
+          12346,
+          proxyProtocol.IPv6Address.createFrom(hostIpV6),
+          brokerPort
+        ),
+        mqttPacket.generate(packet)
+      ).build()
+    }
   }
 
   var parsedProto = version === 1
@@ -52,11 +85,24 @@ function sendProxyPacket (version = 1) {
     ? parsedProto.destination.port
     : parsedProto.proxyAddress.destinationPort
 
-  var dstHost = version === 1
-    ? parsedProto.destination.ipAddress
-    : parsedProto.proxyAddress.destinationAddress.address.join('.')
+  var dstHost
+  if (version === 1) {
+    if (ipFamily === 4) {
+      dstHost = parsedProto.destination.ipAddress
+    } else if (ipFamily === 6) {
+      dstHost = parsedProto.destination.ipAddress
+      // console.log('ipV6 host :', parsedProto.destination.ipAddress)
+    }
+  } else if (version === 2) {
+    if (ipFamily === 4) {
+      dstHost = parsedProto.proxyAddress.destinationAddress.address.join('.')
+    } else if (ipFamily === 6) {
+      // console.log('ipV6 client :', parseIpV6(Buffer.from(clientIpV6).toString('hex')))
+      dstHost = parseIpV6(Buffer.from(parsedProto.proxyAddress.destinationAddress.address).toString('hex'))
+    }
+  }
 
-  // console.log('Connection to :', dstHost, dstPort)
+  console.log('Connection to :', dstHost, dstPort)
   var mqttConn = net.createConnection(
     {
       port: dstPort,
@@ -65,15 +111,14 @@ function sendProxyPacket (version = 1) {
     }
   )
 
-  var data
-  if (version === 2) {
-    data = Buffer.from(protocol.buffer)
-  } else {
-    data = protocol
-  }
+  var data = protocol
+  // if (!Buffer.isBuffer(protocol)) {
+  //   data = Buffer.from(protocol.buffer)
+  // } else {
+  //   data = protocol
+  // }
 
   mqttConn.on('timeout', function () {
-    // console.log("protocol proxy buffer", data)
     mqttConn.end(data)
   })
 }
@@ -98,10 +143,12 @@ function startAedes () {
   var server = require('net').createServer(broker.handle)
 
   server.listen(brokerPort, function () {
-    console.log('Aedes listening on port:', brokerPort)
+    console.log('Aedes listening on :', server.address())
     broker.publish({ topic: 'aedes/hello', payload: "I'm broker " + broker.id })
     setTimeout(() => sendProxyPacket(1), 250)
-    setTimeout(() => sendProxyPacket(2), 500)
+    setTimeout(() => sendProxyPacket(1, 6), 500)
+    setTimeout(() => sendProxyPacket(2), 750)
+    setTimeout(() => sendProxyPacket(2, 6), 1000)
   })
 
   broker.on('subscribe', function (subscriptions, client) {
