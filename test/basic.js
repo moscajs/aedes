@@ -160,11 +160,9 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
   t.plan(7)
 
   var opts = { clean: true }
-  // var s = noError(connect(setup(), opts), t)
   var s = connect(setup(), opts)
 
   subscribe(t, s, 'hello', 0, function () {
-    // s.conn.emit('close')
     s.conn.destroy(null, function () {
       t.pass('closed streams')
     })
@@ -192,11 +190,9 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
   t.plan(6)
 
   var opts = { clean: false }
-  // var s = noError(connect(setup(), opts), t)
   var s = connect(setup(), opts)
 
   subscribe(t, s, 'hello', 0, function () {
-    // s.conn.emit('close')
     s.conn.destroy(null, function () {
       t.pass('closed streams')
     })

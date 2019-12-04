@@ -112,11 +112,6 @@ function sendProxyPacket (version = 1, ipFamily = 4) {
   )
 
   var data = protocol
-  // if (!Buffer.isBuffer(protocol)) {
-  //   data = Buffer.from(protocol.buffer)
-  // } else {
-  //   data = protocol
-  // }
 
   mqttConn.on('timeout', function () {
     mqttConn.end(data)
