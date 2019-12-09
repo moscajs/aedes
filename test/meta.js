@@ -24,9 +24,7 @@ test('count connected clients', function (t) {
 
       last.conn.destroy()
 
-      // needed because destroy() will do the trick before
-      // the next tick
-      process.nextTick(function () {
+      setImmediate(function () {
         t.equal(broker.connectedClients, 1, 'one connected clients')
       })
     })
