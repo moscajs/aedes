@@ -11,7 +11,7 @@ var noError = helper.noError
 test('supports pingreq/pingresp', function (t) {
   t.plan(1)
 
-  var s = noError(connect(setup()))
+  var s = noError(connect(setup()), t)
 
   s.inStream.write({
     cmd: 'pingreq'
