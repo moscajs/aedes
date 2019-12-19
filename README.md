@@ -110,6 +110,8 @@ Options:
   packet to arrive, defaults to `30000` milliseconds
 * `id`: id used to identify this broker instance in `$SYS` messages,
   defaults to `uuidv4()`
+* `decodeProtocol`: function called when a valid buffer is received, see
+  [instance.decodeProtocol()](#decodeProtocol)
 * `preConnect`: function called when a valid CONNECT is received, see
   [instance.preConnect()](#preConnect)
 * `authenticate`: function used to authenticate clients, see
@@ -220,7 +222,19 @@ Both `topic` and `payload` can be `Buffer` objects instead of strings.
 ### instance.unsubscribe(topic, func(packet, cb), done)
 
 The reverse of [subscribe](#subscribe).
+------------------------------------------------------
+<a name="decodeProtocol"></a>
+### instance.decodeProtocol(client, buffer)
 
+It will be called when aedes instance trustProxy is true and that it receives a first valid buffer from client. client object state is in default and its connected state is false. A default function parse https headers (x-real-ip | x-forwarded-for) and proxy protocol v1 and v2 to retrieve information in client.connDetails. Override to supply custom protocolDecoder logic, if it returns an object with data property, this property will be parsed as an mqtt-packet.
+
+
+```js
+instance.decodeProtocol = function(client, buffer) {
+  var protocol = yourDecoder(client, buffer)
+  return protocol
+}
+```
 -------------------------------------------------------
 <a name="preConnect"></a>
 ### instance.preConnect(client, done(err, successful))

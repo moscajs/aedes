@@ -1,0 +1,17 @@
+{
+  "name": "aedes_proxy",
+  "version": "1.0.0",
+  "description": "Testing Aedes Broker behing proxy",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "getlarge",
+  "license": "MIT",
+  "dependencies": {
+    "aedes": "git+https://git@github.com/getlarge/aedes.git#proxy_and_ip_decoder",
+    "mqemitter": "^3.0.0",
+    "mqtt-packet": "^6.2.1",
+    "proxy-protocol-js": "^4.0.2"
+  }
+}

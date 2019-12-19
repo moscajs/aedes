@@ -98,6 +98,7 @@
     "from2": "^2.3.0",
     "mqemitter": "^3.0.0",
     "mqtt-packet": "^6.2.1",
+    "proxy-protocol-js": "^4.0.2",
     "pump": "^3.0.0",
     "retimer": "^2.0.0",
     "reusify": "^1.0.4",
