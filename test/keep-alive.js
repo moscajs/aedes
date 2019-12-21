@@ -57,15 +57,15 @@ test('supports keep alive disconnections after a pingreq', function (t) {
 
 test('disconnect if a connect does not arrive in time', function (t) {
   t.plan(2)
-  t.timeoutAfter(500)
+  t.timeoutAfter(1000)
 
   var s = setup(aedes({
-    connectTimeout: 100
+    connectTimeout: 500
   }))
   var start = Date.now()
 
   eos(s.conn, function () {
-    t.ok(Date.now() >= start + 100, 'waits waitConnectTimeout before ending')
+    t.ok(Date.now() >= start + 500, 'waits waitConnectTimeout before ending')
     t.pass('ended')
   })
 })
