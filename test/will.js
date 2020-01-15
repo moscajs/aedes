@@ -325,14 +325,17 @@ test('does not store multiple will with same clientid', function (t) {
   var opts = { clientId: 'abcde' }
 
   var broker = aedes()
-  var s = willConnect(setup(broker), opts, function () {
+
+  var s = willConnect(setup(broker, false), opts, function () {
     // gracefully close client so no will is sent
     s.inStream.end({
       cmd: 'disconnect'
     })
+  })
 
+  broker.on('clientDisconnect', function (c) {
     // reconnect same client with will
-    s = willConnect(setup(broker), opts, function () {
+    s = willConnect(setup(broker, false), opts, function () {
       // check that there are not 2 will messages for the same clientid
       s.broker.persistence.delWill({ id: opts.clientId }, function (err, packet) {
         t.error(err, 'no error')
@@ -340,6 +343,7 @@ test('does not store multiple will with same clientid', function (t) {
         s.broker.persistence.delWill({ id: opts.clientId }, function (err, packet) {
           t.error(err, 'no error')
           t.equal(!!packet, false, 'no duplicated packets')
+          broker.close()
         })
       })
     })
