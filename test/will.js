@@ -320,3 +320,30 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
 
   broker.on('closed', t.end.bind(t))
 })
+
+test('does not store multiple will with same clientid', function (t) {
+  var opts = { clientId: 'abcde' }
+
+  var broker = aedes()
+  var s = willConnect(setup(broker), opts, function () {
+    // gracefully close client so no will is sent
+    s.inStream.end({
+      cmd: 'disconnect'
+    })
+
+    // reconnect same client with will
+    s = willConnect(setup(broker), opts, function () {
+      // check that there are not 2 will messages for the same clientid
+      s.broker.persistence.delWill({ id: opts.clientId }, function (err, packet) {
+        t.error(err, 'no error')
+        t.equal(packet.clientId, opts.clientId, 'will packet found')
+        s.broker.persistence.delWill({ id: opts.clientId }, function (err, packet) {
+          t.error(err, 'no error')
+          t.equal(!!packet, false, 'no duplicated packets')
+        })
+      })
+    })
+  })
+
+  broker.on('closed', t.end.bind(t))
+})
