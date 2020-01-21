@@ -8,18 +8,22 @@
 [![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 [![NPM downloads](https://img.shields.io/npm/dm/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 
+[![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
+
 Barebone MQTT server that can run on any stream server.
 
-[![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
+| QoS 0 | QoS 1 | QoS 2 | auth | [bridge][bridge_protocol] | $SYS topics | SSL | [dynamic topics][dynamic_topics] | cluster | websockets | plugin system | MQTT 5 |
+| ----- | ----- | ----- | ---- | ------------------------- | ----------- | --- | -------------------------------- | ------- | ---------- | ------------- | ------ |
+| ✔     | ✔     | ✔     | ✔    | ?                         | ✔           | ✔   | ✔                                | ✔       | ✔          | ✔             | ✘      |
 
 * [Install](#install)
 * [Example](#example)
 * [API](#api)
 * [TODO](#todo)
+* [Plugins](#plugins)
 * [Collaborators](#collaborators)
 * [Acknowledgements](#acknowledgements)
 * [License](#license)
-
 
 <a name="install"></a>
 ## Install
@@ -57,6 +61,29 @@ var server = require('tls').createServer(options, aedes.handle)
 
 server.listen(8883, function () {
   console.log('server started and listening on port 8883')
+})
+```
+
+### WEBSOCKETS
+
+```js
+var aedes = require('./aedes')()
+var server = require('net').createServer(aedes.handle)
+var httpServer = require('http').createServer()
+var ws = require('websocket-stream')
+var port = 1883
+var wsPort = 8888
+
+server.listen(port, function () {
+  console.log('server listening on port', port)
+})
+
+ws.createServer({
+  server: httpServer
+}, aedes.handle)
+
+httpServer.listen(wsPort, function () {
+  console.log('websocket server listening on port', wsPort)
 })
 ```
 
@@ -475,6 +502,16 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
 
+## Plugins
+
+- [aedes-persistence](https://github.com/moscajs/aedes-persistence): In-memory implementation of an Aedes persistence
+  - [aedes-persistence-mongodb](https://github.com/moscajs/aedes-persistence-mongodb): MongoDB persistence for Aedes
+  - [aedes-persistence-redis](https://github.com/moscajs/aedes-persistence-redis): Redis persistence for Aedes
+  - [aedes-persistence-level](https://github.com/moscajs/aedes-persistence-level): LevelDB persistence for Aedes
+  - [aedes-persistence-nedb](https://github.com/ovhemert/aedes-persistence-nedb#readme): NeDB persistence for Aedes
+- [aedes-logging](https://github.com/moscajs/aedes-logging): Logging module for Aedes, based on Pino
+- [aedes-stats](https://github.com/moscajs/aedes-stats): Stats for Aedes
+
 ## Collaborators
 
 * [__Gavin D'mello__](https://github.com/GavinDmello)
@@ -491,3 +528,6 @@ stability.
 ## License
 
 MIT
+
+[dynamic_topics]: https://github.com/mqtt/mqtt.github.io/wiki/are_topics_dynamic
+[bridge_protocol]: https://github.com/mqtt/mqtt.github.io/wiki/bridge_protocol
