@@ -121,13 +121,8 @@ Creates a new instance of Aedes.
 
 Options:
 
-* `mq`: an instance of [MQEmitter](http://npm.im/mqemitter),
-  such as [MQEmitterRedis](http://npm.im/mqemitter-redis)
-  or [MQEmitterMongoDB](http://npm.im/mqemitter-mongodb). Used to share messages between multiple brokers instances (ex: clusters)
-* `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence),
-  such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis),
-  [aedes-persistence-nedb](http://npm.im/aedes-persistence-nedb)
-  or [aedes-persistence-mongodb](http://npm.im/aedes-persistence-mongodb). It's used to store QoS > 1 packets, retained packets, will messages and subscriptions in memory or on disk (if not specified default persistence is in memory)
+* `mq`: an instance of [MQEmitter](http://npm.im/mqemitter), check [plugins](#plugins) for more mqemitters options. Used to share messages between multiple brokers instances (ex: clusters)
+* `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence), check [plugins](#plugins) for more persistence options. It's used to store *QoS > 1*, *retained*, *will* packets and subscriptions in memory or on disk (if not specified default persistence is in memory)
 * `concurrency`: the max number of messages delivered concurrently,
   defaults to `100`
 * `heartbeatInterval`: the interval at which the broker heartbeat is
