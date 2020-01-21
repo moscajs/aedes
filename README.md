@@ -509,6 +509,13 @@ The payload will contain the `clientId` of the connected/disconnected client
   - [aedes-persistence-redis](https://github.com/moscajs/aedes-persistence-redis): Redis persistence for Aedes
   - [aedes-persistence-level](https://github.com/moscajs/aedes-persistence-level): LevelDB persistence for Aedes
   - [aedes-persistence-nedb](https://github.com/ovhemert/aedes-persistence-nedb#readme): NeDB persistence for Aedes
+- [mqemitter](https://github.com/mcollina/mqemitter): An Opinionated Message Queue with an emitter-style API
+  - [mqemitter-redis](https://github.com/mcollina/mqemitter-redis): Redis-powered mqemitter
+  - [mqemitter-mongodb](https://github.com/mcollina/mqemitter-mongodb): Mongodb based mqemitter
+  - [mqemitter-child-process](https://github.com/mcollina/mqemitter-child-process): Share the same mqemitter between a hierarchy of child processes
+  - [mqemitter-cs](https://github.com/mcollina/mqemitter-cs): Expose a MQEmitter via a simple client/server protocol
+  - [mqemitter-p2p](https://github.com/mcollina/mqemitter-p2p): A P2P implementation of MQEmitter, based on HyperEmitter and a Merkle DAG
+  - [mqemitter-aerospike](https://github.com/GavinDmello/mqemitter-aerospike): Aerospike mqemitter based on @mcollina 's mqemitter
 - [aedes-logging](https://github.com/moscajs/aedes-logging): Logging module for Aedes, based on Pino
 - [aedes-stats](https://github.com/moscajs/aedes-stats): Stats for Aedes
 
