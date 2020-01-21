@@ -8,18 +8,23 @@
 [![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 [![NPM downloads](https://img.shields.io/npm/dm/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 
+[![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
+
 Barebone MQTT server that can run on any stream server.
 
-[![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
+| QoS 0 | QoS 1 | QoS 2 | auth | [bridge][bridge_protocol] | $SYS topics | SSL | [dynamic topics][dynamic_topics] | cluster | websockets | plugin system | MQTT 5 |
+| ----- | ----- | ----- | ---- | ------------------------- | ----------- | --- | -------------------------------- | ------- | ---------- | ------------- | ------ |
+| ✔     | ✔     | ✔     | ✔    | ?                         | ✔           | ✔   | ✔                                | ✔       | ✔          | ✔             | ✘      |
 
 * [Install](#install)
 * [Example](#example)
 * [API](#api)
 * [TODO](#todo)
+* [Plugins](#plugins)
 * [Collaborators](#collaborators)
 * [Acknowledgements](#acknowledgements)
+* [Mosca Vs Aedes](#mosca-vs-aedes)
 * [License](#license)
-
 
 <a name="install"></a>
 ## Install
@@ -60,6 +65,29 @@ server.listen(8883, function () {
 })
 ```
 
+### WEBSOCKETS
+
+```js
+var aedes = require('./aedes')()
+var server = require('net').createServer(aedes.handle)
+var httpServer = require('http').createServer()
+var ws = require('websocket-stream')
+var port = 1883
+var wsPort = 8888
+
+server.listen(port, function () {
+  console.log('server listening on port', port)
+})
+
+ws.createServer({
+  server: httpServer
+}, aedes.handle)
+
+httpServer.listen(wsPort, function () {
+  console.log('websocket server listening on port', wsPort)
+})
+```
+
 <a name="api"></a>
 ## API
 
@@ -94,13 +122,8 @@ Creates a new instance of Aedes.
 
 Options:
 
-* `mq`: an instance of [MQEmitter](http://npm.im/mqemitter),
-  such as [MQEmitterRedis](http://npm.im/mqemitter-redis)
-  or [MQEmitterMongoDB](http://npm.im/mqemitter-mongodb)
-* `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence),
-  such as [aedes-persistence-redis](http://npm.im/aedes-persistence-redis),
-  [aedes-persistence-nedb](http://npm.im/aedes-persistence-nedb)
-  or [aedes-persistence-mongodb](http://npm.im/aedes-persistence-mongodb)
+* `mq`: an instance of [MQEmitter](http://npm.im/mqemitter), check [plugins](#plugins) for more mqemitters options. Used to share messages between multiple brokers instances (ex: clusters)
+* `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence), check [plugins](#plugins) for more persistence options. It's used to store *QoS > 1*, *retained*, *will* packets and subscriptions in memory or on disk (if not specified default persistence is in memory)
 * `concurrency`: the max number of messages delivered concurrently,
   defaults to `100`
 * `heartbeatInterval`: the interval at which the broker heartbeat is
@@ -475,6 +498,23 @@ You can subscribe on the following `$SYS` topics to get client presence:
  - `$SYS/+/disconnect/clients` - will inform about client disconnections.
 The payload will contain the `clientId` of the connected/disconnected client
 
+## Plugins
+
+- [aedes-persistence](https://github.com/moscajs/aedes-persistence): In-memory implementation of an Aedes persistence
+  - [aedes-persistence-mongodb](https://github.com/moscajs/aedes-persistence-mongodb): MongoDB persistence for Aedes
+  - [aedes-persistence-redis](https://github.com/moscajs/aedes-persistence-redis): Redis persistence for Aedes
+  - [aedes-persistence-level](https://github.com/moscajs/aedes-persistence-level): LevelDB persistence for Aedes
+  - [aedes-persistence-nedb](https://github.com/ovhemert/aedes-persistence-nedb#readme): NeDB persistence for Aedes
+- [mqemitter](https://github.com/mcollina/mqemitter): An Opinionated Message Queue with an emitter-style API
+  - [mqemitter-redis](https://github.com/mcollina/mqemitter-redis): Redis-powered mqemitter
+  - [mqemitter-mongodb](https://github.com/mcollina/mqemitter-mongodb): Mongodb based mqemitter
+  - [mqemitter-child-process](https://github.com/mcollina/mqemitter-child-process): Share the same mqemitter between a hierarchy of child processes
+  - [mqemitter-cs](https://github.com/mcollina/mqemitter-cs): Expose a MQEmitter via a simple client/server protocol
+  - [mqemitter-p2p](https://github.com/mcollina/mqemitter-p2p): A P2P implementation of MQEmitter, based on HyperEmitter and a Merkle DAG
+  - [mqemitter-aerospike](https://github.com/GavinDmello/mqemitter-aerospike): Aerospike mqemitter based on @mcollina 's mqemitter
+- [aedes-logging](https://github.com/moscajs/aedes-logging): Logging module for Aedes, based on Pino
+- [aedes-stats](https://github.com/moscajs/aedes-stats): Stats for Aedes
+
 ## Collaborators
 
 * [__Gavin D'mello__](https://github.com/GavinDmello)
@@ -488,6 +528,45 @@ This library is born after a lot of discussion with all
 production. This addresses your concerns about performance and
 stability.
 
+## Mosca vs Aedes
+
+Example benchmark test with 1000 clients sending 5000 QoS 1 messsages. Used [mqtt-benchmark](https://github.com/krylovsk/mqtt-benchmark) with command:
+
+`mqtt-benchmark --broker tcp://localhost:1883 --clients 1000 --qos 1 --count 5000`
+
+### Aedes
+
+```
+========= TOTAL (1000) =========
+Total Ratio:                 1.000 (5000000/5000000)
+Total Runtime (sec):         178.495
+Average Runtime (sec):       177.845
+Msg time min (ms):           0.077
+Msg time max (ms):           199.805
+Msg time mean mean (ms):     35.403
+Msg time mean std (ms):      0.042
+Average Bandwidth (msg/sec): 28.115
+Total Bandwidth (msg/sec):   28114.678
+```
+
+### Mosca
+
+```
+========= TOTAL (1000) =========
+Total Ratio:                 1.000 (5000000/5000000)
+Total Runtime (sec):         264.934
+Average Runtime (sec):       264.190
+Msg time min (ms):           0.070
+Msg time max (ms):           168.116
+Msg time mean mean (ms):     52.629
+Msg time mean std (ms):      0.074
+Average Bandwidth (msg/sec): 18.926
+Total Bandwidth (msg/sec):   18925.942
+```
+
 ## License
 
 MIT
+
+[dynamic_topics]: https://github.com/mqtt/mqtt.github.io/wiki/are_topics_dynamic
+[bridge_protocol]: https://github.com/mqtt/mqtt.github.io/wiki/bridge_protocol
