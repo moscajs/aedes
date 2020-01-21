@@ -23,6 +23,7 @@ Barebone MQTT server that can run on any stream server.
 * [Plugins](#plugins)
 * [Collaborators](#collaborators)
 * [Acknowledgements](#acknowledgements)
+* [Mosca Vs Aedes](#mosca-vs-aedes)
 * [License](#license)
 
 <a name="install"></a>
@@ -526,6 +527,42 @@ This library is born after a lot of discussion with all
 [Mosca](http://npm.im/mosca) users and how that was deployed in
 production. This addresses your concerns about performance and
 stability.
+
+## Mosca vs Aedes
+
+Example benchmark test with 1000 clients sending 5000 QoS 1 messsages. Used [mqtt-benchmark](https://github.com/krylovsk/mqtt-benchmark) with command:
+
+`mqtt-benchmark --broker tcp://localhost:1883 --clients 1000 --qos 1 --count 5000`
+
+### Aedes
+
+```
+========= TOTAL (1000) =========
+Total Ratio:                 1.000 (5000000/5000000)
+Total Runtime (sec):         178.495
+Average Runtime (sec):       177.845
+Msg time min (ms):           0.077
+Msg time max (ms):           199.805
+Msg time mean mean (ms):     35.403
+Msg time mean std (ms):      0.042
+Average Bandwidth (msg/sec): 28.115
+Total Bandwidth (msg/sec):   28114.678
+```
+
+### Mosca
+
+```
+========= TOTAL (1000) =========
+Total Ratio:                 1.000 (5000000/5000000)
+Total Runtime (sec):         264.934
+Average Runtime (sec):       264.190
+Msg time min (ms):           0.070
+Msg time max (ms):           168.116
+Msg time mean mean (ms):     52.629
+Msg time mean std (ms):      0.074
+Average Bandwidth (msg/sec): 18.926
+Total Bandwidth (msg/sec):   18925.942
+```
 
 ## License
 
