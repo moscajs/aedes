@@ -332,6 +332,46 @@ test('reject clients with wrong protocol name', function (t) {
   broker.on('closed', t.end.bind(t))
 })
 
+test.only('After first CONNECT Packet, others are queued until \'connect\' event', function (t) {
+  t.plan(2)
+
+  var broker = aedes()
+
+  var publishP = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false
+  }
+
+  var connectP = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'abcde',
+    keepalive: 0
+  }
+
+  var s = setup(broker, false)
+  s.inStream.write(connectP)
+
+  for (let i = 0; i < 10; i++) {
+    s.inStream.write(publishP)
+  }
+
+  broker.on('client', function (client) {
+    t.equal(client.parser._queue.length, 10, 'Packets have been queued')
+
+    setTimeout(() => {
+      t.equal(client.parser._queue.length, 0, 'Queue is empty')
+      s.conn.destroy()
+      broker.close(t.end)
+    }, 100)
+  })
+})
+
 ;[[0, null, false], [1, null, true], [1, new Error('connection banned'), false], [1, new Error('connection banned'), true]].forEach(function (ele) {
   var plan = ele[0]
   var err = ele[1]
