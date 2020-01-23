@@ -1,0 +1,49 @@
+jobs:
+    redis:
+        build:
+        runs-on: ubuntu-18.04
+        services:
+            redis:
+              image: redis
+              ports:
+                - 6379:6379
+        strategy:
+            matrix:
+            node: [ '12', '10', '8' ]
+        name: Node ${{ matrix.node }} test
+        steps:
+            - uses: actions/checkout@v1
+            - name: Setup node
+            uses: actions/setup-node@v1
+            with:
+                node-version: ${{ matrix.node }}
+            env:
+                AEDES_PERSISTENCE: aedes-persistence-redis
+                AEDES_MQEMITTER: mqemitter-redis
+                REDIS_HOST: localhost
+                REDIS_PORT: 6379                    
+            - run: npm install
+            - run: npm test
+    mongo:
+        build:
+        runs-on: ubuntu-18.04
+        services:
+            mongodb:
+                image: mongo:3.4.23
+                ports:
+                  - 27017:27017
+        strategy:
+            matrix:
+            node: [ '12', '10', '8' ]
+        name: Node ${{ matrix.node }} test
+        steps:
+            - uses: actions/checkout@v1
+            - name: Setup node
+            uses: actions/setup-node@v1
+            with:
+                node-version: ${{ matrix.node }}
+            env:
+                AEDES_PERSISTENCE: aedes-persistence-mongodb
+                AEDES_MQEMITTER: mqemitter-mongodb
+            - run: npm install
+            - run: npm test
