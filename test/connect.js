@@ -332,7 +332,7 @@ test('reject clients with wrong protocol name', function (t) {
   broker.on('closed', t.end.bind(t))
 })
 
-test.only('After first CONNECT Packet, others are queued until \'connect\' event', function (t) {
+test('After first CONNECT Packet, others are queued until \'connect\' event', function (t) {
   t.plan(2)
 
   var broker = aedes()
