@@ -2,7 +2,8 @@
 
 var mqtt = require('mqtt')
 var test = require('tape').test
-var aedes = require('../')
+var helper = require('./helper')
+var aedes = helper.aedes
 var net = require('net')
 var port = 4883
 

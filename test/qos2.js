@@ -2,7 +2,7 @@
 
 var test = require('tape').test
 var helper = require('./helper')
-var aedes = require('../')
+var aedes = helper.aedes
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe

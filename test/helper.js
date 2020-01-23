@@ -7,13 +7,26 @@ var duplexify = require('duplexify')
 var parseStream = mqtt.parseStream
 var generateStream = mqtt.generateStream
 var clients = 0
+var persistence = require(process.env.AEDES_PERSISTENCE || 'aedes-persistence')
+var mqemitter = require(process.env.AEDES_MQEMITTER || 'mqemitter')
+
+function initAedes (opts) {
+  var options = {
+    persistence: persistence(),
+    mq: mqemitter()
+  }
+
+  Object.assign(options, opts)
+
+  return aedes(options)
+}
 
 function setup (broker, autoClose) {
   var inStream = generateStream()
   var outStream = parseStream()
   var conn = duplexify(outStream, inStream)
 
-  broker = broker || aedes()
+  broker = broker || initAedes()
 
   broker.handle(conn)
 
@@ -118,6 +131,9 @@ module.exports = {
   setup: setup,
   connect: connect,
   noError: noError,
+  aedes: initAedes,
+  persistence: persistence,
+  mqemitter: mqemitter,
   subscribe: subscribe,
   subscribeMultiple: subscribeMultiple
 }

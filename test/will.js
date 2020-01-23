@@ -1,9 +1,9 @@
 'use strict'
 
 var test = require('tape').test
-var memory = require('aedes-persistence')
 var helper = require('./helper')
-var aedes = require('../')
+var persistence = helper.persistence
+var aedes = helper.aedes
 var setup = helper.setup
 var connect = helper.connect
 
@@ -70,7 +70,7 @@ test('calling close two times should not deliver two wills', function (t) {
 test('delivers old will in case of a crash', function (t) {
   t.plan(7)
 
-  var persistence = memory()
+  var myPersistence = persistence()
   var will = {
     topic: 'mywill',
     payload: Buffer.from('last will'),
@@ -78,18 +78,18 @@ test('delivers old will in case of a crash', function (t) {
     retain: false
   }
 
-  persistence.broker = {
+  myPersistence.broker = {
     id: 'anotherBroker'
   }
 
-  persistence.putWill({
+  myPersistence.putWill({
     id: 'myClientId42'
   }, will, function (err) {
     t.error(err, 'no error')
 
     var interval = 10 // ms, so that the will check happens fast!
     var broker = aedes({
-      persistence: persistence,
+      persistence: myPersistence,
       heartbeatInterval: interval
     })
     var start = Date.now()
