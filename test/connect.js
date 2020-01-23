@@ -333,8 +333,6 @@ test('reject clients with wrong protocol name', function (t) {
 })
 
 test('After first CONNECT Packet, others are queued until \'connect\' event', function (t) {
-  t.plan(2)
-
   var broker = aedes()
 
   var publishP = {
@@ -357,12 +355,14 @@ test('After first CONNECT Packet, others are queued until \'connect\' event', fu
   var s = setup(broker, false)
   s.inStream.write(connectP)
 
-  for (let i = 0; i < 10; i++) {
+  process.once('warning', e => t.fail('Memory leak detected'))
+
+  for (let i = 0; i < 100; i++) {
     s.inStream.write(publishP)
   }
 
   broker.on('client', function (client) {
-    t.equal(client.parser._queue.length, 10, 'Packets have been queued')
+    t.equal(client.parser._queue.length, 100, 'Packets have been queued')
 
     client.once('connected', () => {
       t.equal(client.parser._queue, null, 'Queue is empty')
