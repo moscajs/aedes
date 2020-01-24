@@ -22,6 +22,7 @@ Barebone MQTT server that can run on any stream server.
 * [TODO](#todo)
 * [Plugins](#plugins)
 * [Collaborators](#collaborators)
+* [Contributing](#contributing)
 * [Acknowledgements](#acknowledgements)
 * [Mosca Vs Aedes](#mosca-vs-aedes)
 * [License](#license)
@@ -529,6 +530,10 @@ This library is born after a lot of discussion with all
 [Mosca](http://npm.im/mosca) users and how that was deployed in
 production. This addresses your concerns about performance and
 stability.
+
+## Contributing
+
+Want to contribute? Check our list of features/bugs [here](https://github.com/moscajs/aedes/projects/1)
 
 ## Mosca vs Aedes
 
