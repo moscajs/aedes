@@ -24,21 +24,23 @@ test('live retain packets', function (t) {
 
   var s = noError(connect(setup()), t)
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected)
-    })
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0, function () {
+      s.outStream.on('data', function (packet) {
+        t.deepEqual(packet, expected)
+      })
 
-    s.broker.publish({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: Buffer.from('world'),
-      retain: true,
-      dup: false,
-      length: 12,
-      qos: 0
-    }, function () {
-      t.pass('publish finished')
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        retain: true,
+        dup: false,
+        length: 12,
+        qos: 0
+      }, function () {
+        t.pass('publish finished')
+      })
     })
   })
 })
@@ -59,22 +61,26 @@ test('retain messages', function (t) {
     retain: true
   }
 
-  broker.subscribe('hello', function (packet, cb) {
-    cb()
+  subscriber.broker.once('clientReady', () => {
+    publisher.broker.once('clientReady', () => {
+      broker.subscribe('hello', function (packet, cb) {
+        cb()
 
-    // defer this or it will receive the message which
-    // is being published
-    setImmediate(function () {
-      subscribe(t, subscriber, 'hello', 0, function () {
-        subscriber.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet must match')
-          t.end()
+        // defer this or it will receive the message which
+        // is being published
+        setImmediate(function () {
+          subscribe(t, subscriber, 'hello', 0, function () {
+            subscriber.outStream.once('data', function (packet) {
+              t.deepEqual(packet, expected, 'packet must match')
+              t.end()
+            })
+          })
         })
       })
+
+      publisher.inStream.write(expected)
     })
   })
-
-  publisher.inStream.write(expected)
 })
 
 test('avoid wrong deduping of retain messages', function (t) {
@@ -93,32 +99,36 @@ test('avoid wrong deduping of retain messages', function (t) {
     retain: true
   }
 
-  broker.subscribe('hello', function (packet, cb) {
-    cb()
-    // subscribe and publish another topic
-    subscribe(t, subscriber, 'hello2', 0, function () {
-      cb()
+  subscriber.broker.once('clientReady', () => {
+    publisher.broker.once('clientReady', () => {
+      broker.subscribe('hello', function (packet, cb) {
+        cb()
+        // subscribe and publish another topic
+        subscribe(t, subscriber, 'hello2', 0, function () {
+          cb()
 
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: 'hello2',
-        payload: Buffer.from('world'),
-        qos: 0,
-        dup: false
-      })
+          publisher.inStream.write({
+            cmd: 'publish',
+            topic: 'hello2',
+            payload: Buffer.from('world'),
+            qos: 0,
+            dup: false
+          })
 
-      subscriber.outStream.once('data', function (packet) {
-        subscribe(t, subscriber, 'hello', 0, function () {
           subscriber.outStream.once('data', function (packet) {
-            t.deepEqual(packet, expected, 'packet must match')
-            t.end()
+            subscribe(t, subscriber, 'hello', 0, function () {
+              subscriber.outStream.once('data', function (packet) {
+                t.deepEqual(packet, expected, 'packet must match')
+                t.end()
+              })
+            })
           })
         })
       })
+
+      publisher.inStream.write(expected)
     })
   })
-
-  publisher.inStream.write(expected)
 })
 
 test('reconnected subscriber will not receive retained messages when QoS 0 and clean', function (t) {
@@ -136,27 +146,32 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
     dup: false,
     length: 12
   }
-  subscribe(t, subscriber, 'hello', 0, function () {
-    publisher.inStream.write({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world',
-      qos: 0,
-      retain: false
-    })
-    subscriber.outStream.once('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
-      subscriber.inStream.end()
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'foo',
-        qos: 0,
-        retain: true
-      })
-      subscriber = connect(setup(broker, false), { clean: true })
-      subscriber.outStream.on('data', function (packet) {
-        t.fail('should not received retain message')
+
+  subscriber.broker.once('clientReady', () => {
+    publisher.broker.once('clientReady', () => {
+      subscribe(t, subscriber, 'hello', 0, function () {
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 0,
+          retain: false
+        })
+        subscriber.outStream.once('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+          subscriber.inStream.end()
+          publisher.inStream.write({
+            cmd: 'publish',
+            topic: 'hello',
+            payload: 'foo',
+            qos: 0,
+            retain: true
+          })
+          subscriber = connect(setup(broker, false), { clean: true })
+          subscriber.outStream.on('data', function (packet) {
+            t.fail('should not received retain message')
+          })
+        })
       })
     })
   })
@@ -169,7 +184,6 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
   t.plan(9)
 
   var broker = aedes()
-  var publisher = connect(setup(broker), { clean: true })
   var expected = {
     cmd: 'publish',
     topic: 'hello/world',
@@ -179,25 +193,38 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
     dup: false,
     length: 26
   }
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello/world',
-    payload: 'big big world',
-    qos: 0,
-    retain: true
-  })
-  var subscriber1 = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber1, 'hello/world', 0, function () {
-    subscriber1.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+
+  var publisher = connect(setup(broker), { clean: true })
+  publisher.broker.once('clientReady', () => {
+    console.log('publisher')
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello/world',
+      payload: 'big big world',
+      qos: 0,
+      retain: true
+    })
+
+    var subscriber1 = connect(setup(broker, false), { clean: true })
+    subscriber1.broker.once('clientReady', () => {
+      console.log('subscriber1')
+      subscribe(t, subscriber1, 'hello/world', 0, function () {
+        subscriber1.outStream.on('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+        })
+      })
+    })
+    var subscriber2 = connect(setup(broker, false), { clean: true })
+    subscriber2.broker.once('clientReady', () => {
+      console.log('subscriber2')
+      subscribe(t, subscriber2, 'hello/+', 0, function () {
+        subscriber2.outStream.on('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+        })
+      })
     })
   })
-  var subscriber2 = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber2, 'hello/+', 0, function () {
-    subscriber2.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
-    })
-  })
+
   broker.on('closed', function () {
     t.equal(broker.counter, 9)
     t.end()
@@ -219,24 +246,30 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
     dup: false,
     length: 12
   }
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world',
-    qos: 1,
-    retain: true,
-    messageId: 42
-  })
-  publisher.outStream.on('data', function (packet) {
-    var subscriber = connect(setup(broker, false), { clean: true })
-    subscribe(t, subscriber, 'hello', 0, function () {
-      subscriber.outStream.on('data', function (packet) {
-        t.notEqual(packet.messageId, 42, 'messageId should not be the same')
-        delete packet.messageId
-        t.deepEqual(packet, expected, 'packet must match')
+
+  publisher.broker.once('clientReady', () => {
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      retain: true,
+      messageId: 42
+    })
+    publisher.outStream.on('data', function (packet) {
+      var subscriber = connect(setup(broker, false), { clean: true })
+      subscriber.broker.once('clientReady', () => {
+        subscribe(t, subscriber, 'hello', 0, function () {
+          subscriber.outStream.on('data', function (packet) {
+            t.notEqual(packet.messageId, 42, 'messageId should not be the same')
+            delete packet.messageId
+            t.deepEqual(packet, expected, 'packet must match')
+          })
+        })
       })
     })
   })
+
   broker.on('closed', function () {
     t.equal(broker.counter, 6)
     t.end()
@@ -249,24 +282,29 @@ test('clean retained messages', function (t) {
 
   var broker = aedes()
   var publisher = connect(setup(broker), { clean: true })
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world',
-    qos: 0,
-    retain: true
-  })
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: '',
-    qos: 0,
-    retain: true
-  })
-  var subscriber = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.outStream.once('data', function (packet) {
-      t.fail('should not received retain message')
+
+  publisher.broker.once('clientReady', () => {
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 0,
+      retain: true
+    })
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: '',
+      qos: 0,
+      retain: true
+    })
+    var subscriber = connect(setup(broker, false), { clean: true })
+    subscriber.broker.once('clientReady', () => {
+      subscribe(t, subscriber, 'hello', 0, function () {
+        subscriber.outStream.once('data', function (packet) {
+          t.fail('should not received retain message')
+        })
+      })
     })
   })
   broker.on('closed', t.end.bind(t))
@@ -279,11 +317,13 @@ test('broker not store zero-byte retained messages', function (t) {
   var broker = aedes()
   var s = connect(setup(broker))
 
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: '',
-    retain: true
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: '',
+      retain: true
+    })
   })
   s.broker.on('publish', function (packet, client) {
     if (packet.topic.startsWith('$SYS/')) {
@@ -311,24 +351,29 @@ test('fail to clean retained messages without retain flag', function (t) {
     dup: false,
     length: 12
   }
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world',
-    qos: 0,
-    retain: true
-  })
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: '',
-    qos: 0,
-    retain: false
-  })
-  var subscriber = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+
+  publisher.broker.once('clientReady', () => {
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 0,
+      retain: true
+    })
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: '',
+      qos: 0,
+      retain: false
+    })
+    var subscriber = connect(setup(broker, false), { clean: true })
+    subscriber.broker.once('clientReady', () => {
+      subscribe(t, subscriber, 'hello', 0, function () {
+        subscriber.outStream.on('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+        })
+      })
     })
   })
   broker.on('closed', t.end.bind(t))
@@ -348,24 +393,29 @@ test('only get the last retained messages in same topic', function (t) {
     dup: false,
     length: 10
   }
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world',
-    qos: 0,
-    retain: true
-  })
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'foo',
-    qos: 0,
-    retain: true
-  })
-  var subscriber = connect(setup(broker, false), { clean: true })
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+
+  publisher.broker.once('clientReady', () => {
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 0,
+      retain: true
+    })
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'foo',
+      qos: 0,
+      retain: true
+    })
+    var subscriber = connect(setup(broker, false), { clean: true })
+    subscriber.broker.once('clientReady', () => {
+      subscribe(t, subscriber, 'hello', 0, function () {
+        subscriber.outStream.on('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet must match')
+        })
+      })
     })
   })
   broker.on('closed', t.end.bind(t))
@@ -376,7 +426,6 @@ test('deliver QoS 1 retained messages to new subscriptions', function (t) {
 
   var broker = aedes()
   var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -387,21 +436,26 @@ test('deliver QoS 1 retained messages to new subscriptions', function (t) {
     retain: true
   }
 
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world',
-    qos: 1,
-    messageId: 42,
-    retain: true
+  publisher.broker.once('clientReady', () => {
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42,
+      retain: true
+    })
   })
 
   publisher.outStream.on('data', function (packet) {
-    subscribe(t, subscriber, 'hello', 1, function () {
-      subscriber.outStream.once('data', function (packet) {
-        delete packet.messageId
-        t.deepEqual(packet, expected, 'packet must match')
-        t.end()
+    var subscriber = connect(setup(broker))
+    subscriber.broker.once('clientReady', () => {
+      subscribe(t, subscriber, 'hello', 1, function () {
+        subscriber.outStream.once('data', function (packet) {
+          delete packet.messageId
+          t.deepEqual(packet, expected, 'packet must match')
+          t.end()
+        })
       })
     })
   })
@@ -411,7 +465,6 @@ test('deliver QoS 1 retained messages to established subscriptions', function (t
   t.plan(4)
 
   var broker = aedes()
-  var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
     cmd: 'publish',
@@ -423,19 +476,25 @@ test('deliver QoS 1 retained messages to established subscriptions', function (t
     retain: false
   }
 
-  subscribe(t, subscriber, 'hello', 1, function () {
-    subscriber.outStream.once('data', function (packet) {
-      delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
-      t.end()
-    })
-    publisher.inStream.write({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world',
-      qos: 1,
-      messageId: 42,
-      retain: true
+  subscriber.broker.once('clientReady', () => {
+    subscribe(t, subscriber, 'hello', 1, function () {
+      subscriber.outStream.once('data', function (packet) {
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+        t.end()
+      })
+      var publisher = connect(setup(broker))
+      publisher.broker.once('clientReady', () => {
+        console.log('test')
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 1,
+          messageId: 42,
+          retain: true
+        })
+      })
     })
   })
 })
@@ -459,9 +518,7 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
   broker.mq.on('hello', function (msg, cb) {
     cb()
 
-    // defer this or it will receive the message which
-    // is being published
-    setImmediate(function () {
+    subscriber.broker.once('clientReady', () => {
       subscribe(t, subscriber, 'hello', 1, function () {
         subscriber.outStream.once('data', function (packet) {
           t.deepEqual(packet, expected, 'packet must match')
@@ -471,13 +528,15 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
     })
   })
 
-  publisher.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0,
-    messageId: 42,
-    retain: true
+  publisher.broker.once('clientReady', () => {
+    publisher.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 0,
+      messageId: 42,
+      retain: true
+    })
   })
 })
 
@@ -497,47 +556,51 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
     retain: true
   }
 
-  subscribe(t, subscriber, 'hello', 1, function () {
-    subscriber.inStream.write({
-      cmd: 'disconnect'
-    })
-
-    subscriber.outStream.on('data', function (packet) {
-      console.log('original', packet)
-    })
-
-    publisher = connect(setup(broker))
-
-    publisher.inStream.write({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world',
-      qos: 1,
-      messageId: 42,
-      retain: true
-    })
-
-    publisher.outStream.once('data', function (packet) {
-      t.equal(packet.cmd, 'puback')
-
-      broker.on('clientError', function (client, err) {
-        t.equal(err.message, 'connection closed')
+  subscriber.broker.once('clientReady', () => {
+    subscribe(t, subscriber, 'hello', 1, function () {
+      subscriber.inStream.write({
+        cmd: 'disconnect'
       })
 
-      subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
-        t.equal(connect.sessionPresent, true, 'session present is set to true')
+      subscriber.outStream.on('data', function (packet) {
+        console.log('original', packet)
       })
 
-      subscriber.outStream.once('data', function (packet) {
-        // receive any queued messages (no matter they are retained messages) at the disconnected time
-        t.notEqual(packet.messageId, 42, 'messageId must differ')
-        delete packet.messageId
-        packet.length = 14
-        t.deepEqual(packet, expected, 'packet must match')
+      publisher = connect(setup(broker))
 
-        // there should be no messages come from restored subscriptions
+      publisher.broker.once('clientReady', () => {
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 1,
+          messageId: 42,
+          retain: true
+        })
+      })
+
+      publisher.outStream.once('data', function (packet) {
+        t.equal(packet.cmd, 'puback')
+
+        broker.on('clientError', function (client, err) {
+          t.equal(err.message, 'connection closed')
+        })
+
+        subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
+          t.equal(connect.sessionPresent, true, 'session present is set to true')
+        })
+
         subscriber.outStream.once('data', function (packet) {
-          t.fail('should not receive any more messages')
+          // receive any queued messages (no matter they are retained messages) at the disconnected time
+          t.notEqual(packet.messageId, 42, 'messageId must differ')
+          delete packet.messageId
+          packet.length = 14
+          t.deepEqual(packet, expected, 'packet must match')
+
+          // there should be no messages come from restored subscriptions
+          subscriber.outStream.once('data', function (packet) {
+            t.fail('should not receive any more messages')
+          })
         })
       })
     })
@@ -560,73 +623,77 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
     retain: true
   }
 
-  subscribe(t, subscriber, 'hello', 1, function () {
-    subscriber.inStream.write({
-      cmd: 'disconnect'
-    })
+  subscriber.broker.once('clientReady', () => {
+    subscribe(t, subscriber, 'hello', 1, function () {
+      subscriber.inStream.write({
+        cmd: 'disconnect'
+      })
 
-    subscriber.outStream.on('data', function (packet) {
-      console.log('original', packet)
-    })
+      subscriber.outStream.on('data', function (packet) {
+        console.log('original', packet)
+      })
 
-    publisher = connect(setup(broker))
+      publisher = connect(setup(broker))
 
-    publisher.inStream.write({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world',
-      qos: 1,
-      messageId: 41,
-      retain: true
-    })
-
-    publisher.outStream.once('data', function (packet) {
-      t.equal(packet.cmd, 'puback')
-
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'world2',
-        qos: 1,
-        messageId: 42,
-        retain: true
+      publisher.broker.once('clientReady', () => {
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 1,
+          messageId: 41,
+          retain: true
+        })
       })
 
       publisher.outStream.once('data', function (packet) {
         t.equal(packet.cmd, 'puback')
 
-        broker.on('clientError', function (client, err) {
-          t.equal(err.message, 'connection closed')
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world2',
+          qos: 1,
+          messageId: 42,
+          retain: true
         })
 
-        subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
-          t.equal(connect.sessionPresent, true, 'session present is set to true')
-        })
+        publisher.outStream.once('data', function (packet) {
+          t.equal(packet.cmd, 'puback')
 
-        subscriber.outStream.once('data', function (packet) {
-          // receive any queued messages (included retained messages) at the disconnected time
-          t.notEqual(packet.messageId, 41, 'messageId must differ')
-          delete packet.messageId
-          packet.length = 14
-          expected.payload = Buffer.from('world')
-          t.deepEqual(packet, expected, 'packet must match')
+          broker.on('clientError', function (client, err) {
+            t.equal(err.message, 'connection closed')
+          })
 
-          // receive any queued messages (included retained messages) at the disconnected time
+          subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
+            t.equal(connect.sessionPresent, true, 'session present is set to true')
+          })
+
           subscriber.outStream.once('data', function (packet) {
-            t.notEqual(packet.messageId, 42, 'messageId must differ')
+            // receive any queued messages (included retained messages) at the disconnected time
+            t.notEqual(packet.messageId, 41, 'messageId must differ')
             delete packet.messageId
             packet.length = 14
-            expected.payload = Buffer.from('world2')
+            expected.payload = Buffer.from('world')
             t.deepEqual(packet, expected, 'packet must match')
 
-            // should get the last retained message when we do a subscribe
-            subscribe(t, subscriber, 'hello', 1, function () {
-              subscriber.outStream.on('data', function (packet) {
-                t.notEqual(packet.messageId, 42, 'messageId must differ')
-                delete packet.messageId
-                packet.length = 14
-                expected.payload = Buffer.from('world2')
-                t.deepEqual(packet, expected, 'packet must match')
+            // receive any queued messages (included retained messages) at the disconnected time
+            subscriber.outStream.once('data', function (packet) {
+              t.notEqual(packet.messageId, 42, 'messageId must differ')
+              delete packet.messageId
+              packet.length = 14
+              expected.payload = Buffer.from('world2')
+              t.deepEqual(packet, expected, 'packet must match')
+
+              // should get the last retained message when we do a subscribe
+              subscribe(t, subscriber, 'hello', 1, function () {
+                subscriber.outStream.on('data', function (packet) {
+                  t.notEqual(packet.messageId, 42, 'messageId must differ')
+                  delete packet.messageId
+                  packet.length = 14
+                  expected.payload = Buffer.from('world2')
+                  t.deepEqual(packet, expected, 'packet must match')
+                })
               })
             })
           })

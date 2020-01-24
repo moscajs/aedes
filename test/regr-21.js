@@ -30,5 +30,7 @@ test('after an error, outstanding packets are discarded', function (t) {
   s.broker.mq.on('foo', function (msg, cb) {
     t.fail('msg received')
   })
-  s.inStream.write(packet)
+  s.broker.once('clientReady', () => {
+    s.inStream.write(packet)
+  })
 })

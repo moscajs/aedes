@@ -73,12 +73,14 @@ test('call published method with client', function (t) {
 
   var s = connect(setup(broker))
 
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 1,
-    messageId: 42
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 1,
+      messageId: 42
+    })
   })
 })
 
@@ -99,11 +101,13 @@ test('emit publish event with client - QoS 0', function (t) {
 
   var s = connect(setup(broker))
 
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 0
+    })
   })
 })
 
@@ -125,12 +129,14 @@ test('emit publish event with client - QoS 1', function (t) {
 
   var s = connect(setup(broker))
 
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 1,
-    messageId: 42
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 1,
+      messageId: 42
+    })
   })
 })
 
@@ -148,8 +154,10 @@ test('emit subscribe event', function (t) {
     t.equal(client.id, 'abcde', 'client matches')
   })
 
-  subscribe(t, s, 'hello', 0, function () {
-    t.pass('subscribe completed')
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0, function () {
+      t.pass('subscribe completed')
+    })
   })
 })
 
@@ -166,15 +174,17 @@ test('emit unsubscribe event', function (t) {
     t.equal(client.id, 'abcde', 'client matches')
   })
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.inStream.write({
-      cmd: 'unsubscribe',
-      messageId: 43,
-      unsubscriptions: ['hello']
-    })
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0, function () {
+      s.inStream.write({
+        cmd: 'unsubscribe',
+        messageId: 43,
+        unsubscriptions: ['hello']
+      })
 
-    s.outStream.once('data', function (packet) {
-      t.pass('subscribe completed')
+      s.outStream.once('data', function (packet) {
+        t.pass('subscribe completed')
+      })
     })
   })
 })
@@ -189,12 +199,14 @@ test('dont emit unsubscribe event on client close', function (t) {
     t.error('unsubscribe should not be emitted')
   })
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.inStream.end({
-      cmd: 'disconnect'
-    })
-    s.outStream.once('data', function (packet) {
-      t.pass('unsubscribe completed')
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0, function () {
+      s.inStream.end({
+        cmd: 'disconnect'
+      })
+      s.outStream.once('data', function (packet) {
+        t.pass('unsubscribe completed')
+      })
     })
   })
 })

@@ -20,7 +20,7 @@ function setup (broker, autoClose) {
   if (autoClose === undefined || autoClose) {
     setTimeout(function () {
       broker.close()
-    }, autoClose || 200)
+    }, autoClose || 250)
   }
 
   return {

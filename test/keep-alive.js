@@ -13,10 +13,11 @@ test('supports pingreq/pingresp', function (t) {
 
   var s = noError(connect(setup()))
 
-  s.inStream.write({
-    cmd: 'pingreq'
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'pingreq'
+    })
   })
-
   s.outStream.on('data', function (packet) {
     t.equal(packet.cmd, 'pingresp', 'the response is a pingresp')
   })
@@ -42,12 +43,14 @@ test('supports keep alive disconnections after a pingreq', function (t) {
   var s = connect(setup(null, 3000), { keepalive: 1 })
   var start
 
-  setTimeout(function () {
-    start = Date.now()
-    s.inStream.write({
-      cmd: 'pingreq'
-    })
-  }, 1000)
+  s.broker.once('clientReady', () => {
+    setTimeout(function () {
+      start = Date.now()
+      s.inStream.write({
+        cmd: 'pingreq'
+      })
+    }, 1000)
+  })
 
   eos(s.conn, function () {
     t.ok(Date.now() >= start + 1500, 'waits 1 and a half the keepalive timeout')

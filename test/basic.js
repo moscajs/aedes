@@ -29,11 +29,12 @@ test('publish QoS 0', function (t) {
     cb()
     t.end()
   })
-
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world'
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world'
+    })
   })
 })
 
@@ -50,17 +51,18 @@ test('subscribe QoS 0', function (t) {
     qos: 0,
     retain: false
   }
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.deepEqual(packet, expected, 'packet matches')
+        t.end()
+      })
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet matches')
-      t.end()
-    })
-
-    s.broker.publish({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world'
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world'
+      })
     })
   })
 })
@@ -70,13 +72,15 @@ test('does not die badly on connection error', function (t) {
 
   var s = connect(setup())
 
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 42,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }]
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'subscribe',
+      messageId: 42,
+      subscriptions: [{
+        topic: 'hello',
+        qos: 0
+      }]
+    })
   })
 
   s.broker.on('clientError', function (client, err) {
@@ -101,33 +105,35 @@ test('unsubscribe', function (t) {
 
   var s = noError(connect(setup()), t)
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.inStream.write({
-      cmd: 'unsubscribe',
-      messageId: 43,
-      unsubscriptions: ['hello']
-    })
-
-    s.outStream.once('data', function (packet) {
-      t.deepEqual(packet, {
-        cmd: 'unsuback',
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0, function () {
+      s.inStream.write({
+        cmd: 'unsubscribe',
         messageId: 43,
-        dup: false,
-        length: 2,
-        qos: 0,
-        retain: false
-      }, 'packet matches')
-
-      s.outStream.on('data', function (packet) {
-        t.fail('packet received')
+        unsubscriptions: ['hello']
       })
 
-      s.broker.publish({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'world'
-      }, function () {
-        t.pass('publish finished')
+      s.outStream.once('data', function (packet) {
+        t.deepEqual(packet, {
+          cmd: 'unsuback',
+          messageId: 43,
+          dup: false,
+          length: 2,
+          qos: 0,
+          retain: false
+        }, 'packet matches')
+
+        s.outStream.on('data', function (packet) {
+          t.fail('packet received')
+        })
+
+        s.broker.publish({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world'
+        }, function () {
+          t.pass('publish finished')
+        })
       })
     })
   })
@@ -138,11 +144,13 @@ test('unsubscribe without subscribe', function (t) {
 
   var s = noError(connect(setup()), t)
 
-  s.inStream.write({
-    cmd: 'unsubscribe',
-    messageId: 43,
-    unsubscriptions: ['hello']
-  })
+  s.broker.once('clientReady', () =>
+    s.inStream.write({
+      cmd: 'unsubscribe',
+      messageId: 43,
+      unsubscriptions: ['hello']
+    })
+  )
 
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, {
@@ -162,28 +170,30 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
   var opts = { clean: true }
   var s = connect(setup(), opts)
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.conn.destroy(null, function () {
-      t.pass('closed streams')
+  s.broker.once('clientReady', () =>
+    subscribe(t, s, 'hello', 0, function () {
+      s.conn.destroy(null, function () {
+        t.pass('closed streams')
+      })
+      s.outStream.on('data', function () {
+        t.fail('should not receive any more messages')
+      })
+      s.broker.once('unsubscribe', function () {
+        t.pass('should emit unsubscribe')
+      })
+      s.broker.once('closed', function () {
+        t.ok(true)
+        t.end()
+      })
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: Buffer.from('world')
+      }, function () {
+        t.pass('calls the callback')
+      })
     })
-    s.outStream.on('data', function () {
-      t.fail('should not receive any more messages')
-    })
-    s.broker.once('unsubscribe', function () {
-      t.pass('should emit unsubscribe')
-    })
-    s.broker.once('closed', function () {
-      t.ok(true)
-      t.end()
-    })
-    s.broker.publish({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: Buffer.from('world')
-    }, function () {
-      t.pass('calls the callback')
-    })
-  })
+  )
 })
 
 test('unsubscribe on disconnect for a clean=false client', function (t) {
@@ -192,26 +202,28 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
   var opts = { clean: false }
   var s = connect(setup(), opts)
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.conn.destroy(null, function () {
-      t.pass('closed streams')
-    })
-    s.outStream.on('data', function () {
-      t.fail('should not receive any more messages')
-    })
-    s.broker.once('unsubscribe', function () {
-      t.fail('should not emit unsubscribe')
-    })
-    s.broker.once('closed', function () {
-      t.ok(true)
-      t.end()
-    })
-    s.broker.publish({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: Buffer.from('world')
-    }, function () {
-      t.pass('calls the callback')
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0, function () {
+      s.conn.destroy(null, function () {
+        t.pass('closed streams')
+      })
+      s.outStream.on('data', function () {
+        t.fail('should not receive any more messages')
+      })
+      s.broker.once('unsubscribe', function () {
+        t.fail('should not emit unsubscribe')
+      })
+      s.broker.once('closed', function () {
+        t.ok(true)
+        t.end()
+      })
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: Buffer.from('world')
+      }, function () {
+        t.pass('calls the callback')
+      })
     })
   })
 })
@@ -225,8 +237,10 @@ test('disconnect', function (t) {
     t.end()
   })
 
-  s.inStream.write({
-    cmd: 'disconnect'
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'disconnect'
+    })
   })
 })
 
