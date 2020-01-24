@@ -399,7 +399,7 @@ test('Test queue limit', function (t) {
 
   process.once('warning', e => t.fail('Memory leak detected'))
 
-  for (let i = 0; i < queueLimit + 5; i++) {
+  for (let i = 0; i < queueLimit + 1; i++) {
     s.inStream.write(publishP)
   }
 
