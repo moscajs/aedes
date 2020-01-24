@@ -771,6 +771,36 @@ test('failed authentication does not disconnect other client with same clientId'
   })
 })
 
+test('unauthorized connection should not unregister the correct one', function (t) {
+  t.plan(2)
+
+  var broker = aedes({
+    authenticate: function (client, username, password, callback) {
+      if (username === 'correct') {
+        callback(null, true)
+      } else {
+        const error = new Error()
+        error.returnCode = 1
+        callback(error, false)
+      }
+    }
+  })
+
+  connect(setup(broker), {
+    clientId: 'my-client',
+    username: 'correct'
+  }, function () {
+    t.equal(broker.connectedClients, 1, 'my-client connected')
+    connect(setup(broker), {
+      clientId: 'my-client',
+      username: 'unauthorized'
+    }, function () {
+      // other unauthorized connection with the same clientId should not unregister the correct one.
+      t.equal(broker.connectedClients, 1, 'my-client still connected')
+    })
+  })
+})
+
 test('set authentication method in config options', function (t) {
   t.plan(6)
 
@@ -892,7 +922,7 @@ test('prevent publish in QoS1 mode', function (t) {
   })
 })
 
-test('prevent publish in QoS0 mode', function (t) {
+test('prevent publish in QoS 0 mode', function (t) {
   t.plan(2)
 
   var broker = aedes({
@@ -922,35 +952,5 @@ test('prevent publish in QoS0 mode', function (t) {
 
   s.outStream.once('data', function (packet) {
     t.fail('Should have not recieved this packet')
-  })
-})
-
-test('unauthorized connection should not unregister the correct one', function (t) {
-  t.plan(2)
-
-  var broker = aedes({
-    authenticate: function (client, username, password, callback) {
-      if (username === 'correct') {
-        callback(null, true)
-      } else {
-        const error = new Error()
-        error.returnCode = 1
-        callback(error, false)
-      }
-    }
-  })
-
-  connect(setup(broker), {
-    clientId: 'my-client',
-    username: 'correct'
-  }, function () {
-    t.equal(broker.connectedClients, 1, 'my-client connected')
-    connect(setup(broker), {
-      clientId: 'my-client',
-      username: 'unauthorized'
-    }, function () {
-      // other unauthorized connection with the same clientId should not unregister the correct one.
-      t.equal(broker.connectedClients, 1, 'my-client still connected')
-    })
   })
 })
