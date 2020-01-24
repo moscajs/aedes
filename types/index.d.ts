@@ -10,7 +10,7 @@ import { Socket } from 'net'
 import { IncomingMessage } from 'http'
 import EventEmitter = NodeJS.EventEmitter
 
-declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
+declare function aedes(options?: aedes.AedesOptions): aedes.Aedes
 
 // eslint-disable-next-line no-redeclare
 declare namespace aedes {
@@ -27,15 +27,15 @@ declare namespace aedes {
     conn: Socket
     req?: IncomingMessage
 
-    on (event: 'error', cb: (err: Error) => void): this
+    on(event: 'error', cb: (err: Error) => void): this
 
-    publish (message: IPublishPacket, callback?: () => void): void
-    subscribe (
+    publish(message: IPublishPacket, callback?: () => void): void
+    subscribe(
       subscriptions: ISubscription | ISubscription[] | ISubscribePacket,
       callback?: () => void
     ): void
-    unsubscribe (topicObjects: ISubscription | ISubscription[], callback?: () => void): void
-    close (callback?: () => void): void
+    unsubscribe(topicObjects: ISubscription | ISubscription[], callback?: () => void): void
+    close(callback?: () => void): void
   }
 
   export type PreConnectCallback = (client: Client, done: (err: Error | null, success: boolean) => void) => void
@@ -69,6 +69,7 @@ declare namespace aedes {
     authorizeSubscribe?: AuthorizeSubscribeCallback
     authorizeForward?: AuthorizeForwardCallback
     published?: PublishedCallback
+    queueLimit?: number
   }
 
   export interface Aedes extends EventEmitter {
@@ -81,23 +82,23 @@ declare namespace aedes {
     authorizeForward: AuthorizeForwardCallback
     published: PublishedCallback
 
-    on (event: 'closed', cb: () => void): this
-    on (event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout' | 'connackSent', cb: (client: Client) => void): this
-    on (event: 'clientError' | 'connectionError', cb: (client: Client, error: Error) => void): this
-    on (event: 'ping' | 'publish' | 'ack', cb: (packet: any, client: Client) => void): this
-    on (event: 'subscribe' | 'unsubscribe', cb: (subscriptions: ISubscription | ISubscription[] | ISubscribePacket, client: Client) => void): this
+    on(event: 'closed', cb: () => void): this
+    on(event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout' | 'connackSent', cb: (client: Client) => void): this
+    on(event: 'clientError' | 'connectionError', cb: (client: Client, error: Error) => void): this
+    on(event: 'ping' | 'publish' | 'ack', cb: (packet: any, client: Client) => void): this
+    on(event: 'subscribe' | 'unsubscribe', cb: (subscriptions: ISubscription | ISubscription[] | ISubscribePacket, client: Client) => void): this
 
-    publish (packet: IPublishPacket & { topic: string | Buffer }, done: () => void): void
-    subscribe (topic: string, callback: (packet: ISubscribePacket, cb: () => void) => void, done: () => void): void
-    unsubscribe (
+    publish(packet: IPublishPacket & { topic: string | Buffer }, done: () => void): void
+    subscribe(topic: string, callback: (packet: ISubscribePacket, cb: () => void) => void, done: () => void): void
+    unsubscribe(
       topic: string,
       callback: (packet: IUnsubscribePacket, cb: () => void) => void,
       done: () => void
     ): void
-    close (callback?: () => void): void
+    close(callback?: () => void): void
   }
 
-  export function Server (options?: aedes.AedesOptions): aedes.Aedes
+  export function Server(options?: aedes.AedesOptions): aedes.Aedes
 }
 
 export = aedes
