@@ -580,11 +580,14 @@ test('id option', function (t) {
 })
 
 test('not duplicate client close when client error occurs', function (t) {
-  t.plan(0)
+  t.plan(1)
 
   var broker = aedes()
   connect(setup(broker))
   broker.on('client', function (client) {
+    client.conn.on('drain', () => {
+      t.pass('client closed ok')
+    })
     client.close()
     // add back to test if there is duplicated close() call
     client.conn.on('drain', () => {
