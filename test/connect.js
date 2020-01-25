@@ -5,6 +5,7 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var delay = helper.delay
 var http = require('http')
 var ws = require('websocket-stream')
 var mqtt = require('mqtt')
@@ -304,6 +305,53 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
       broker.close()
       t.end()
     })
+  })
+})
+
+test('reject second CONNECT Packet sent while first CONNECT still in preConnect stage', function (t) {
+  t.plan(2)
+
+  var packet1 = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-1',
+    keepalive: 0
+  }
+  var packet2 = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-2',
+    keepalive: 0
+  }
+
+  var i = 0
+  var broker = aedes({
+    preConnect: async function (client, done) {
+      var wait = i++ === 0 ? 2000 : 500
+      await delay(wait)
+      return done(null, true)
+    }
+  })
+  var s = setup(broker)
+
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.info.clientId, 'my-client-2')
+    t.equal(err.message, 'Invalid protocol')
+  })
+
+  const msg = (s, ms, msg) => {
+    return new Promise((resolve) => {
+      setTimeout(() => { s.inStream.write(msg); resolve() }, ms)
+    })
+  }
+
+  Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)]).then(() => {
+    broker.close()
+    t.end()
   })
 })
 
