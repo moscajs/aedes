@@ -175,7 +175,7 @@ test('delete the will in the persistence after publish', function (t) {
 })
 
 test('delivers a will with authorization', function (t) {
-  t.plan(7)
+  t.plan(6)
 
   let authorized = false
   var opts = {}
@@ -189,7 +189,6 @@ test('delivers a will with authorization', function (t) {
 
   s.broker.on('clientDisconnect', function (client) {
     t.equal(client.connected, false)
-    t.equal(client.disconnected, true)
   })
 
   s.broker.mq.on('mywill', function (packet, cb) {
@@ -303,7 +302,7 @@ test('does not deliver will if keepalive is triggered during authentication', fu
   willConnect(setup(broker), opts)
 })
 
-// [MQTT-3.14.4-1]
+// [MQTT-3.14.4-3]
 test('does not deliver will when client sends a DISCONNECT', function (t) {
   t.plan(0)
 
