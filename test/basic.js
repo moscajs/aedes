@@ -578,3 +578,45 @@ test('id option', function (t) {
   setup(broker2).conn.destroy()
   t.equal(broker2.id, 'abc', 'broker id equals id option when set')
 })
+
+test('not duplicate client close when client error occurs', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+  connect(setup(broker))
+  broker.on('client', function (client) {
+    client.conn.on('drain', () => {
+      t.pass('client closed ok')
+    })
+    client.close()
+    // add back to test if there is duplicated close() call
+    client.conn.on('drain', () => {
+      t.fail('double client close calls')
+    })
+  })
+  broker.on('closed', () => {
+    t.end()
+  })
+})
+
+test('not duplicate client close when double close() called', function (t) {
+  t.plan(1)
+
+  var broker = aedes()
+  connect(setup(broker), false)
+  broker.on('clientReady', function (client) {
+    client.conn.on('drain', () => {
+      t.pass('client closed ok')
+    })
+    client.close()
+    // add back to test if there is duplicated close() call
+    client.conn.on('drain', () => {
+      t.fail('double execute client close function')
+    })
+    client.close()
+    broker.close()
+  })
+  broker.on('closed', () => {
+    t.end()
+  })
+})
