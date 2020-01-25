@@ -114,10 +114,13 @@ function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
   })
 }
 
+const delay = (time) => new Promise((resolve) => setTimeout(resolve, time))
+
 module.exports = {
   setup: setup,
   connect: connect,
   noError: noError,
   subscribe: subscribe,
-  subscribeMultiple: subscribeMultiple
+  subscribeMultiple: subscribeMultiple,
+  delay: delay
 }
