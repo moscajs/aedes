@@ -69,6 +69,7 @@ declare namespace aedes {
     authorizeSubscribe?: AuthorizeSubscribeCallback
     authorizeForward?: AuthorizeForwardCallback
     published?: PublishedCallback
+    queueLimit?: number
   }
 
   export interface Aedes extends EventEmitter {

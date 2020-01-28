@@ -28,7 +28,8 @@ var defaultOptions = {
   authorizeForward: defaultAuthorizeForward,
   published: defaultPublished,
   trustProxy: false,
-  trustedProxies: []
+  trustedProxies: [],
+  queueLimit: 42
 }
 
 function Aedes (opts) {
@@ -42,6 +43,7 @@ function Aedes (opts) {
 
   this.id = opts.id || uuidv4()
   this.counter = 0
+  this.queueLimit = opts.queueLimit
   this.connectTimeout = opts.connectTimeout
   this.mq = opts.mq || mqemitter(opts)
   this.handle = function handle (conn, req) {
