@@ -8,26 +8,22 @@
     "lint": "npm run lint:standard && npm run lint:typescript",
     "lint:standard": "standard --verbose | snazzy",
     "lint:typescript": "standard --parser @typescript-eslint/parser --plugin @typescript-eslint/eslint-plugin types/**/*.d.ts",
-    "typescript-compile-test": "tsc --project test/typescript/tsconfig.json",
-    "typescript-compile-execute": "node test/typescript/*.js",
-    "typescript-test": "npm run typescript-compile-test && npm run typescript-compile-execute",
-    "test": "tape test/*.js test/*/*.js | faucet",
-    "ci": "npm run lint &&  npm run typescript-test && npm run coverage",
+    "unit": "tape test/*.js test/*/*.js | faucet",
+    "typescript": "tsc --project ./test/typescript/tsconfig.json",
+    "test": "npm run lint && npm run unit && npm run typescript",
     "coverage": "nyc --reporter=lcov tape test/*.js test/*/*.js",
-    "coveralls": "cat coverage/lcov.info | coveralls",
-    "license-checker": "license-checker --production --onlyAllow='MIT;ISC;BSD-3-Clause;BSD-2-Clause'"
+    "test:ci": "npm run lint && npm run typescript && npm run coverage",
+    "license-checker": "license-checker --production --onlyAllow=\"MIT;ISC;BSD-3-Clause;BSD-2-Clause\""
   },
   "pre-commit": [
-    "lint",
-    "test",
-    "typescript-test"
+    "test"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mcollina/aedes.git"
+    "url": "https://github.com/moscajs/aedes.git"
   },
   "bugs": {
-    "url": "http://github.com/mcollina/aedes/issues"
+    "url": "http://github.com/moscajs/aedes/issues"
   },
   "engines": {
     "node": ">=8"
@@ -67,13 +63,12 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^12.12.21",
-    "@typescript-eslint/eslint-plugin": "^2.12.0",
-    "@typescript-eslint/parser": "^2.12.0",
+    "@types/node": "^12.12.25",
+    "@typescript-eslint/eslint-plugin": "^2.17.0",
+    "@typescript-eslint/parser": "^2.17.0",
     "compute-mode": "^1.0.0",
     "concat-stream": "^2.0.0",
     "convert-hrtime": "^3.0.0",
-    "coveralls": "^3.0.9",
     "duplexify": "^4.1.1",
     "faucet": "0.0.1",
     "license-checker": "^25.0.1",
@@ -83,13 +78,13 @@
     "pre-commit": "^1.2.2",
     "snazzy": "^8.0.0",
     "standard": "^14.3.1",
-    "tape": "^4.12.0",
-    "typescript": "^3.7.4",
+    "tape": "^4.13.0",
+    "typescript": "^3.7.5",
     "websocket-stream": "^5.5.0"
   },
   "dependencies": {
     "aedes-packet": "^2.1.0",
-    "aedes-persistence": "^7.1.1",
+    "aedes-persistence": "^7.2.1",
     "bulk-write-stream": "^2.0.1",
     "end-of-stream": "^1.4.4",
     "fastfall": "^1.5.1",
@@ -104,6 +99,6 @@
     "reusify": "^1.0.4",
     "shortid": "^2.2.15",
     "through2": "^3.0.1",
-    "uuid": "^3.3.3"
+    "uuid": "^3.4.0"
   }
 }

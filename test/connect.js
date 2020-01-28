@@ -363,10 +363,10 @@ test('After first CONNECT Packet, others are queued until \'connect\' event', fu
   }
 
   broker.on('client', function (client) {
-    t.equal(client.parser._queue.length, queueLimit, 'Packets have been queued')
+    t.equal(client._parser._queue.length, queueLimit, 'Packets have been queued')
 
     client.once('connected', () => {
-      t.equal(client.parser._queue, null, 'Queue is empty')
+      t.equal(client._parser._queue, null, 'Queue is empty')
       s.conn.destroy()
       broker.close(t.end)
     })
