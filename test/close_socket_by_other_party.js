@@ -9,6 +9,31 @@ var connect = helper.connect
 var subscribe = helper.subscribe
 var delay = helper.delay
 
+test('aedes is closed before client authenticate returns', function (t) {
+  t.plan(0)
+
+  var broker = aedes({
+    authenticate: async (client, username, password, done) => {
+      await delay(2000) // simulate network
+      done(null, true)
+    }
+  })
+  broker.on('client', function (client) {
+    t.fail('should no client registration')
+  })
+  broker.on('connackSent', function () {
+    t.fail('should no connack be sent')
+  })
+  broker.on('clientError', function (client, err) {
+    t.error(err)
+  })
+
+  connect(setup(broker, 200))
+  broker.on('closed', () => {
+    t.end()
+  })
+})
+
 test('client is closed before authenticate returns', function (t) {
   t.plan(2)
 
