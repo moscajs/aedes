@@ -343,16 +343,22 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
     t.equal(err.message, 'Invalid protocol')
   })
 
-  const msg = (s, ms, msg) => {
-    return new Promise((resolve) => {
-      setTimeout(() => { s.inStream.write(msg); resolve() }, ms)
-    })
+  const msg = async (s, ms, msg) => {
+    await delay(ms)
+    s.inStream.write(msg)
   }
 
-  Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)]).then(() => {
-    broker.close()
-    t.end()
-  })
+  (async () => {
+    try {
+      await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
+      setImmediate(() => {
+        broker.close()
+        t.end()
+      })
+    } catch (error) {
+      t.fail(error)
+    }
+  })()
 })
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet
