@@ -36,7 +36,7 @@ test('publish empty topic', function (t) {
 })
 
 test('publish invalid topic with #', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   var s = connect(setup())
 
@@ -56,12 +56,13 @@ test('publish invalid topic with #', function (t) {
   })
 
   s.broker.on('clientError', function () {
+    t.pass('raise an error')
     t.end()
   })
 })
 
 test('publish invalid topic with +', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   var s = connect(setup())
 
@@ -80,17 +81,19 @@ test('publish invalid topic with +', function (t) {
   })
 
   s.broker.on('clientError', function () {
+    t.pass('raise an error')
     t.end()
   })
 })
 
 ;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub'].forEach(function (topic) {
   test('subscribe to invalid topic with "' + topic + '"', function (t) {
-    t.plan(0)
+    t.plan(1)
 
     var s = connect(setup())
 
     s.broker.on('clientError', function () {
+      t.pass('raise an error')
       t.end()
     })
 
@@ -107,11 +110,12 @@ test('publish invalid topic with +', function (t) {
   })
 
   test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
-    t.plan(0)
+    t.plan(1)
 
     var s = connect(setup())
 
     s.broker.on('clientError', function () {
+      t.pass('raise an error')
       t.end()
     })
 

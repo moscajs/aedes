@@ -1,10 +1,10 @@
 # Aedes
-[![Build Status](https://travis-ci.org/mcollina/aedes.svg?branch=master)](https://travis-ci.org/mcollina/aedes)
-[![Dependencies Status](https://david-dm.org/mcollina/aedes/status.svg)](https://david-dm.org/mcollina/aedes)
-[![devDependencies Status](https://david-dm.org/mcollina/aedes/dev-status.svg)](https://david-dm.org/mcollina/aedes?type=dev)
+![](https://github.com/moscajs/aedes/workflows/ci/badge.svg)
+[![Dependencies Status](https://david-dm.org/moscajs/aedes/status.svg)](https://david-dm.org/moscajs/aedes)
+[![devDependencies Status](https://david-dm.org/moscajs/aedes/dev-status.svg)](https://david-dm.org/moscajs/aedes?type=dev)
 <br/>
-[![Known Vulnerabilities](https://snyk.io/test/github/mcollina/aedes/badge.svg)](https://snyk.io/test/github/mcollina/aedes)
-[![Coverage Status](https://coveralls.io/repos/mcollina/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/mcollina/aedes?branch=master)
+[![Known Vulnerabilities](https://snyk.io/test/github/moscajs/aedes/badge.svg)](https://snyk.io/test/github/moscajs/aedes)
+[![Coverage Status](https://coveralls.io/repos/moscajs/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/moscajs/aedes?branch=master)
 [![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 [![NPM downloads](https://img.shields.io/npm/dm/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 
@@ -22,6 +22,7 @@ Barebone MQTT server that can run on any stream server.
 * [TODO](#todo)
 * [Plugins](#plugins)
 * [Collaborators](#collaborators)
+* [Contributing](#contributing)
 * [Acknowledgements](#acknowledgements)
 * [Mosca Vs Aedes](#mosca-vs-aedes)
 * [License](#license)
@@ -126,6 +127,8 @@ Options:
 * `persistence`: an instance of [AedesPersistence](http://npm.im/aedes-persistence), check [plugins](#plugins) for more persistence options. It's used to store *QoS > 1*, *retained*, *will* packets and subscriptions in memory or on disk (if not specified default persistence is in memory)
 * `concurrency`: the max number of messages delivered concurrently,
   defaults to `100`
+* `queueLimit`: the max number of messages queued while client is waiting to connect,
+  defaults to `42`. If the number is exceeded `connectionError` is thrown with error `Client queue limit reached`
 * `heartbeatInterval`: the interval at which the broker heartbeat is
   emitted, it used by other broker in the cluster, defaults to
   `60000` milliseconds
@@ -527,6 +530,10 @@ This library is born after a lot of discussion with all
 [Mosca](http://npm.im/mosca) users and how that was deployed in
 production. This addresses your concerns about performance and
 stability.
+
+## Contributing
+
+Want to contribute? Check our list of features/bugs [here](https://github.com/moscajs/aedes/projects/1)
 
 ## Mosca vs Aedes
 

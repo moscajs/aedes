@@ -332,6 +332,84 @@ test('reject clients with wrong protocol name', function (t) {
   broker.on('closed', t.end.bind(t))
 })
 
+test('After first CONNECT Packet, others are queued until \'connect\' event', function (t) {
+  var queueLimit = 50
+  var broker = aedes({ queueLimit })
+
+  var publishP = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false
+  }
+
+  var connectP = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'abcde',
+    keepalive: 0
+  }
+
+  var s = setup(broker, false)
+  s.inStream.write(connectP)
+
+  process.once('warning', e => t.fail('Memory leak detected'))
+
+  for (let i = 0; i < queueLimit; i++) {
+    s.inStream.write(publishP)
+  }
+
+  broker.on('client', function (client) {
+    t.equal(client._parser._queue.length, queueLimit, 'Packets have been queued')
+
+    client.once('connected', () => {
+      t.equal(client._parser._queue, null, 'Queue is empty')
+      s.conn.destroy()
+      broker.close(t.end)
+    })
+  })
+})
+
+test('Test queue limit', function (t) {
+  var queueLimit = 50
+  var broker = aedes({ queueLimit })
+
+  var publishP = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false
+  }
+
+  var connectP = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'abcde',
+    keepalive: 0
+  }
+
+  var s = setup(broker, false)
+  s.inStream.write(connectP)
+
+  process.once('warning', e => t.fail('Memory leak detected'))
+
+  for (let i = 0; i < queueLimit + 1; i++) {
+    s.inStream.write(publishP)
+  }
+
+  broker.on('connectionError', function (conn, err) {
+    t.equal(err.message, 'Client queue limit reached', 'Queue error is thrown')
+    s.conn.destroy()
+    broker.close(t.end)
+  })
+})
+
 ;[[0, null, false], [1, null, true], [1, new Error('connection banned'), false], [1, new Error('connection banned'), true]].forEach(function (ele) {
   var plan = ele[0]
   var err = ele[1]

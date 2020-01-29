@@ -62,10 +62,10 @@ test('disconnect if a connect does not arrive in time', function (t) {
   t.plan(2)
   t.timeoutAfter(1000)
 
+  var start = Date.now()
   var s = setup(aedes({
     connectTimeout: 500
   }))
-  var start = Date.now()
 
   eos(s.conn, function () {
     t.ok(Date.now() >= start + 500, 'waits waitConnectTimeout before ending')
