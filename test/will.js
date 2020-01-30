@@ -6,6 +6,7 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
+var delay = helper.delay
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -277,29 +278,32 @@ test('does not deliver a will without authentication', function (t) {
   })
 })
 
-test('does not deliver will if keepalive is triggered during authentication', function (t) {
+test('does not deliver will if broker is closed during authentication', function (t) {
   t.plan(0)
 
   var opts = {}
   opts.keepalive = 1
   var broker = aedes({
-    authenticate: function (c, u, p, cb) {
-      setTimeout(function () {
-        cb(null, true)
-      }, 3000)
+    authenticate: async function (client, username, password, callback) {
+      await delay(3000)
+      callback(null, true)
     }
   })
 
-  broker.on('keepaliveTimeout', function () {
+  broker.on('closed', function () {
     t.end()
   })
 
-  broker.mq.on('mywill', function (packet, cb) {
-    cb()
-    t.fail('Received will when it was not expected')
+  broker.on('keepaliveTimeout', function () {
+    t.fail('keepalive timer shoud not be set')
   })
 
-  willConnect(setup(broker), opts)
+  broker.mq.on('mywill', function (packet, cb) {
+    t.fail('Received will when it was not expected')
+    cb()
+  })
+
+  willConnect(setup(broker, 1000), opts)
 })
 
 // [MQTT-3.14.4-3]
