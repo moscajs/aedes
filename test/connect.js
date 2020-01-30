@@ -12,6 +12,7 @@ var mqtt = require('mqtt')
 var mqttPacket = require('mqtt-packet')
 var net = require('net')
 var proxyProtocol = require('proxy-protocol-js')
+var protocolDecoder = require('../lib/protocol-decoder')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
@@ -894,6 +895,104 @@ test('websocket proxied clients have access to the ipAddress from x-forwarded-fo
     broker.close()
     server.close()
     client.end()
+    t.end()
+  }
+})
+
+test('tcp proxied (protocol v1) clients buffer contains MQTT packet and proxy header', function (t) {
+  t.plan(3)
+
+  var brokerPort = 4883
+  var proxyPort = 4884
+  var clientIp = '192.168.0.140'
+  var packet = {
+    cmd: 'connect',
+    protocolId: 'MQIsdp',
+    protocolVersion: 3,
+    clean: true,
+    clientId: 'my-client-proxyV1',
+    keepalive: 0
+  }
+
+  var buf = mqttPacket.generate(packet)
+  var src = new proxyProtocol.Peer(clientIp, 12345)
+  var dst = new proxyProtocol.Peer('127.0.0.1', proxyPort)
+
+  var broker = aedes({
+    decodeProtocol: function (client, buff) {
+      const proto = protocolDecoder(client, buff)
+      if (proto.data) {
+        t.equal(proto.data.toString(), buf.toString())
+      } else {
+        t.fail('no MQTT packet extracted from TCP buffer')
+      }
+      return proto
+    },
+    trustProxy: true
+  })
+
+  broker.on('clientDisconnect', function (client) {
+    // console.log('onClientDisconnect', client.id)
+    setImmediate(finish)
+  })
+
+  var server = net.createServer(broker.handle)
+  server.listen(brokerPort, function (err) {
+    t.error(err, 'no error')
+  })
+
+  var proxyServer = net.createServer()
+  proxyServer.listen(proxyPort, function (err) {
+    t.error(err, 'no error')
+  })
+
+  var proxyClient
+
+  proxyServer.on('connection', function (socket) {
+    socket.on('end', function (data) {
+      proxyClient.end(data, function () {
+        proxyClient.connected = false
+      })
+    })
+
+    socket.on('data', function (data) {
+      if (proxyClient && proxyClient.connected) {
+        proxyClient.write(data)
+      } else {
+        var protocol = new proxyProtocol.V1BinaryProxyProtocol(
+          proxyProtocol.INETProtocol.TCP4,
+          src,
+          dst,
+          data
+        ).build()
+        proxyClient = net.connect({
+          port: brokerPort,
+          timeout: 0
+        }, function () {
+          proxyClient.write(protocol, function () {
+            proxyClient.connected = true
+          })
+        })
+      }
+    })
+  })
+
+  var client = net.connect({
+    port: proxyPort,
+    timeout: 200
+  }, function () {
+    client.write(buf)
+  })
+
+  client.on('timeout', function () {
+    client.end(mqttPacket.generate({ cmd: 'disconnect' }))
+  })
+
+  function finish () {
+    // client.end(mqttPacket.generate({ cmd: 'disconnect' }))
+    broker.close()
+    server.close()
+    proxyServer.close()
     t.end()
   }
 })
