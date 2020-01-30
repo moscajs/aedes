@@ -7,10 +7,7 @@ var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
-
-function sleep (ms) {
-  return new Promise((resolve, reject) => setTimeout(resolve, ms))
-}
+var delay = helper.delay
 
 test('client is closed before authenticate returns', function (t) {
   t.plan(2)
@@ -19,7 +16,7 @@ test('client is closed before authenticate returns', function (t) {
   var broker = aedes({
     authenticate: async (client, username, password, done) => {
       evt.emit('AuthenticateBegin', client)
-      await sleep(2000) // simulate network
+      await delay(2000) // simulate network
       done(null, true)
       evt.emit('AuthenticateEnd', client)
     }
@@ -56,7 +53,7 @@ test('client is closed before authorizePublish returns', function (t) {
   var broker = aedes({
     authorizePublish: async (client, packet, done) => {
       evt.emit('AuthorizePublishBegin', client)
-      await sleep(2000) // simulate latency writing to persistent store.
+      await delay(2000) // simulate latency writing to persistent store.
       done()
       evt.emit('AuthorizePublishEnd', client)
     }

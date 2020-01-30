@@ -1,9 +1,11 @@
 'use strict'
 
+var duplexify = require('duplexify')
 var mqtt = require('mqtt-connection')
 var through = require('through2')
+var util = require('util')
 var aedes = require('../')
-var duplexify = require('duplexify')
+
 var parseStream = mqtt.parseStream
 var generateStream = mqtt.generateStream
 var clients = 0
@@ -119,5 +121,6 @@ module.exports = {
   connect: connect,
   noError: noError,
   subscribe: subscribe,
-  subscribeMultiple: subscribeMultiple
+  subscribeMultiple: subscribeMultiple,
+  delay: util.promisify(setTimeout)
 }
