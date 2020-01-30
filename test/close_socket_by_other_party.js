@@ -7,15 +7,15 @@ var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
 var subscribe = helper.subscribe
-var delay = helper.delay
 
 test('aedes is closed before client authenticate returns', function (t) {
   t.plan(0)
 
   var broker = aedes({
-    authenticate: async (client, username, password, done) => {
-      await delay(2000) // simulate network
-      done(null, true)
+    authenticate: (client, username, password, done) => {
+      setTimeout(function () {
+        done(null, true)
+      }, 2000)
     }
   })
   broker.on('client', function (client) {
@@ -41,9 +41,10 @@ test('client is closed before authenticate returns', function (t) {
   var broker = aedes({
     authenticate: async (client, username, password, done) => {
       evt.emit('AuthenticateBegin', client)
-      await delay(2000) // simulate network
-      done(null, true)
-      evt.emit('AuthenticateEnd', client)
+      setTimeout(function () {
+        done(null, true)
+        evt.emit('AuthenticateEnd', client)
+      }, 2000)
     }
   })
   broker.on('client', function (client) {
@@ -76,11 +77,13 @@ test('client is closed before authorizePublish returns', function (t) {
 
   var evt = new EE()
   var broker = aedes({
-    authorizePublish: async (client, packet, done) => {
+    authorizePublish: (client, packet, done) => {
       evt.emit('AuthorizePublishBegin', client)
-      await delay(2000) // simulate latency writing to persistent store.
-      done()
-      evt.emit('AuthorizePublishEnd', client)
+      // simulate latency writing to persistent store.
+      setTimeout(function () {
+        done()
+        evt.emit('AuthorizePublishEnd', client)
+      }, 2000)
     }
   })
   broker.on('clientError', function (client, err) {

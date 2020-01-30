@@ -330,10 +330,11 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
 
   var i = 0
   var broker = aedes({
-    preConnect: async function (client, done) {
-      var wait = i++ === 0 ? 2000 : 500
-      await delay(wait)
-      return done(null, true)
+    preConnect: function (client, done) {
+      var ms = i++ === 0 ? 2000 : 500
+      setTimeout(function () {
+        done(null, true)
+      }, ms)
     }
   })
   var s = setup(broker)

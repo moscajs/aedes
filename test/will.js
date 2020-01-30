@@ -6,7 +6,6 @@ var helper = require('./helper')
 var aedes = require('../')
 var setup = helper.setup
 var connect = helper.connect
-var delay = helper.delay
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -304,9 +303,10 @@ test('does not deliver will if broker is closed during authentication', function
   var opts = {}
   opts.keepalive = 1
   var broker = aedes({
-    authenticate: async function (client, username, password, callback) {
-      await delay(3000)
-      callback(null, true)
+    authenticate: function (client, username, password, callback) {
+      setTimeout(function () {
+        callback(null, true)
+      }, 3000)
     }
   })
 
