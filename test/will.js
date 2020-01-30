@@ -182,7 +182,12 @@ test('delivers a will with authorization', function (t) {
   var opts = {}
   // willConnect populates opts with a will
   var s = willConnect(
-    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(null) } })),
+    setup(aedes({
+      authorizePublish: (client, packet, callback) => {
+        authorized = true
+        callback(null)
+      }
+    })),
     opts,
     function () {
       s.conn.destroy()
@@ -211,7 +216,12 @@ test('delivers a will waits for authorization', function (t) {
   var opts = {}
   // willConnect populates opts with a will
   var s = willConnect(
-    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; setImmediate(() => { callback(null) }) } })),
+    setup(aedes({
+      authorizePublish: (client, packet, callback) => {
+        authorized = true
+        setImmediate(() => { callback(null) })
+      }
+    })),
     opts,
     function () {
       s.conn.destroy()
@@ -240,7 +250,12 @@ test('does not deliver a will without authorization', function (t) {
   var opts = {}
   // willConnect populates opts with a will
   var s = willConnect(
-    setup(aedes({ authorizePublish: (_1, _2, callback) => { authorized = true; callback(new Error()) } })),
+    setup(aedes({
+      authorizePublish: (username, packet, callback) => {
+        authorized = true
+        callback(new Error())
+      }
+    })),
     opts,
     function () {
       s.conn.destroy()
@@ -264,7 +279,12 @@ test('does not deliver a will without authentication', function (t) {
   var opts = {}
   // willConnect populates opts with a will
   var s = willConnect(
-    setup(aedes({ authenticate: (_1, _2, _3, callback) => { authenticated = true; callback(new Error(), false) } })),
+    setup(aedes({
+      authenticate: (client, username, password, callback) => {
+        authenticated = true
+        callback(new Error(), false)
+      }
+    })),
     opts)
 
   s.broker.once('clientError', function () {
@@ -319,6 +339,7 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.fail(packet)
+    cb()
   })
 
   broker.on('closed', t.end.bind(t))
@@ -336,7 +357,7 @@ test('does not store multiple will with same clientid', function (t) {
     })
   })
 
-  broker.on('clientDisconnect', function (c) {
+  broker.on('clientDisconnect', function (client) {
     // reconnect same client with will
     s = willConnect(setup(broker, false), opts, function () {
       // check that there are not 2 will messages for the same clientid
