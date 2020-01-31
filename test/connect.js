@@ -350,16 +350,16 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
   }
 
   (async () => {
-    try {
-      await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
-      setImmediate(() => {
-        broker.close()
-        t.end()
-      })
-    } catch (error) {
+    await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
+    setImmediate(() => {
+      broker.close()
+      t.end()
+    })
+  })().catch(
+    (error) => {
       t.fail(error)
     }
-  })()
+  )
 })
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet
