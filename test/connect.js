@@ -12,6 +12,7 @@ var mqtt = require('mqtt')
 var mqttPacket = require('mqtt-packet')
 var net = require('net')
 var proxyProtocol = require('proxy-protocol-js')
+var util = require('util')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
@@ -348,18 +349,18 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
     await delay(ms)
     s.inStream.write(msg)
   }
+  const immediate = util.promisify(setImmediate)
 
-  (async () => {
-    try {
-      await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
-      setImmediate(() => {
-        broker.close()
-        t.end()
-      })
-    } catch (error) {
+  ;(async () => {
+    await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
+    await immediate()
+    broker.close()
+    t.end()
+  })().catch(
+    (error) => {
       t.fail(error)
     }
-  })()
+  )
 })
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet
