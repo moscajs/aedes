@@ -353,10 +353,9 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
 
   ;(async () => {
     await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
-    await immediate().then(() => {
-      broker.close()
-      t.end()
-    })
+    await immediate()
+    broker.close()
+    t.end()
   })().catch(
     (error) => {
       t.fail(error)
