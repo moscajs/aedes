@@ -339,10 +339,12 @@ test('authorize publish', function (t) {
     cb()
   })
 
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world'
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world'
+    })
   })
 })
 
@@ -397,10 +399,12 @@ test('authorize waits for authenticate', function (t) {
     keepalive: 0
   })
 
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world'
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world'
+    })
   })
 })
 
@@ -434,11 +438,12 @@ test('authorize publish from configOptions', function (t) {
     t.deepEqual(packet, expected, 'packet matches')
     cb()
   })
-
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world'
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world'
+    })
   })
 })
 
@@ -466,10 +471,12 @@ test('do not authorize publish', function (t) {
     t.pass('ended')
   })
 
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world'
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world'
+    })
   })
 })
 
@@ -486,8 +493,9 @@ test('authorize subscribe', function (t) {
     }, 'topic matches')
     cb(null, sub)
   }
-
-  subscribe(t, s, 'hello', 0)
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0)
+  })
 })
 
 test('authorize subscribe multiple same topics with same qos', function (t) {
@@ -502,8 +510,9 @@ test('authorize subscribe multiple same topics with same qos', function (t) {
     }, 'topic matches')
     cb(null, sub)
   }
-
-  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 0 }], [0])
+  s.broker.once('clientReady', () => {
+    subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 0 }], [0])
+  })
 })
 
 test('authorize subscribe multiple same topics with different qos', function (t) {
@@ -518,8 +527,9 @@ test('authorize subscribe multiple same topics with different qos', function (t)
     }, 'topic matches')
     cb(null, sub)
   }
-
-  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 1 }], [1])
+  s.broker.once('clientReady', () => {
+    subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'hello', qos: 1 }], [1])
+  })
 })
 
 test('authorize subscribe multiple different topics', function (t) {
@@ -542,8 +552,9 @@ test('authorize subscribe multiple different topics', function (t) {
     }
     cb(null, sub)
   }
-
-  subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'foo', qos: 0 }], [0, 0])
+  s.broker.once('clientReady', () => {
+    subscribeMultiple(t, s, [{ topic: 'hello', qos: 0 }, { topic: 'foo', qos: 0 }], [0, 0])
+  })
 })
 
 test('authorize subscribe from config options', function (t) {
@@ -559,8 +570,9 @@ test('authorize subscribe from config options', function (t) {
       cb(null, sub)
     }
   })))
-
-  subscribe(t, s, 'hello', 0)
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 0)
+  })
 })
 
 test('negate subscription', function (t) {
@@ -576,14 +588,15 @@ test('negate subscription', function (t) {
     }, 'topic matches')
     cb(null, null)
   }
-
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }]
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'subscribe',
+      messageId: 24,
+      subscriptions: [{
+        topic: 'hello',
+        qos: 0
+      }]
+    })
   })
 
   s.outStream.once('data', function (packet) {
@@ -602,17 +615,18 @@ test('negate multiple subscriptions', function (t) {
     t.ok(client, 'client exists')
     cb(null, null)
   }
-
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }, {
-      topic: 'world',
-      qos: 0
-    }]
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'subscribe',
+      messageId: 24,
+      subscriptions: [{
+        topic: 'hello',
+        qos: 0
+      }, {
+        topic: 'world',
+        qos: 0
+      }]
+    })
   })
 
   s.outStream.once('data', function (packet) {
@@ -651,17 +665,18 @@ test('negate subscription with correct persistence', function (t) {
     })
     t.equal(packet.messageId, 24)
   })
-
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }, {
-      topic: 'world',
-      qos: 0
-    }]
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'subscribe',
+      messageId: 24,
+      subscriptions: [{
+        topic: 'hello',
+        qos: 0
+      }, {
+        topic: 'world',
+        qos: 0
+      }]
+    })
   })
 })
 
@@ -680,17 +695,18 @@ test('negate multiple subscriptions random times', function (t) {
       cb(null, null)
     }
   }
-
-  s.inStream.write({
-    cmd: 'subscribe',
-    messageId: 24,
-    subscriptions: [{
-      topic: 'hello',
-      qos: 0
-    }, {
-      topic: 'world',
-      qos: 0
-    }]
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'subscribe',
+      messageId: 24,
+      subscriptions: [{
+        topic: 'hello',
+        qos: 0
+      }, {
+        topic: 'world',
+        qos: 0
+      }]
+    })
   })
 
   s.outStream.once('data', function (packet) {

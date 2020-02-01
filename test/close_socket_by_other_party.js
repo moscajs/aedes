@@ -91,13 +91,15 @@ test('client is closed before authorizePublish returns', function (t) {
   })
 
   var s = connect(setup(broker, false))
-  s.inStream.write({
-    cmd: 'publish',
-    topic: 'hello',
-    payload: 'world',
-    qos: 1,
-    messageId: 10,
-    retain: false
+  s.broker.once('clientReady', () => {
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 10,
+      retain: false
+    })
   })
 
   evt.on('AuthorizePublishBegin', function (client) {
@@ -117,14 +119,16 @@ test('close client when its socket is closed', function (t) {
   t.plan(4)
 
   var broker = aedes()
-  var subscriber = connect(setup(broker, false))
+  var s = connect(setup(broker, false))
 
-  subscribe(t, subscriber, 'hello', 1, function () {
-    subscriber.inStream.end()
-    subscriber.conn.on('close', function () {
-      t.equal(broker.connectedClients, 0, 'no connected client')
-      broker.close()
-      t.end()
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, 'hello', 1, function () {
+      s.inStream.end()
+      s.conn.on('close', function () {
+        t.equal(broker.connectedClients, 0, 'no connected client')
+        broker.close()
+        t.end()
+      })
     })
   })
 })

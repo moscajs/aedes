@@ -14,16 +14,18 @@ test('publish empty topic', function (t) {
 
   var s = connect(setup())
 
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-      t.end()
-    })
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, '#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet')
+        t.end()
+      })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: '',
-      payload: 'world'
+      s.inStream.write({
+        cmd: 'publish',
+        topic: '',
+        payload: 'world'
+      })
     })
   })
 
@@ -38,16 +40,18 @@ test('publish invalid topic with #', function (t) {
 
   var s = connect(setup())
 
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-      t.end()
-    })
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, '#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet')
+        t.end()
+      })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello/#',
-      payload: 'world'
+      s.inStream.write({
+        cmd: 'publish',
+        topic: 'hello/#',
+        payload: 'world'
+      })
     })
   })
 
@@ -62,16 +66,17 @@ test('publish invalid topic with +', function (t) {
 
   var s = connect(setup())
 
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-      t.end()
-    })
+  s.broker.once('clientReady', () => {
+    subscribe(t, s, '#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet')
+      })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello/+/eee',
-      payload: 'world'
+      s.inStream.write({
+        cmd: 'publish',
+        topic: 'hello/+/eee',
+        payload: 'world'
+      })
     })
   })
 
@@ -92,13 +97,15 @@ test('publish invalid topic with +', function (t) {
       t.end()
     })
 
-    s.inStream.write({
-      cmd: 'subscribe',
-      messageId: 24,
-      subscriptions: [{
-        topic: topic,
-        qos: 0
-      }]
+    s.broker.once('clientReady', () => {
+      s.inStream.write({
+        cmd: 'subscribe',
+        messageId: 24,
+        subscriptions: [{
+          topic: topic,
+          qos: 0
+        }]
+      })
     })
   })
 
@@ -112,10 +119,12 @@ test('publish invalid topic with +', function (t) {
       t.end()
     })
 
-    s.inStream.write({
-      cmd: 'unsubscribe',
-      messageId: 24,
-      unsubscriptions: [topic]
+    s.broker.once('clientReady', () => {
+      s.inStream.write({
+        cmd: 'unsubscribe',
+        messageId: 24,
+        unsubscriptions: [topic]
+      })
     })
   })
 })
@@ -136,17 +145,21 @@ test('topics are case-sensitive', function (t) {
     retain: false
   }
 
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet mush match')
-    })
-    ;['hello', 'HELLO', 'heLLo', 'HELLO/#', 'hello/+'].forEach(function (topic) {
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic: topic,
-        payload: 'world',
-        qos: 0,
-        retain: false
+  subscriber.broker.once('clientReady', () => {
+    publisher.broker.once('clientReady', () => {
+      subscribe(t, subscriber, 'hello', 0, function () {
+        subscriber.outStream.on('data', function (packet) {
+          t.deepEqual(packet, expected, 'packet mush match')
+        })
+        ;['hello', 'HELLO', 'heLLo', 'HELLO/#', 'hello/+'].forEach(function (topic) {
+          publisher.inStream.write({
+            cmd: 'publish',
+            topic: topic,
+            payload: 'world',
+            qos: 0,
+            retain: false
+          })
+        })
       })
     })
   })
@@ -197,10 +210,13 @@ test('Overlapped topics with same QoS', function (t) {
   var sub = [
     { topic: 'hello/world', qos: 1 },
     { topic: 'hello/#', qos: 1 }]
-  subscribeMultipleTopics(t, broker, 1, subscriber, sub, function () {
-    subscriber.outStream.on('data', function (packet) {
-      delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
+
+  subscriber.broker.once('clientReady', () => {
+    subscribeMultipleTopics(t, broker, 1, subscriber, sub, function () {
+      subscriber.outStream.on('data', function (packet) {
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+      })
     })
   })
   broker.on('closed', t.end.bind(t))
@@ -224,10 +240,13 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   var sub = [
     { topic: 'hello/world', qos: 0 },
     { topic: 'hello/#', qos: 2 }]
-  subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
-    subscriber.outStream.on('data', function (packet) {
-      delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
+
+  subscriber.broker.once('clientReady', () => {
+    subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
+      subscriber.outStream.on('data', function (packet) {
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+      })
     })
   })
   broker.on('closed', t.end.bind(t))
@@ -243,9 +262,12 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   var sub = [
     { topic: 'hello/world', qos: 0 },
     { topic: 'hello/#', qos: 2 }]
-  subscribeMultipleTopics(t, broker, 2, subscriber, sub, function () {
-    subscriber.outStream.on('data', function () {
-      t.fail('should receive messages with the maximum QoS')
+
+  subscriber.broker.once('clientReady', () => {
+    subscribeMultipleTopics(t, broker, 2, subscriber, sub, function () {
+      subscriber.outStream.on('data', function () {
+        t.fail('should receive messages with the maximum QoS')
+      })
     })
   })
   broker.on('closed', t.end.bind(t))
@@ -268,9 +290,12 @@ test('Overlapped topics with QoS downgrade', function (t) {
   var sub = [
     { topic: 'hello/world', qos: 1 },
     { topic: 'hello/#', qos: 1 }]
-  subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
-    subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+
+  subscriber.broker.once('clientReady', () => {
+    subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
+      subscriber.outStream.on('data', function (packet) {
+        t.deepEqual(packet, expected, 'packet must match')
+      })
     })
   })
   broker.on('closed', t.end.bind(t))
