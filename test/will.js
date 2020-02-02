@@ -286,7 +286,7 @@ test('does not deliver a will without authentication', function (t) {
     })),
     opts)
 
-  s.broker.once('clientError', function () {
+  s.broker.on('clientError', function () {
     t.equal(authenticated, true, 'authentication called')
     t.end()
   })
