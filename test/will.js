@@ -1,11 +1,9 @@
 'use strict'
 
-var test = require('tape').test
+var { test } = require('tap')
 var memory = require('aedes-persistence')
-var helper = require('./helper')
+var { setup, connect } = require('./helper')
 var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -28,7 +26,9 @@ test('delivers a will', function (t) {
     opts,
     function () {
       s.conn.destroy()
-    })
+    }
+  )
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
@@ -36,7 +36,6 @@ test('delivers a will', function (t) {
     t.equal(packet.qos, opts.will.qos, 'qos matches')
     t.equal(packet.retain, opts.will.retain, 'retain matches')
     cb()
-    t.end()
   })
 })
 
@@ -45,6 +44,7 @@ test('calling close two times should not deliver two wills', function (t) {
 
   var opts = {}
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     client.close()
@@ -68,7 +68,7 @@ test('calling close two times should not deliver two wills', function (t) {
 })
 
 test('delivers old will in case of a crash', function (t) {
-  t.plan(7)
+  t.plan(6)
 
   var persistence = memory()
   var will = {
@@ -92,6 +92,8 @@ test('delivers old will in case of a crash', function (t) {
       persistence: persistence,
       heartbeatInterval: interval
     })
+    t.tearDown(broker.close.bind(broker))
+
     var start = Date.now()
 
     broker.mq.on('mywill', check)
@@ -105,9 +107,6 @@ test('delivers old will in case of a crash', function (t) {
       t.equal(packet.retain, will.retain, 'retain matches')
       broker.mq.on('mywill', function (packet) {
         t.fail('the will must be delivered only once')
-      })
-      setImmediate(function () {
-        broker.close(t.pass.bind(t, 'server closes'))
       })
       cb()
     }
@@ -123,6 +122,7 @@ test('store the will in the persistence', function (t) {
 
   // willConnect populates opts with a will
   var s = willConnect(setup(), opts)
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.on('client', function () {
     // this is connack
@@ -134,7 +134,6 @@ test('store the will in the persistence', function (t) {
       t.deepEqual(packet.payload, opts.will.payload, 'will payload matches')
       t.deepEqual(packet.qos, opts.will.qos, 'will qos matches')
       t.deepEqual(packet.retain, opts.will.retain, 'will retain matches')
-      t.end()
     })
   })
 })
@@ -147,6 +146,7 @@ test('delete the will in the persistence after publish', function (t) {
   }
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     setImmediate(function () {
@@ -167,7 +167,6 @@ test('delete the will in the persistence after publish', function (t) {
       }, function (err, p) {
         t.error(err, 'no error')
         t.notOk(p, 'packet is empty')
-        t.end()
       })
     })
     cb()
@@ -190,7 +189,9 @@ test('delivers a will with authorization', function (t) {
     opts,
     function () {
       s.conn.destroy()
-    })
+    }
+  )
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function (client) {
     t.equal(client.connected, false)
@@ -204,8 +205,6 @@ test('delivers a will with authorization', function (t) {
     t.equal(authorized, true, 'authorization called')
     cb()
   })
-
-  s.broker.on('closed', t.end.bind(t))
 })
 
 test('delivers a will waits for authorization', function (t) {
@@ -224,7 +223,9 @@ test('delivers a will waits for authorization', function (t) {
     opts,
     function () {
       s.conn.destroy()
-    })
+    }
+  )
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function () {
     t.pass('client is disconnected')
@@ -238,8 +239,6 @@ test('delivers a will waits for authorization', function (t) {
     t.equal(authorized, true, 'authorization called')
     cb()
   })
-
-  s.broker.on('closed', t.end.bind(t))
 })
 
 test('does not deliver a will without authorization', function (t) {
@@ -258,11 +257,12 @@ test('does not deliver a will without authorization', function (t) {
     opts,
     function () {
       s.conn.destroy()
-    })
+    }
+  )
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function () {
     t.equal(authorized, true, 'authorization called')
-    t.end()
   })
 
   s.broker.mq.on('mywill', function (packet, cb) {
@@ -284,7 +284,9 @@ test('does not deliver a will without authentication', function (t) {
         callback(new Error(), false)
       }
     })),
-    opts)
+    opts
+  )
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientError', function () {
     t.equal(authenticated, true, 'authentication called')
@@ -307,11 +309,8 @@ test('does not deliver will if broker is closed during authentication', function
       setTimeout(function () {
         callback(null, true)
       }, 3000)
+      broker.close()
     }
-  })
-
-  broker.on('closed', function () {
-    t.end()
   })
 
   broker.on('keepaliveTimeout', function () {
@@ -323,7 +322,7 @@ test('does not deliver will if broker is closed during authentication', function
     cb()
   })
 
-  willConnect(setup(broker, 1000), opts)
+  willConnect(setup(broker), opts)
 })
 
 // [MQTT-3.14.4-3]
@@ -331,6 +330,8 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
   t.plan(0)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = willConnect(setup(broker), {}, function () {
     s.inStream.end({
       cmd: 'disconnect'
@@ -341,16 +342,16 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
     t.fail(packet)
     cb()
   })
-
-  broker.on('closed', t.end.bind(t))
 })
 
 test('does not store multiple will with same clientid', function (t) {
+  t.plan(4)
+
   var opts = { clientId: 'abcde' }
 
   var broker = aedes()
 
-  var s = willConnect(setup(broker, false), opts, function () {
+  var s = willConnect(setup(broker), opts, function () {
     // gracefully close client so no will is sent
     s.inStream.end({
       cmd: 'disconnect'
@@ -359,7 +360,7 @@ test('does not store multiple will with same clientid', function (t) {
 
   broker.on('clientDisconnect', function (client) {
     // reconnect same client with will
-    s = willConnect(setup(broker, false), opts, function () {
+    s = willConnect(setup(broker), opts, function () {
       // check that there are not 2 will messages for the same clientid
       s.broker.persistence.delWill({ id: opts.clientId }, function (err, packet) {
         t.error(err, 'no error')
@@ -372,6 +373,4 @@ test('does not store multiple will with same clientid', function (t) {
       })
     })
   })
-
-  broker.on('closed', t.end.bind(t))
 })

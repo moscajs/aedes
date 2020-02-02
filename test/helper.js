@@ -10,7 +10,7 @@ var parseStream = mqtt.parseStream
 var generateStream = mqtt.generateStream
 var clients = 0
 
-function setup (broker, autoClose) {
+function setup (broker) {
   var inStream = generateStream()
   var outStream = parseStream()
   var conn = duplexify(outStream, inStream)
@@ -18,12 +18,6 @@ function setup (broker, autoClose) {
   broker = broker || aedes()
 
   broker.handle(conn)
-
-  if (autoClose === undefined || autoClose) {
-    setTimeout(function () {
-      broker.close()
-    }, autoClose || 200)
-  }
 
   return {
     conn: conn,

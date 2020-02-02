@@ -1,23 +1,23 @@
 'use strict'
 
-var test = require('tape').test
+var { test } = require('tap')
 var EE = require('events').EventEmitter
-var helper = require('./helper')
+var { setup, connect, subscribe } = require('./helper')
 var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
-var subscribe = helper.subscribe
 
 test('aedes is closed before client authenticate returns', function (t) {
-  t.plan(0)
+  t.plan(1)
 
+  var evt = new EE()
   var broker = aedes({
     authenticate: (client, username, password, done) => {
+      evt.emit('AuthenticateBegin', client)
       setTimeout(function () {
         done(null, true)
       }, 2000)
     }
   })
+
   broker.on('client', function (client) {
     t.fail('should no client registration')
   })
@@ -28,14 +28,16 @@ test('aedes is closed before client authenticate returns', function (t) {
     t.error(err)
   })
 
-  connect(setup(broker, 200))
-  broker.on('closed', () => {
-    t.end()
+  connect(setup(broker))
+
+  evt.on('AuthenticateBegin', function (client) {
+    t.equal(broker.connectedClients, 0)
+    broker.close()
   })
 })
 
 test('client is closed before authenticate returns', function (t) {
-  t.plan(2)
+  t.plan(1)
 
   var evt = new EE()
   var broker = aedes({
@@ -43,10 +45,11 @@ test('client is closed before authenticate returns', function (t) {
       evt.emit('AuthenticateBegin', client)
       setTimeout(function () {
         done(null, true)
-        evt.emit('AuthenticateEnd', client)
       }, 2000)
     }
   })
+  t.tearDown(broker.close.bind(broker))
+
   broker.on('client', function (client) {
     t.fail('should no client registration')
   })
@@ -57,18 +60,11 @@ test('client is closed before authenticate returns', function (t) {
     t.error(err)
   })
 
-  connect(setup(broker, false))
+  connect(setup(broker))
 
   evt.on('AuthenticateBegin', function (client) {
     t.equal(broker.connectedClients, 0)
     client.close()
-  })
-  evt.on('AuthenticateEnd', function (client) {
-    t.equal(broker.connectedClients, 0)
-    setImmediate(() => {
-      broker.close()
-      t.end()
-    })
   })
 })
 
@@ -86,11 +82,12 @@ test('client is closed before authorizePublish returns', function (t) {
       }, 2000)
     }
   })
+
   broker.on('clientError', function (client, err) {
     t.equal(err.message, 'connection closed')
   })
 
-  var s = connect(setup(broker, false))
+  var s = connect(setup(broker))
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
@@ -106,10 +103,7 @@ test('client is closed before authorizePublish returns', function (t) {
   })
   evt.on('AuthorizePublishEnd', function (client) {
     t.equal(broker.connectedClients, 0)
-    setImmediate(() => {
-      broker.close()
-      t.end()
-    })
+    broker.close()
   })
 })
 
@@ -117,14 +111,14 @@ test('close client when its socket is closed', function (t) {
   t.plan(4)
 
   var broker = aedes()
-  var subscriber = connect(setup(broker, false))
+  t.tearDown(broker.close.bind(broker))
+
+  var subscriber = connect(setup(broker))
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
     subscriber.conn.on('close', function () {
       t.equal(broker.connectedClients, 0, 'no connected client')
-      broker.close()
-      t.end()
     })
   })
 })
@@ -134,6 +128,12 @@ test('multiple clients subscribe same topic, and all clients still receive messa
 
   var mqtt = require('mqtt')
   var broker = aedes()
+  t.tearDown(() => {
+    client2.end()
+    broker.close()
+    server.close()
+  })
+
   var server = require('net').createServer(broker.handle)
   var port = 1883
   server.listen(port)
@@ -159,6 +159,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
     client2 = mqtt.connect('mqtt://localhost', { clientId: 'client2', resubscribe: false })
     client2.on('message', () => {
       t.pass('client2 receives message')
+      t.equal(broker.connectedClients, 1)
     })
     client2.subscribe(_sameTopic, { qos: 0, retain: false }, () => {
       t.pass('client2 sub callback')
@@ -171,10 +172,4 @@ test('multiple clients subscribe same topic, and all clients still receive messa
       })
     })
   })
-  setTimeout(() => {
-    t.equal(broker.connectedClients, 1)
-    client2.end()
-    broker.close()
-    server.close()
-  }, 2000)
 })

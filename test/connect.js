@@ -1,24 +1,21 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
-var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
-var delay = helper.delay
+var { test } = require('tap')
 var http = require('http')
 var ws = require('websocket-stream')
 var mqtt = require('mqtt')
 var mqttPacket = require('mqtt-packet')
 var net = require('net')
 var proxyProtocol = require('proxy-protocol-js')
-var util = require('util')
+var { setup, connect, delay } = require('./helper')
+var aedes = require('../')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
     t.plan(1)
 
     var s = setup()
+    t.tearDown(s.broker.close.bind(s.broker))
 
     s.inStream.write({
       cmd: 'connect',
@@ -41,7 +38,6 @@ var util = require('util')
         payload: null,
         sessionPresent: false
       }, 'successful connack')
-      t.end()
     })
   })
 })
@@ -51,6 +47,8 @@ test('reject client requested for unacceptable protocol version', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -72,7 +70,6 @@ test('reject client requested for unacceptable protocol version', function (t) {
   broker.on('connectionError', function (client, err) {
     t.equal(err.message, 'unacceptable protocol version')
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet
@@ -80,6 +77,8 @@ test('reject client requested for unsupported protocol version', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -97,7 +96,6 @@ test('reject client requested for unsupported protocol version', function (t) {
     t.equal(err.message, 'Invalid protocol version')
     t.equal(broker.connectedClients, 0)
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 // Guarded in mqtt-packet
@@ -105,6 +103,8 @@ test('reject clients with no clientId running on MQTT 3.1.0', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -121,7 +121,6 @@ test('reject clients with no clientId running on MQTT 3.1.0', function (t) {
     t.equal(err.message, 'clientId must be supplied before 3.1.1')
     t.equal(broker.connectedClients, 0)
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 // [MQTT-3.1.3-7], Guarded in mqtt-packet
@@ -129,6 +128,8 @@ test('reject clients without clientid and clean=false on MQTT 3.1.1', function (
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -146,13 +147,14 @@ test('reject clients without clientid and clean=false on MQTT 3.1.1', function (
     t.equal(err.message, 'clientId must be given if cleanSession set to 0')
     t.equal(broker.connectedClients, 0)
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -173,13 +175,14 @@ test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated
   broker.on('client', function (client) {
     t.ok(client.id.startsWith('aedes_'))
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -201,9 +204,6 @@ test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a ge
   broker.on('client', function (client) {
     t.ok(client.id.startsWith('aedes_'))
   })
-  broker.on('closed', function () {
-    t.end()
-  })
 })
 
 // [MQTT-3.1.3-7]
@@ -211,6 +211,8 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -229,13 +231,14 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
   broker.on('connectionError', function (client, err) {
     t.equal(err.message, 'identifier rejected')
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -254,7 +257,6 @@ test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
   broker.on('connectionError', function (client, err) {
     t.error(err, 'no error')
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 // [MQTT-3.1.0-1]
@@ -262,6 +264,8 @@ test('the first Packet MUST be a CONNECT Packet', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var packet = {
     cmd: 'publish',
     topic: 'hello',
@@ -269,7 +273,7 @@ test('the first Packet MUST be a CONNECT Packet', function (t) {
     qos: 0,
     retain: false
   }
-  var s = setup(broker, false)
+  var s = setup(broker)
   s.inStream.write(packet)
 
   broker.on('connectionError', function (client, err) {
@@ -278,8 +282,6 @@ test('the first Packet MUST be a CONNECT Packet', function (t) {
   setImmediate(() => {
     t.ok(s.conn.destroyed, 'close connection if first packet is not a CONNECT')
     s.conn.destroy()
-    broker.close()
-    t.end()
   })
 })
 
@@ -288,6 +290,8 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var packet = {
     cmd: 'connect',
     protocolId: 'MQTT',
@@ -299,15 +303,13 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
   broker.on('clientError', function (client, err) {
     t.equal(err.message, 'Invalid protocol')
   })
-  var s = connect(setup(broker, false), { clientId: 'abcde' }, function () {
+  var s = connect(setup(broker), { clientId: 'abcde' }, function () {
     t.ok(broker.clients.abcde.connected)
     // destory client when there is a 2nd cmd:connect, even the clientId is dfferent
     s.inStream.write(packet)
     setImmediate(() => {
       t.equal(broker.clients.abcde, undefined, 'client instance is removed')
       t.ok(s.conn.destroyed, 'close connection if packet is a CONNECT after network is established')
-      broker.close()
-      t.end()
     })
   })
 })
@@ -341,6 +343,8 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
       }, ms)
     }
   })
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   broker.on('connectionError', function (client, err) {
@@ -352,13 +356,9 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
     await delay(ms)
     s.inStream.write(msg)
   }
-  const immediate = util.promisify(setImmediate)
 
   ;(async () => {
     await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
-    await immediate()
-    broker.close()
-    t.end()
   })().catch(
     (error) => {
       t.fail(error)
@@ -371,6 +371,8 @@ test('reject clients with wrong protocol name', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
 
   s.inStream.write({
@@ -388,12 +390,14 @@ test('reject clients with wrong protocol name', function (t) {
     t.equal(err.message, 'Invalid protocolId')
     t.equal(broker.connectedClients, 0)
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('After first CONNECT Packet, others are queued until \'connect\' event', function (t) {
+  t.plan(2)
+
   var queueLimit = 50
   var broker = aedes({ queueLimit })
+  t.tearDown(broker.close.bind(broker))
 
   var publishP = {
     cmd: 'publish',
@@ -412,7 +416,7 @@ test('After first CONNECT Packet, others are queued until \'connect\' event', fu
     keepalive: 0
   }
 
-  var s = setup(broker, false)
+  var s = setup(broker)
   s.inStream.write(connectP)
 
   process.once('warning', e => t.fail('Memory leak detected'))
@@ -427,14 +431,16 @@ test('After first CONNECT Packet, others are queued until \'connect\' event', fu
     client.once('connected', () => {
       t.equal(client._parser._queue, null, 'Queue is empty')
       s.conn.destroy()
-      broker.close(t.end)
     })
   })
 })
 
 test('Test queue limit', function (t) {
+  t.plan(1)
+
   var queueLimit = 50
   var broker = aedes({ queueLimit })
+  t.tearDown(broker.close.bind(broker))
 
   var publishP = {
     cmd: 'publish',
@@ -453,7 +459,7 @@ test('Test queue limit', function (t) {
     keepalive: 0
   }
 
-  var s = setup(broker, false)
+  var s = setup(broker)
   s.inStream.write(connectP)
 
   process.once('warning', e => t.fail('Memory leak detected'))
@@ -465,11 +471,10 @@ test('Test queue limit', function (t) {
   broker.on('connectionError', function (conn, err) {
     t.equal(err.message, 'Client queue limit reached', 'Queue error is thrown')
     s.conn.destroy()
-    broker.close(t.end)
   })
 })
 
-;[[0, null, false], [1, null, true], [1, new Error('connection banned'), false], [1, new Error('connection banned'), true]].forEach(function (ele) {
+;[[0, null, false], [0, null, true], [1, new Error('connection banned'), false], [1, new Error('connection banned'), true]].forEach(function (ele, idx) {
   var plan = ele[0]
   var err = ele[1]
   var ok = ele[2]
@@ -481,6 +486,8 @@ test('Test queue limit', function (t) {
         return done(err, ok)
       }
     })
+    t.tearDown(broker.close.bind(broker))
+
     var s = setup(broker)
 
     s.inStream.write({
@@ -488,7 +495,7 @@ test('Test queue limit', function (t) {
       protocolId: 'MQTT',
       protocolVersion: 4,
       clean: true,
-      clientId: 'my-client',
+      clientId: 'my-client-' + idx,
       keepalive: 0
     })
     broker.on('client', function (client) {
@@ -508,7 +515,6 @@ test('Test queue limit', function (t) {
         t.fail('no connection error')
       }
     })
-    broker.on('closed', t.end.bind(t))
   })
 })
 
@@ -516,29 +522,29 @@ test('Test queue limit', function (t) {
 test('websocket clients have access to the request object', function (t) {
   t.plan(3)
 
+  var port = 4883
   var broker = aedes()
-  var server = http.createServer()
-  ws.createServer({
-    server: server
-  }, broker.handle)
-
-  server.listen(4883, function (err) {
-    t.error(err, 'no error')
-  })
-
   broker.on('client', function (client) {
     if (client.req) {
       t.pass('client request object present')
       if (client.req.headers) {
         t.equal('sample', client.req.headers['x-test-protocol'])
-        finish()
       }
     } else {
       t.fail('no request object present')
     }
   })
 
-  var client = mqtt.connect('ws://localhost:4883', {
+  var server = http.createServer()
+  ws.createServer({
+    server: server
+  }, broker.handle)
+
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  var client = mqtt.connect(`ws://localhost:${port}`, {
     wsOptions: {
       headers: {
         'X-Test-Protocol': 'sample'
@@ -546,15 +552,11 @@ test('websocket clients have access to the request object', function (t) {
     }
   })
 
-  var timer = setTimeout(finish, 1000)
-
-  function finish () {
-    clearTimeout(timer)
-    client.end()
+  t.tearDown(() => {
+    client.end(true)
     broker.close()
     server.close()
-    t.end()
-  }
+  })
 })
 
 // test ipAddress property presence when trustProxy is enabled
@@ -571,7 +573,6 @@ test('tcp clients have access to the ipAddress from the socket', function (t) {
         t.fail('no ip address present')
       }
       done(null, true)
-      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -588,12 +589,11 @@ test('tcp clients have access to the ipAddress from the socket', function (t) {
     clean: false
   })
 
-  function finish () {
-    client.end()
+  t.tearDown(() => {
+    client.end(true)
     broker.close()
     server.close()
-    t.end()
-  }
+  })
 })
 
 test('tcp proxied (protocol v1) clients have access to the ipAddress(v4)', function (t) {
@@ -629,7 +629,6 @@ test('tcp proxied (protocol v1) clients have access to the ipAddress(v4)', funct
         t.fail('no ip address present')
       }
       done(null, true)
-      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -646,12 +645,11 @@ test('tcp proxied (protocol v1) clients have access to the ipAddress(v4)', funct
     client.write(protocol)
   })
 
-  function finish () {
+  t.tearDown(() => {
     client.end()
     broker.close()
     server.close()
-    t.end()
-  }
+  })
 })
 
 test('tcp proxied (protocol v2) clients have access to the ipAddress(v4)', function (t) {
@@ -688,7 +686,6 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v4)', funct
         t.fail('no ip address present')
       }
       done(null, true)
-      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -707,12 +704,11 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v4)', funct
     }
   )
 
-  function finish () {
+  t.tearDown(() => {
     client.end()
     broker.close()
     server.close()
-    t.end()
-  }
+  })
 })
 
 test('tcp proxied (protocol v2) clients have access to the ipAddress(v6)', function (t) {
@@ -750,7 +746,6 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v6)', funct
         t.fail('no ip address present')
       }
       done(null, true)
-      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -769,12 +764,11 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v6)', funct
     }
   )
 
-  function finish () {
+  t.tearDown(() => {
     client.end()
     broker.close()
     server.close()
-    t.end()
-  }
+  })
 })
 
 test('websocket clients have access to the ipAddress from the socket (if no ip header)', function (t) {
@@ -791,7 +785,6 @@ test('websocket clients have access to the ipAddress from the socket (if no ip h
         t.fail('no ip address present')
       }
       done(null, true)
-      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -807,12 +800,11 @@ test('websocket clients have access to the ipAddress from the socket (if no ip h
 
   var client = mqtt.connect(`ws://localhost:${port}`)
 
-  function finish () {
+  t.tearDown(() => {
+    client.end(true)
     broker.close()
     server.close()
-    client.end()
-    t.end()
-  }
+  })
 })
 
 test('websocket proxied clients have access to the ipAddress from x-real-ip header', function (t) {
@@ -829,7 +821,6 @@ test('websocket proxied clients have access to the ipAddress from x-real-ip head
         t.fail('no ip address present')
       }
       done(null, true)
-      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -851,12 +842,11 @@ test('websocket proxied clients have access to the ipAddress from x-real-ip head
     }
   })
 
-  function finish () {
+  t.tearDown(() => {
+    client.end(true)
     broker.close()
     server.close()
-    client.end()
-    t.end()
-  }
+  })
 })
 
 test('websocket proxied clients have access to the ipAddress from x-forwarded-for header', function (t) {
@@ -873,7 +863,6 @@ test('websocket proxied clients have access to the ipAddress from x-forwarded-fo
         t.fail('no ip address present')
       }
       done(null, true)
-      setImmediate(finish)
     },
     trustProxy: true
   })
@@ -895,10 +884,9 @@ test('websocket proxied clients have access to the ipAddress from x-forwarded-fo
     }
   })
 
-  function finish () {
+  t.tearDown(() => {
+    client.end(true)
     broker.close()
     server.close()
-    client.end()
-    t.end()
-  }
+  })
 })

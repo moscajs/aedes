@@ -1,17 +1,16 @@
 'use strict'
 
+var { test } = require('tap')
 var concat = require('concat-stream')
-var test = require('tape').test
-var helper = require('./helper')
+var { setup, connect, subscribe } = require('./helper')
 var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
-var subscribe = helper.subscribe
 
 test('publish QoS 1', function (t) {
   t.plan(1)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var expected = {
     cmd: 'puback',
     messageId: 42,
@@ -31,7 +30,6 @@ test('publish QoS 1', function (t) {
 
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, expected, 'packet must match')
-    t.end()
   })
 })
 
@@ -39,6 +37,8 @@ test('publish QoS 1 and check offline queue', function (t) {
   t.plan(13)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker), { clean: false })
   var subscriberClient = {
     id: 'abcde'
@@ -95,7 +95,6 @@ test('publish QoS 1 and check offline queue', function (t) {
               }
             })
           }
-          t.end()
         })
       }
     })
@@ -109,6 +108,8 @@ test('subscribe QoS 1', function (t) {
   t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -130,7 +131,6 @@ test('subscribe QoS 1', function (t) {
       t.notEqual(packet.messageId, 42, 'messageId must differ')
       delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
-      t.end()
     })
 
     publisher.inStream.write({
@@ -147,6 +147,8 @@ test('subscribe QoS 0, but publish QoS 1', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var expected = {
@@ -162,7 +164,6 @@ test('subscribe QoS 0, but publish QoS 1', function (t) {
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.once('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
-      t.end()
     })
 
     publisher.inStream.write({
@@ -179,6 +180,8 @@ test('restore QoS 1 subscriptions not clean', function (t) {
   t.plan(7)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -219,7 +222,6 @@ test('restore QoS 1 subscriptions not clean', function (t) {
       t.notEqual(packet.messageId, 42, 'messageId must differ')
       delete packet.messageId
       t.deepEqual(packet, expected, 'packet must match')
-      t.end()
     })
   })
 })
@@ -228,6 +230,8 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
   t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
@@ -257,8 +261,6 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
           qos: 1,
           messageId: 43
         })
-
-        t.end()
       })
 
       subscriber.outStream.once('data', function (packet) {
@@ -276,6 +278,8 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
   t.plan(8)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
@@ -340,6 +344,8 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
   t.plan(6)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -388,13 +394,14 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
       })
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('do not resend QoS 1 packets if reconnect is clean', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
@@ -421,13 +428,14 @@ test('do not resend QoS 1 packets if reconnect is clean', function (t) {
       })
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('do not resend QoS 1 packets at reconnect if puback was received', function (t) {
   t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -471,13 +479,14 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
       })
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('remove stored subscriptions after unsubscribe', function (t) {
   t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
@@ -520,7 +529,6 @@ test('remove stored subscriptions after unsubscribe', function (t) {
           messageId: 43
         }, function () {
           subscriber.inStream.end()
-          t.end()
         })
 
         subscriber.outStream.once('data', function (packet) {
@@ -539,6 +547,8 @@ test('upgrade a QoS 0 subscription to QoS 1', function (t) {
   t.plan(8)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -555,7 +565,6 @@ test('upgrade a QoS 0 subscription to QoS 1', function (t) {
         t.ok(packet.messageId, 'has messageId')
         delete packet.messageId
         t.deepEqual(packet, expected, 'packet matches')
-        t.end()
       })
 
       s.broker.publish({
@@ -572,6 +581,8 @@ test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
   t.plan(4)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -585,7 +596,6 @@ test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
   subscribe(t, s, 'hello', 1, function () {
     s.outStream.once('data', function (packet) {
       t.deepEqual(packet, expected, 'packet matches')
-      t.end()
     })
     s.broker.publish({
       cmd: 'publish',
@@ -600,6 +610,8 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
   t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = connect(setup(broker))
   var expected = {
     cmd: 'publish',

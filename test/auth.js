@@ -1,19 +1,16 @@
 'use strict'
 
-var test = require('tape').test
-var Client = require('../lib/client')
-var helper = require('./helper')
-var aedes = require('../')
+var { test } = require('tap')
 var eos = require('end-of-stream')
-var setup = helper.setup
-var subscribe = helper.subscribe
-var subscribeMultiple = helper.subscribeMultiple
-var connect = helper.connect
+var Client = require('../lib/client')
+var { setup, connect, subscribe, subscribeMultiple } = require('./helper')
+var aedes = require('../')
 
 test('authenticate successfully a client with username and password', function (t) {
   t.plan(4)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -49,9 +46,10 @@ test('authenticate successfully a client with username and password', function (
 })
 
 test('authenticate unsuccessfully a client with username and password', function (t) {
-  t.plan(6)
+  t.plan(5)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -76,7 +74,6 @@ test('authenticate unsuccessfully a client with username and password', function
 
   eos(s.outStream, function () {
     t.equal(s.broker.connectedClients, 0, 'no connected clients')
-    t.pass('ended')
   })
 
   s.inStream.write({
@@ -95,6 +92,7 @@ test('authenticate errors', function (t) {
   t.plan(5)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -118,7 +116,7 @@ test('authenticate errors', function (t) {
   })
 
   eos(s.outStream, function () {
-    t.pass('ended')
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
   })
 
   s.inStream.write({
@@ -137,6 +135,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
   t.plan(5)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -162,7 +161,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
   })
 
   eos(s.outStream, function () {
-    t.pass('ended')
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
   })
 
   s.inStream.write({
@@ -181,6 +180,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
   t.plan(5)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -206,7 +206,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
   })
 
   eos(s.outStream, function () {
-    t.pass('ended')
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
   })
 
   s.inStream.write({
@@ -225,6 +225,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
   t.plan(5)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -250,7 +251,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
   })
 
   eos(s.outStream, function () {
-    t.pass('ended')
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
   })
 
   s.inStream.write({
@@ -269,6 +270,7 @@ test('authentication error when non numeric return code is passed', function (t)
   t.plan(5)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -294,7 +296,7 @@ test('authentication error when non numeric return code is passed', function (t)
   })
 
   eos(s.outStream, function () {
-    t.pass('ended')
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
   })
 
   s.inStream.write({
@@ -313,6 +315,8 @@ test('authorize publish', function (t) {
   t.plan(4)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -350,6 +354,7 @@ test('authorize waits for authenticate', function (t) {
   t.plan(6)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.ok(client instanceof Client, 'client is there')
@@ -414,6 +419,7 @@ test('authorize publish from configOptions', function (t) {
       cb()
     }
   })))
+  t.tearDown(s.broker.close.bind(s.broker))
 
   var expected = {
     cmd: 'publish',
@@ -446,6 +452,8 @@ test('do not authorize publish', function (t) {
   t.plan(3)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -463,7 +471,7 @@ test('do not authorize publish', function (t) {
   }
 
   eos(s.conn, function () {
-    t.pass('ended')
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
   })
 
   s.inStream.write({
@@ -477,6 +485,7 @@ test('authorize subscribe', function (t) {
   t.plan(5)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
@@ -494,6 +503,7 @@ test('authorize subscribe multiple same topics with same qos', function (t) {
   t.plan(4)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.deepEqual(sub, {
@@ -510,6 +520,7 @@ test('authorize subscribe multiple same topics with different qos', function (t)
   t.plan(4)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.deepEqual(sub, {
@@ -526,6 +537,7 @@ test('authorize subscribe multiple different topics', function (t) {
   t.plan(7)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
@@ -559,6 +571,7 @@ test('authorize subscribe from config options', function (t) {
       cb(null, sub)
     }
   })))
+  t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0)
 })
@@ -567,6 +580,7 @@ test('negate subscription', function (t) {
   t.plan(5)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
@@ -597,6 +611,7 @@ test('negate multiple subscriptions', function (t) {
   t.plan(5)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
@@ -634,6 +649,8 @@ test('negate subscription with correct persistence', function (t) {
   }]
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
     if (sub.topic === 'hello') {
@@ -669,6 +686,7 @@ test('negate multiple subscriptions random times', function (t) {
   t.plan(5)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
@@ -704,6 +722,8 @@ test('failed authentication does not disconnect other client with same clientId'
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = setup(broker)
   var s0 = setup(broker)
 
@@ -785,6 +805,8 @@ test('unauthorized connection should not unregister the correct one with same cl
       }
     }
   })
+  t.tearDown(broker.close.bind(broker))
+
   broker.on('clientError', function (client, err) {
     t.equal(broker.connectedClients, 1, 'my-client still connected')
   })
@@ -805,7 +827,7 @@ test('unauthorized connection should not unregister the correct one with same cl
 })
 
 test('set authentication method in config options', function (t) {
-  t.plan(6)
+  t.plan(5)
 
   var s = setup(aedes({
     authenticate: function (client, username, password, cb) {
@@ -815,6 +837,7 @@ test('set authentication method in config options', function (t) {
       cb(null, false)
     }
   }))
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
@@ -832,7 +855,6 @@ test('set authentication method in config options', function (t) {
 
   eos(s.outStream, function () {
     t.equal(s.broker.connectedClients, 0, 'no connected clients')
-    t.pass('ended')
   })
 
   s.inStream.write({
@@ -857,6 +879,8 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
       return packet
     }
   })
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -900,6 +924,7 @@ test('prevent publish in QoS1 mode', function (t) {
       return null
     }
   })
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     client.subscribe({
@@ -933,6 +958,7 @@ test('prevent publish in QoS 0 mode', function (t) {
       return null
     }
   })
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     client.subscribe({
