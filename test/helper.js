@@ -60,7 +60,7 @@ function connect (s, opts, connected) {
     // setup also needs to return first
     if (packet.cmd !== 'connack') {
       setImmediate(this.push.bind(this, packet))
-    } else if (connected) {
+    } else if (connected && packet.returnCode === 0) {
       setImmediate(connected, packet)
     }
     cb()
