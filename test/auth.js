@@ -873,7 +873,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
   t.plan(3)
 
   const broker = aedes({
-    authorizeForward: function (client, packet, cb) {
+    authorizeForward: function (client, packet) {
       packet.payload = Buffer.from('another-world')
       packet.messageId = 2
       return packet
@@ -920,7 +920,7 @@ test('prevent publish in QoS1 mode', function (t) {
   t.plan(2)
 
   const broker = aedes({
-    authorizeForward: function (client, packet, cb) {
+    authorizeForward: function (client, packet) {
       return null
     }
   })
@@ -954,7 +954,7 @@ test('prevent publish in QoS 0 mode', function (t) {
   t.plan(2)
 
   const broker = aedes({
-    authorizeForward: function (client, packet, cb) {
+    authorizeForward: function (client, packet) {
       return null
     }
   })
