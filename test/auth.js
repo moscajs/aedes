@@ -771,7 +771,7 @@ test('failed authentication does not disconnect other client with same clientId'
   })
 })
 
-test('unauthorized connection should not unregister the correct one', function (t) {
+test('unauthorized connection should not unregister the correct one with same clientId', function (t) {
   t.plan(2)
 
   var broker = aedes({
@@ -780,10 +780,13 @@ test('unauthorized connection should not unregister the correct one', function (
         callback(null, true)
       } else {
         const error = new Error()
-        error.returnCode = 1
+        error.returnCode = 4
         callback(error, false)
       }
     }
+  })
+  broker.on('clientError', function (client, err) {
+    t.equal(broker.connectedClients, 1, 'my-client still connected')
   })
 
   connect(setup(broker), {
@@ -796,7 +799,7 @@ test('unauthorized connection should not unregister the correct one', function (
       username: 'unauthorized'
     }, function () {
       // other unauthorized connection with the same clientId should not unregister the correct one.
-      t.equal(broker.connectedClients, 1, 'my-client still connected')
+      t.fail('unauthorized should not connect')
     })
   })
 })
