@@ -1,12 +1,12 @@
-var cluster = require('cluster')
-var mqemitter = require('mqemitter-child-process')
-var mongoPersistence = require('aedes-persistence-mongodb')
+const cluster = require('cluster')
+const mqemitter = require('mqemitter-child-process')
+const mongoPersistence = require('aedes-persistence-mongodb')
 
 function startAedes () {
-  var client = mqemitter.child()
-  var port = 1883
+  const client = mqemitter.child()
+  const port = 1883
 
-  var aedes = require('aedes')({
+  const aedes = require('aedes')({
     mq: client,
     persistence: mongoPersistence({
       url: 'mongodb://127.0.0.1/aedes-test',
@@ -18,7 +18,7 @@ function startAedes () {
     })
   })
 
-  var server = require('net').createServer(aedes.handle)
+  const server = require('net').createServer(aedes.handle)
 
   server.listen(port, function () {
     console.log('Aedes listening on port:', port)
@@ -55,7 +55,7 @@ if (cluster.isMaster) {
   mqemitter.start((err) => {
     if (err) throw err
 
-    var numWorkers = require('os').cpus().length
+    const numWorkers = require('os').cpus().length
     for (let i = 0; i < numWorkers; i++) {
       cluster.fork()
     }
