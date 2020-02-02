@@ -1,6 +1,7 @@
-// relative path uses package.json {"types":"types/index.d.ts", ...}
+/* eslint no-unused-vars: 0 */
+/* eslint no-undef: 0 */
 
-import { Server, Client, AuthenticateError } from '../..'
+import { Server, Client, AuthenticateError } from '../../aedes'
 import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { createServer } from 'net'
 
@@ -34,7 +35,7 @@ const broker = Server({
     }
 
     if (packet.topic === 'bbb') {
-      packet.payload = new Buffer('overwrite packet payload')
+      packet.payload = Buffer.from('overwrite packet payload')
     }
 
     callback(null)
@@ -60,7 +61,7 @@ const broker = Server({
     }
 
     if (packet.topic === 'bbb') {
-      packet.payload = new Buffer('overwrite packet payload')
+      packet.payload = Buffer.from('overwrite packet payload')
     }
 
     return packet
@@ -70,7 +71,7 @@ const broker = Server({
 const server = createServer(broker.handle)
 
 broker.on('closed', () => {
-  console.log(`closed`)
+  console.log('closed')
 })
 
 broker.on('client', client => {
