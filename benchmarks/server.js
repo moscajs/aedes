@@ -2,9 +2,9 @@
 
 // To be used with cpuprofilify http://npm.im/cpuprofilify
 
-var aedes = require('../')()
-var server = require('net').createServer(aedes.handle)
-var port = 1883
+const aedes = require('../')()
+const server = require('net').createServer(aedes.handle)
+const port = 1883
 
 server.listen(port, function () {
   console.error('server listening on port', port, 'pid', process.pid)

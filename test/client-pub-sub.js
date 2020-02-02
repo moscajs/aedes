@@ -1,16 +1,16 @@
 'use strict'
 
-var { test } = require('tap')
-var { setup, connect } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const { setup, connect } = require('./helper')
+const aedes = require('../')
 
 test('publish direct to a single client QoS 0', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -30,7 +30,7 @@ test('publish direct to a single client QoS 0', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, expected, 'packet matches')
@@ -40,10 +40,10 @@ test('publish direct to a single client QoS 0', function (t) {
 test('publish direct to a single client QoS 1', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -63,7 +63,7 @@ test('publish direct to a single client QoS 1', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     expected.messageId = packet.messageId
@@ -78,7 +78,7 @@ test('publish direct to a single client QoS 1', function (t) {
 test('publish direct to a single client QoS 2', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   var publishCount = 0
@@ -97,7 +97,7 @@ test('publish direct to a single client QoS 2', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.inStream.on('close', () => {
     t.equal(publishCount, 1)
@@ -125,7 +125,7 @@ test('publish direct to a single client QoS 2', function (t) {
 test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   var expected = {
@@ -154,7 +154,7 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
     t.pass('got the ack event')
   })
 
-  var s = connect(setup(broker), { clean: false })
+  const s = connect(setup(broker), { clean: false })
 
   s.outStream.once('data', function (packet) {
     s.inStream.write({
@@ -167,7 +167,7 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
 test('emit a `ack` event on PUBACK for QoS 1 [clean=true]', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('clientReady', function (client) {
@@ -185,7 +185,7 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=true]', function (t) {
     t.pass('got the ack event')
   })
 
-  var s = connect(setup(broker), { clean: true })
+  const s = connect(setup(broker), { clean: true })
 
   s.outStream.once('data', function (packet) {
     s.inStream.write({
@@ -198,7 +198,7 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=true]', function (t) {
 test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
   t.plan(5)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   var messageId
@@ -222,7 +222,7 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
     t.pass('got the ack event')
   })
 
-  var s = connect(setup(broker), { clean: false })
+  const s = connect(setup(broker), { clean: false })
 
   s.outStream.on('data', function (packet) {
     if (packet.cmd === 'publish') {
@@ -243,7 +243,7 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
 test('emit a `ack` event on PUBCOMP for QoS 2 [clean=true]', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('clientReady', function (client) {
@@ -261,7 +261,7 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=true]', function (t) {
     t.pass('got the ack event')
   })
 
-  var s = connect(setup(broker), { clean: true })
+  const s = connect(setup(broker), { clean: true })
 
   s.outStream.on('data', function (packet) {
     if (packet.cmd === 'publish') {
@@ -281,10 +281,10 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=true]', function (t) {
 test('offline message support for direct publish', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -293,7 +293,7 @@ test('offline message support for direct publish', function (t) {
     qos: 1,
     retain: false
   }
-  var opts = {
+  const opts = {
     clean: false,
     clientId: 'abcde'
   }
@@ -328,10 +328,10 @@ test('offline message support for direct publish', function (t) {
 test('subscribe a client programmatically', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -358,7 +358,7 @@ test('subscribe a client programmatically', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, expected, 'packet matches')
@@ -368,10 +368,10 @@ test('subscribe a client programmatically', function (t) {
 test('subscribe a client programmatically - wildcard', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello/world/1',
     payload: Buffer.from('world'),
@@ -398,7 +398,7 @@ test('subscribe a client programmatically - wildcard', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, expected, 'packet matches')
@@ -408,7 +408,7 @@ test('subscribe a client programmatically - wildcard', function (t) {
 test('unsubscribe a client', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
@@ -431,10 +431,10 @@ test('unsubscribe a client', function (t) {
 test('subscribe a client programmatically multiple topics', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -464,7 +464,7 @@ test('subscribe a client programmatically multiple topics', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, expected, 'packet matches')
@@ -474,10 +474,10 @@ test('subscribe a client programmatically multiple topics', function (t) {
 test('subscribe a client programmatically with full packet', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -509,7 +509,7 @@ test('subscribe a client programmatically with full packet', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, expected, 'packet matches')
@@ -519,8 +519,8 @@ test('subscribe a client programmatically with full packet', function (t) {
 test('get message when client connects', function (t) {
   t.plan(2)
 
-  var client1 = 'gav'
-  var broker = aedes()
+  const client1 = 'gav'
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
@@ -534,7 +534,7 @@ test('get message when client connects', function (t) {
     })
   })
 
-  var s1 = connect(setup(broker), { clientId: client1 })
+  const s1 = connect(setup(broker), { clientId: client1 })
 
   s1.outStream.on('data', function (packet) {
     t.equal(client1, packet.payload.toString())
@@ -544,9 +544,9 @@ test('get message when client connects', function (t) {
 test('get message when client disconnects', function (t) {
   t.plan(2)
 
-  var client1 = 'gav'
-  var client2 = 'friend'
-  var broker = aedes()
+  const client1 = 'gav'
+  const client2 = 'friend'
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
@@ -564,7 +564,7 @@ test('get message when client disconnects', function (t) {
     }
   })
 
-  var s1 = connect(setup(broker), { clientId: client1 })
+  const s1 = connect(setup(broker), { clientId: client1 })
   connect(setup(broker), { clientId: client2 })
 
   s1.outStream.on('data', function (packet) {
@@ -575,7 +575,7 @@ test('get message when client disconnects', function (t) {
 test('should not receive a message on negated subscription', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.authorizeSubscribe = function (client, sub, callback) {
@@ -599,7 +599,7 @@ test('should not receive a message on negated subscription', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
   s.outStream.once('data', function (packet) {
     t.fail('Packet should not be received')
   })

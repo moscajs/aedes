@@ -1,9 +1,9 @@
 'use strict'
 
-var { test } = require('tap')
-var memory = require('aedes-persistence')
-var { setup, connect } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const memory = require('aedes-persistence')
+const { setup, connect } = require('./helper')
+const aedes = require('../')
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -20,9 +20,9 @@ function willConnect (s, opts, connected) {
 test('delivers a will', function (t) {
   t.plan(4)
 
-  var opts = {}
+  const opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(setup(),
+  const s = willConnect(setup(),
     opts,
     function () {
       s.conn.destroy()
@@ -42,8 +42,8 @@ test('delivers a will', function (t) {
 test('calling close two times should not deliver two wills', function (t) {
   t.plan(4)
 
-  var opts = {}
-  var broker = aedes()
+  const opts = {}
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
@@ -70,8 +70,8 @@ test('calling close two times should not deliver two wills', function (t) {
 test('delivers old will in case of a crash', function (t) {
   t.plan(6)
 
-  var persistence = memory()
-  var will = {
+  const persistence = memory()
+  const will = {
     topic: 'mywill',
     payload: Buffer.from('last will'),
     qos: 0,
@@ -87,14 +87,14 @@ test('delivers old will in case of a crash', function (t) {
   }, will, function (err) {
     t.error(err, 'no error')
 
-    var interval = 10 // ms, so that the will check happens fast!
-    var broker = aedes({
+    const interval = 10 // ms, so that the will check happens fast!
+    const broker = aedes({
       persistence: persistence,
       heartbeatInterval: interval
     })
     t.tearDown(broker.close.bind(broker))
 
-    var start = Date.now()
+    const start = Date.now()
 
     broker.mq.on('mywill', check)
 
@@ -116,12 +116,12 @@ test('delivers old will in case of a crash', function (t) {
 test('store the will in the persistence', function (t) {
   t.plan(5)
 
-  var opts = {
+  const opts = {
     clientId: 'abcde'
   }
 
   // willConnect populates opts with a will
-  var s = willConnect(setup(), opts)
+  const s = willConnect(setup(), opts)
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.on('client', function () {
@@ -141,11 +141,11 @@ test('store the will in the persistence', function (t) {
 test('delete the will in the persistence after publish', function (t) {
   t.plan(2)
 
-  var opts = {
+  const opts = {
     clientId: 'abcde'
   }
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
@@ -177,9 +177,9 @@ test('delivers a will with authorization', function (t) {
   t.plan(6)
 
   let authorized = false
-  var opts = {}
+  const opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(
+  const s = willConnect(
     setup(aedes({
       authorizePublish: (client, packet, callback) => {
         authorized = true
@@ -211,9 +211,9 @@ test('delivers a will waits for authorization', function (t) {
   t.plan(6)
 
   let authorized = false
-  var opts = {}
+  const opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(
+  const s = willConnect(
     setup(aedes({
       authorizePublish: (client, packet, callback) => {
         authorized = true
@@ -245,9 +245,9 @@ test('does not deliver a will without authorization', function (t) {
   t.plan(1)
 
   let authorized = false
-  var opts = {}
+  const opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(
+  const s = willConnect(
     setup(aedes({
       authorizePublish: (username, packet, callback) => {
         authorized = true
@@ -275,9 +275,9 @@ test('does not deliver a will without authentication', function (t) {
   t.plan(1)
 
   let authenticated = false
-  var opts = {}
+  const opts = {}
   // willConnect populates opts with a will
-  var s = willConnect(
+  const s = willConnect(
     setup(aedes({
       authenticate: (client, username, password, callback) => {
         authenticated = true
@@ -302,9 +302,9 @@ test('does not deliver a will without authentication', function (t) {
 test('does not deliver will if broker is closed during authentication', function (t) {
   t.plan(0)
 
-  var opts = {}
-  opts.keepalive = 1
-  var broker = aedes({
+  const opts = { keepalive: 1 }
+
+  const broker = aedes({
     authenticate: function (client, username, password, callback) {
       setTimeout(function () {
         callback(null, true)
@@ -329,10 +329,10 @@ test('does not deliver will if broker is closed during authentication', function
 test('does not deliver will when client sends a DISCONNECT', function (t) {
   t.plan(0)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var s = willConnect(setup(broker), {}, function () {
+  const s = willConnect(setup(broker), {}, function () {
     s.inStream.end({
       cmd: 'disconnect'
     })
@@ -347,9 +347,9 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
 test('does not store multiple will with same clientid', function (t) {
   t.plan(4)
 
-  var opts = { clientId: 'abcde' }
+  const opts = { clientId: 'abcde' }
 
-  var broker = aedes()
+  const broker = aedes()
 
   var s = willConnect(setup(broker), opts, function () {
     // gracefully close client so no will is sent

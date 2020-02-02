@@ -1,11 +1,11 @@
 'use strict'
 
-var { test } = require('tap')
-var { setup, connect, subscribe } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const { setup, connect, subscribe } = require('./helper')
+const aedes = require('../')
 
 function publish (t, s, packet, done) {
-  var msgId = packet.messageId
+  const msgId = packet.messageId
 
   s.inStream.write(packet)
 
@@ -45,7 +45,7 @@ function receive (t, subscriber, expected, done) {
   subscriber.outStream.once('data', function (packet) {
     t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
 
-    var msgId = packet.messageId
+    const msgId = packet.messageId
     delete packet.messageId
     delete expected.messageId
     t.deepEqual(packet, expected, 'packet must match')
@@ -79,10 +79,10 @@ function receive (t, subscriber, expected, done) {
 test('publish QoS 2', function (t) {
   t.plan(2)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var packet = {
+  const packet = {
     cmd: 'publish',
     topic: 'hello',
     payload: 'world',
@@ -95,12 +95,12 @@ test('publish QoS 2', function (t) {
 test('subscribe QoS 2', function (t) {
   t.plan(8)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var toPublish = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const toPublish = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -121,10 +121,10 @@ test('subscribe QoS 2', function (t) {
 test('client.publish with clean=true subscribption QoS 2', function (t) {
   t.plan(8)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var toPublish = {
+  const toPublish = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -144,7 +144,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
     })
   })
 
-  var subscriber = connect(setup(broker), { clean: true })
+  const subscriber = connect(setup(broker), { clean: true })
 
   subscribe(t, subscriber, 'hello', 2, function () {
     t.pass('subscribed')
@@ -158,12 +158,12 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
 test('call published method with client with QoS 2', function (t) {
   t.plan(9)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var toPublish = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const toPublish = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -192,12 +192,12 @@ test('call published method with client with QoS 2', function (t) {
 test('subscribe QoS 0, but publish QoS 2', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -227,12 +227,12 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
 test('subscribe QoS 1, but publish QoS 2', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -263,12 +263,11 @@ test('subscribe QoS 1, but publish QoS 2', function (t) {
 test('restore QoS 2 subscriptions not clean', function (t) {
   t.plan(9)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -282,7 +281,7 @@ test('restore QoS 2 subscriptions not clean', function (t) {
   subscribe(t, subscriber, 'hello', 2, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
       t.equal(connect.sessionPresent, true, 'session present is set to true')
@@ -296,13 +295,12 @@ test('restore QoS 2 subscriptions not clean', function (t) {
 test('resend publish on non-clean reconnect QoS 2', function (t) {
   t.plan(8)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
-  var opts = { clean: false, clientId: 'abcde' }
+  const opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -316,7 +314,7 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
   subscribe(t, subscriber, 'hello', 2, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publish(t, publisher, expected, function () {
       subscriber = connect(setup(broker), opts)
@@ -329,13 +327,12 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
 test('resend pubrel on non-clean reconnect QoS 2', function (t) {
   t.plan(9)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
-  var opts = { clean: false, clientId: 'abcde' }
+  const opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -349,7 +346,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
   subscribe(t, subscriber, 'hello', 2, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publish(t, publisher, expected, function () {
       subscriber = connect(setup(broker), opts)
@@ -357,7 +354,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
       subscriber.outStream.once('data', function (packet) {
         t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
 
-        var msgId = packet.messageId
+        const msgId = packet.messageId
         delete packet.messageId
         delete expected.messageId
         t.deepEqual(packet, expected, 'packet must match')
@@ -405,12 +402,12 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
 test('publish after disconnection', function (t) {
   t.plan(10)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var toPublish = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const toPublish = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -420,7 +417,7 @@ test('publish after disconnection', function (t) {
     length: 14,
     retain: false
   }
-  var toPublish2 = {
+  const toPublish2 = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('worl2'),
@@ -443,13 +440,13 @@ test('publish after disconnection', function (t) {
 test('multiple publish and store one', function (t) {
   t.plan(2)
 
-  var broker = aedes()
+  const broker = aedes()
 
-  var sid = {
+  const sid = {
     id: 'abcde'
   }
-  var s = connect(setup(broker), { clientId: sid.id })
-  var toPublish = {
+  const s = connect(setup(broker), { clientId: sid.id })
+  const toPublish = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),

@@ -1,10 +1,10 @@
 #! /usr/bin/env node
 
-var mqtt = require('mqtt')
-var client = mqtt.connect({ port: 1883, host: 'localhost', clean: true, keepalive: 0 })
+const mqtt = require('mqtt')
+const client = mqtt.connect({ port: 1883, host: 'localhost', clean: true, keepalive: 0 })
+const interval = 5000
 
 var sent = 0
-var interval = 5000
 
 function count () {
   console.log('sent/s', sent / interval * 1000)

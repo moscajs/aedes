@@ -1,14 +1,14 @@
 'use strict'
 
-var { test } = require('tap')
-var { setup, connect, subscribe } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const { setup, connect, subscribe } = require('./helper')
+const aedes = require('../')
 
 // [MQTT-4.7.3-1]
 test('publish empty topic', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -31,7 +31,7 @@ test('publish empty topic', function (t) {
 test('publish invalid topic with #', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, '#', 0, function () {
@@ -54,7 +54,7 @@ test('publish invalid topic with #', function (t) {
 test('publish invalid topic with +', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, '#', 0, function () {
@@ -78,7 +78,7 @@ test('publish invalid topic with +', function (t) {
   test('subscribe to invalid topic with "' + topic + '"', function (t) {
     t.plan(1)
 
-    var s = connect(setup())
+    const s = connect(setup())
     t.tearDown(s.broker.close.bind(s.broker))
 
     s.broker.on('clientError', function () {
@@ -98,7 +98,7 @@ test('publish invalid topic with +', function (t) {
   test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
     t.plan(1)
 
-    var s = connect(setup())
+    const s = connect(setup())
     t.tearDown(s.broker.close.bind(s.broker))
 
     s.broker.on('clientError', function () {
@@ -116,12 +116,12 @@ test('publish invalid topic with +', function (t) {
 test('topics are case-sensitive', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker), { clean: true })
-  var subscriber = connect(setup(broker), { clean: true })
-  var expected = {
+  const publisher = connect(setup(broker), { clean: true })
+  const subscriber = connect(setup(broker), { clean: true })
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -148,7 +148,7 @@ test('topics are case-sensitive', function (t) {
 })
 
 function subscribeMultipleTopics (t, broker, qos, subscriber, subscriptions, done) {
-  var publisher = connect(setup(broker))
+  const publisher = connect(setup(broker))
   subscriber.inStream.write({
     cmd: 'subscribe',
     messageId: 24,
@@ -177,11 +177,11 @@ function subscribeMultipleTopics (t, broker, qos, subscriber, subscriptions, don
 test('Overlapped topics with same QoS', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello/world',
     payload: Buffer.from('world'),
@@ -190,7 +190,7 @@ test('Overlapped topics with same QoS', function (t) {
     length: 20,
     retain: false
   }
-  var sub = [
+  const sub = [
     { topic: 'hello/world', qos: 1 },
     { topic: 'hello/#', qos: 1 }]
   subscribeMultipleTopics(t, broker, 1, subscriber, sub, function () {
@@ -205,11 +205,11 @@ test('Overlapped topics with same QoS', function (t) {
 test('deliver overlapped topics respecting the maximum QoS of all the matching subscriptions - QoS 0 publish', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello/world',
     payload: Buffer.from('world'),
@@ -218,7 +218,7 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
     length: 18,
     retain: false
   }
-  var sub = [
+  const sub = [
     { topic: 'hello/world', qos: 0 },
     { topic: 'hello/#', qos: 2 }]
   subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
@@ -233,12 +233,12 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
 test('deliver overlapped topics respecting the maximum QoS of all the matching subscriptions - QoS 2 publish', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker))
+  const subscriber = connect(setup(broker))
 
-  var sub = [
+  const sub = [
     { topic: 'hello/world', qos: 0 },
     { topic: 'hello/#', qos: 2 }]
   subscribeMultipleTopics(t, broker, 2, subscriber, sub, function () {
@@ -251,11 +251,11 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
 test('Overlapped topics with QoS downgrade', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello/world',
     payload: Buffer.from('world'),
@@ -264,7 +264,7 @@ test('Overlapped topics with QoS downgrade', function (t) {
     length: 18,
     retain: false
   }
-  var sub = [
+  const sub = [
     { topic: 'hello/world', qos: 1 },
     { topic: 'hello/#', qos: 1 }]
   subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
