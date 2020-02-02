@@ -1,12 +1,12 @@
 #! /usr/bin/env node
 
-var mqtt = require('mqtt')
-var convertHrtime = require('convert-hrtime')
-var mode = require('compute-mode')
-var client = mqtt.connect({ port: 1883, host: 'localhost', clean: true, keepalive: 0 })
+const mqtt = require('mqtt')
+const convertHrtime = require('convert-hrtime')
+const mode = require('compute-mode')
+const client = mqtt.connect({ port: 1883, host: 'localhost', clean: true, keepalive: 0 })
+const interval = 5000
 
 var sent = 0
-var interval = 5000
 var latencies = []
 
 function count () {
