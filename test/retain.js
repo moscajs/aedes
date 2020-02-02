@@ -1,14 +1,14 @@
 'use strict'
 
-var { test } = require('tap')
-var through = require('through2')
-var { setup, connect, subscribe, noError } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const through = require('through2')
+const { setup, connect, subscribe, noError } = require('./helper')
+const aedes = require('../')
 
 // [MQTT-3.3.1-9]
 test('live retain packets', function (t) {
   t.plan(5)
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -18,7 +18,7 @@ test('live retain packets', function (t) {
     qos: 0
   }
 
-  var s = noError(connect(setup()), t)
+  const s = noError(connect(setup()), t)
   t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
@@ -43,12 +43,12 @@ test('live retain packets', function (t) {
 test('retain messages', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -78,12 +78,12 @@ test('retain messages', function (t) {
 test('avoid wrong deduping of retain messages', function (t) {
   t.plan(7)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -123,12 +123,12 @@ test('avoid wrong deduping of retain messages', function (t) {
 test('reconnected subscriber will not receive retained messages when QoS 0 and clean', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker), { clean: true })
+  const publisher = connect(setup(broker), { clean: true })
   var subscriber = connect(setup(broker), { clean: true })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -167,10 +167,10 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
 test('new QoS 0 subscribers receive QoS 0 retained messages when clean', function (t) {
   t.plan(9)
 
-  var broker = aedes()
+  const broker = aedes()
 
-  var publisher = connect(setup(broker), { clean: true })
-  var expected = {
+  const publisher = connect(setup(broker), { clean: true })
+  const expected = {
     cmd: 'publish',
     topic: 'hello/world',
     payload: Buffer.from('big big world'),
@@ -186,13 +186,13 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
     qos: 0,
     retain: true
   })
-  var subscriber1 = connect(setup(broker), { clean: true })
+  const subscriber1 = connect(setup(broker), { clean: true })
   subscribe(t, subscriber1, 'hello/world', 0, function () {
     subscriber1.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
-  var subscriber2 = connect(setup(broker), { clean: true })
+  const subscriber2 = connect(setup(broker), { clean: true })
   subscribe(t, subscriber2, 'hello/+', 0, function () {
     subscriber2.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
@@ -210,10 +210,10 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
 test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clean', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  const broker = aedes()
 
-  var publisher = connect(setup(broker), { clean: true })
-  var expected = {
+  const publisher = connect(setup(broker), { clean: true })
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -231,7 +231,7 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
     messageId: 42
   })
   publisher.outStream.on('data', function (packet) {
-    var subscriber = connect(setup(broker), { clean: true })
+    const subscriber = connect(setup(broker), { clean: true })
     subscribe(t, subscriber, 'hello', 0, function () {
       subscriber.outStream.on('data', function (packet) {
         t.notEqual(packet.messageId, 42, 'messageId should not be the same')
@@ -250,10 +250,10 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
 test('clean retained messages', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker), { clean: true })
+  const publisher = connect(setup(broker), { clean: true })
   publisher.inStream.write({
     cmd: 'publish',
     topic: 'hello',
@@ -268,7 +268,7 @@ test('clean retained messages', function (t) {
     qos: 0,
     retain: true
   })
-  var subscriber = connect(setup(broker), { clean: true })
+  const subscriber = connect(setup(broker), { clean: true })
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.once('data', function (packet) {
       t.fail('should not received retain message')
@@ -280,10 +280,10 @@ test('clean retained messages', function (t) {
 test('broker not store zero-byte retained messages', function (t) {
   t.plan(0)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.inStream.write({
     cmd: 'publish',
@@ -295,7 +295,7 @@ test('broker not store zero-byte retained messages', function (t) {
     if (packet.topic.startsWith('$SYS/')) {
       return
     }
-    var stream = s.broker.persistence.createRetainedStream(packet.topic)
+    const stream = s.broker.persistence.createRetainedStream(packet.topic)
     stream.pipe(through.obj(function sendRetained (packet, enc, cb) {
       t.fail('not store zero-byte retained messages')
     }))
@@ -305,11 +305,11 @@ test('broker not store zero-byte retained messages', function (t) {
 test('fail to clean retained messages without retain flag', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker), { clean: true })
-  var expected = {
+  const publisher = connect(setup(broker), { clean: true })
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -332,7 +332,7 @@ test('fail to clean retained messages without retain flag', function (t) {
     qos: 0,
     retain: false
   })
-  var subscriber = connect(setup(broker), { clean: true })
+  const subscriber = connect(setup(broker), { clean: true })
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
@@ -343,11 +343,11 @@ test('fail to clean retained messages without retain flag', function (t) {
 test('only get the last retained messages in same topic', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker), { clean: true })
-  var expected = {
+  const publisher = connect(setup(broker), { clean: true })
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('foo'),
@@ -370,7 +370,7 @@ test('only get the last retained messages in same topic', function (t) {
     qos: 0,
     retain: true
   })
-  var subscriber = connect(setup(broker), { clean: true })
+  const subscriber = connect(setup(broker), { clean: true })
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
@@ -381,12 +381,12 @@ test('only get the last retained messages in same topic', function (t) {
 test('deliver QoS 1 retained messages to new subscriptions', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -418,12 +418,12 @@ test('deliver QoS 1 retained messages to new subscriptions', function (t) {
 test('deliver QoS 1 retained messages to established subscriptions', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -452,12 +452,12 @@ test('deliver QoS 1 retained messages to established subscriptions', function (t
 test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -494,12 +494,11 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
 test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
   t.plan(8)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -518,7 +517,7 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
       console.log('original', packet)
     })
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publisher.inStream.write({
       cmd: 'publish',
@@ -559,12 +558,11 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
 test('disconnect and two retain messages with QoS 1 [clean=false]', function (t) {
   t.plan(17)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     qos: 1,
@@ -582,7 +580,7 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
       console.log('original', packet)
     })
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publisher.inStream.write({
       cmd: 'publish',

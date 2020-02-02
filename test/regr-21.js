@@ -1,17 +1,17 @@
 'use strict'
 
-var { test } = require('tap')
-var { setup, connect } = require('./helper')
+const { test } = require('tap')
+const { setup, connect } = require('./helper')
 
 test('after an error, outstanding packets are discarded', function (t) {
   t.plan(1)
 
-  var s = connect(setup(), {
+  const s = connect(setup(), {
     keepalive: 1000
   })
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var packet = {
+  const packet = {
     cmd: 'publish',
     topic: 'hello',
     payload: 'world'

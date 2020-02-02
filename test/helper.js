@@ -1,19 +1,19 @@
 'use strict'
 
-var duplexify = require('duplexify')
-var mqtt = require('mqtt-connection')
-var through = require('through2')
-var util = require('util')
-var aedes = require('../')
+const duplexify = require('duplexify')
+const mqtt = require('mqtt-connection')
+const through = require('through2')
+const util = require('util')
+const aedes = require('../')
 
-var parseStream = mqtt.parseStream
-var generateStream = mqtt.generateStream
+const parseStream = mqtt.parseStream
+const generateStream = mqtt.generateStream
 var clients = 0
 
 function setup (broker) {
-  var inStream = generateStream()
-  var outStream = parseStream()
-  var conn = duplexify(outStream, inStream)
+  const inStream = generateStream()
+  const outStream = parseStream()
+  const conn = duplexify(outStream, inStream)
 
   broker = broker || aedes()
 

@@ -1,19 +1,19 @@
 'use strict'
 
-var { test } = require('tap')
-var { setup, connect, subscribe } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const { setup, connect, subscribe } = require('./helper')
+const aedes = require('../')
 
 test('publishes an hearbeat', function (t) {
   t.plan(2)
 
-  var broker = aedes({
+  const broker = aedes({
     heartbeatInterval: 10 // ms
   })
   t.tearDown(broker.close.bind(broker))
 
   broker.subscribe('$SYS/+/heartbeat', function (message, cb) {
-    var id = message.topic.match(/\$SYS\/([^/]+)\/heartbeat/)[1]
+    const id = message.topic.match(/\$SYS\/([^/]+)\/heartbeat/)[1]
     t.equal(id, broker.id, 'broker id matches')
     t.deepEqual(message.payload.toString(), id, 'message has id as the payload')
   })
@@ -23,7 +23,7 @@ test('publishes an hearbeat', function (t) {
   test('does not forward $ prefixed topics to # subscription - ' + topic, function (t) {
     t.plan(4)
 
-    var s = connect(setup())
+    const s = connect(setup())
     t.tearDown(s.broker.close.bind(s.broker))
 
     subscribe(t, s, '#', 0, function () {
@@ -44,7 +44,7 @@ test('publishes an hearbeat', function (t) {
   test('does not forward $ prefixed topics to +/# subscription - ' + topic, function (t) {
     t.plan(4)
 
-    var s = connect(setup())
+    const s = connect(setup())
     t.tearDown(s.broker.close.bind(s.broker))
 
     subscribe(t, s, '+/#', 0, function () {
@@ -66,10 +66,10 @@ test('publishes an hearbeat', function (t) {
 test('does not store $SYS topics to QoS 1 # subscription', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var opts = { clean: false, clientId: 'abcde' }
+  const opts = { clean: false, clientId: 'abcde' }
   var s = connect(setup(broker), opts)
 
   subscribe(t, s, '#', 1, function () {
@@ -93,7 +93,7 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
 test('Emit event when receives a ping', { timeout: 2000 }, function (t) {
   t.plan(5)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.on('ping', function (packet, client) {
@@ -106,7 +106,7 @@ test('Emit event when receives a ping', { timeout: 2000 }, function (t) {
     }
   })
 
-  var s = connect(setup(broker), { clientId: 'abcde' })
+  const s = connect(setup(broker), { clientId: 'abcde' })
 
   s.inStream.write({
     cmd: 'pingreq'
@@ -116,7 +116,7 @@ test('Emit event when receives a ping', { timeout: 2000 }, function (t) {
 test('Emit event when broker closed', function (t) {
   t.plan(1)
 
-  var broker = aedes()
+  const broker = aedes()
   broker.once('closed', function () {
     t.ok(true)
   })

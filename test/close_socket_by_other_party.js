@@ -1,15 +1,15 @@
 'use strict'
 
-var { test } = require('tap')
-var EE = require('events').EventEmitter
-var { setup, connect, subscribe } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const EE = require('events').EventEmitter
+const { setup, connect, subscribe } = require('./helper')
+const aedes = require('../')
 
 test('aedes is closed before client authenticate returns', function (t) {
   t.plan(1)
 
-  var evt = new EE()
-  var broker = aedes({
+  const evt = new EE()
+  const broker = aedes({
     authenticate: (client, username, password, done) => {
       evt.emit('AuthenticateBegin', client)
       setTimeout(function () {
@@ -39,8 +39,8 @@ test('aedes is closed before client authenticate returns', function (t) {
 test('client is closed before authenticate returns', function (t) {
   t.plan(1)
 
-  var evt = new EE()
-  var broker = aedes({
+  const evt = new EE()
+  const broker = aedes({
     authenticate: async (client, username, password, done) => {
       evt.emit('AuthenticateBegin', client)
       setTimeout(function () {
@@ -71,8 +71,8 @@ test('client is closed before authenticate returns', function (t) {
 test('client is closed before authorizePublish returns', function (t) {
   t.plan(3)
 
-  var evt = new EE()
-  var broker = aedes({
+  const evt = new EE()
+  const broker = aedes({
     authorizePublish: (client, packet, done) => {
       evt.emit('AuthorizePublishBegin', client)
       // simulate latency writing to persistent store.
@@ -87,7 +87,7 @@ test('client is closed before authorizePublish returns', function (t) {
     t.equal(err.message, 'connection closed')
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
   s.inStream.write({
     cmd: 'publish',
     topic: 'hello',
@@ -110,10 +110,10 @@ test('client is closed before authorizePublish returns', function (t) {
 test('close client when its socket is closed', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker))
+  const subscriber = connect(setup(broker))
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
@@ -126,23 +126,23 @@ test('close client when its socket is closed', function (t) {
 test('multiple clients subscribe same topic, and all clients still receive message except the closed one', function (t) {
   t.plan(5)
 
-  var mqtt = require('mqtt')
-  var broker = aedes()
+  const mqtt = require('mqtt')
+  const broker = aedes()
   t.tearDown(() => {
     client2.end()
     broker.close()
     server.close()
   })
 
-  var server = require('net').createServer(broker.handle)
-  var port = 1883
+  const server = require('net').createServer(broker.handle)
+  const port = 1883
   server.listen(port)
   broker.on('clientError', function (client, err) {
     t.error(err)
   })
 
   var client1, client2
-  var _sameTopic = 'hello'
+  const _sameTopic = 'hello'
 
   // client 1
   client1 = mqtt.connect('mqtt://localhost', { clientId: 'client1', resubscribe: false, reconnectPeriod: -1 })
@@ -165,7 +165,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
       t.pass('client2 sub callback')
 
       // pubClient
-      var pubClient = mqtt.connect('mqtt://localhost', { clientId: 'pubClient' })
+      const pubClient = mqtt.connect('mqtt://localhost', { clientId: 'pubClient' })
       pubClient.publish(_sameTopic, 'world', { qos: 0, retain: false }, () => {
         t.pass('pubClient publish event')
         pubClient.end()

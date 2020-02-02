@@ -1,17 +1,17 @@
 'use strict'
 
-var { test } = require('tap')
-var concat = require('concat-stream')
-var { setup, connect, subscribe } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const concat = require('concat-stream')
+const { setup, connect, subscribe } = require('./helper')
+const aedes = require('../')
 
 test('publish QoS 1', function (t) {
   t.plan(1)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'puback',
     messageId: 42,
     qos: 0,
@@ -36,14 +36,14 @@ test('publish QoS 1', function (t) {
 test('publish QoS 1 and check offline queue', function (t) {
   t.plan(13)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker), { clean: false })
-  var subscriberClient = {
+  const publisher = connect(setup(broker), { clean: false })
+  const subscriberClient = {
     id: 'abcde'
   }
-  var subscriber = connect(setup(broker), { clean: false, clientId: subscriberClient.id })
+  const subscriber = connect(setup(broker), { clean: false, clientId: subscriberClient.id })
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -51,7 +51,7 @@ test('publish QoS 1 and check offline queue', function (t) {
     dup: false,
     retain: false
   }
-  var expectedAck = {
+  const expectedAck = {
     cmd: 'puback',
     retain: false,
     qos: 0,
@@ -107,12 +107,12 @@ test('publish QoS 1 and check offline queue', function (t) {
 test('subscribe QoS 1', function (t) {
   t.plan(5)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -146,12 +146,12 @@ test('subscribe QoS 1', function (t) {
 test('subscribe QoS 0, but publish QoS 1', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker))
-  var expected = {
+  const publisher = connect(setup(broker))
+  const subscriber = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -179,12 +179,11 @@ test('subscribe QoS 0, but publish QoS 1', function (t) {
 test('restore QoS 1 subscriptions not clean', function (t) {
   t.plan(7)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -197,7 +196,7 @@ test('restore QoS 1 subscriptions not clean', function (t) {
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
       t.equal(connect.sessionPresent, true, 'session present is set to true')
@@ -229,16 +228,15 @@ test('restore QoS 1 subscriptions not clean', function (t) {
 test('remove stored subscriptions if connected with clean=true', function (t) {
   t.plan(5)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     subscriber = connect(setup(broker), { clean: true, clientId: 'abcde' }, function (packet) {
       t.equal(packet.sessionPresent, false, 'session present is set to false')
@@ -277,16 +275,15 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
 test('resend publish on non-clean reconnect QoS 1', function (t) {
   t.plan(8)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
-  var opts = { clean: false, clientId: 'abcde' }
+  const opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
-  var subscriberClient = {
+  const subscriberClient = {
     id: opts.clientId
   }
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -299,7 +296,7 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publisher.inStream.write({
       cmd: 'publish',
@@ -329,7 +326,7 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
         delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
         setImmediate(() => {
-          var stream = broker.persistence.outgoingStream(subscriberClient)
+          const stream = broker.persistence.outgoingStream(subscriberClient)
           stream.pipe(concat(function (list) {
             t.equal(list.length, 1, 'should remain one item in queue')
             t.deepEqual(list[0].payload, Buffer.from('world world'), 'packet must match')
@@ -343,12 +340,11 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
 test('do not resend QoS 1 packets at each reconnect', function (t) {
   t.plan(6)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -361,7 +357,7 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publisher.inStream.write({
       cmd: 'publish',
@@ -386,7 +382,7 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
         delete packet.messageId
         t.deepEqual(packet, expected, 'packet must match')
 
-        var subscriber2 = connect(setup(broker), { clean: false, clientId: 'abcde' })
+        const subscriber2 = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
         subscriber2.outStream.once('data', function (packet) {
           t.fail('this should never happen')
@@ -399,16 +395,15 @@ test('do not resend QoS 1 packets at each reconnect', function (t) {
 test('do not resend QoS 1 packets if reconnect is clean', function (t) {
   t.plan(4)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publisher.inStream.write({
       cmd: 'publish',
@@ -433,12 +428,11 @@ test('do not resend QoS 1 packets if reconnect is clean', function (t) {
 test('do not resend QoS 1 packets at reconnect if puback was received', function (t) {
   t.plan(5)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -449,7 +443,7 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
   }
 
   subscribe(t, subscriber, 'hello', 1, function () {
-    publisher = connect(setup(broker))
+    const publisher = connect(setup(broker))
 
     publisher.inStream.write({
       cmd: 'publish',
@@ -484,10 +478,9 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
 test('remove stored subscriptions after unsubscribe', function (t) {
   t.plan(5)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
   subscribe(t, subscriber, 'hello', 1, function () {
@@ -509,7 +502,7 @@ test('remove stored subscriptions after unsubscribe', function (t) {
 
       subscriber.inStream.end()
 
-      publisher = connect(setup(broker))
+      const publisher = connect(setup(broker))
 
       subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (packet) {
         t.equal(packet.sessionPresent, false, 'session present is set to false')
@@ -546,10 +539,10 @@ test('remove stored subscriptions after unsubscribe', function (t) {
 test('upgrade a QoS 0 subscription to QoS 1', function (t) {
   t.plan(8)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -580,10 +573,10 @@ test('upgrade a QoS 0 subscription to QoS 1', function (t) {
 test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -609,11 +602,11 @@ test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
 test('subscribe and publish QoS 1 in parallel', function (t) {
   t.plan(5)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var s = connect(setup(broker))
-  var expected = {
+  const s = connect(setup(broker))
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),

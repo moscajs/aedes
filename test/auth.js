@@ -1,15 +1,15 @@
 'use strict'
 
-var { test } = require('tap')
-var eos = require('end-of-stream')
-var Client = require('../lib/client')
-var { setup, connect, subscribe, subscribeMultiple } = require('./helper')
-var aedes = require('../')
+const { test } = require('tap')
+const eos = require('end-of-stream')
+const Client = require('../lib/client')
+const { setup, connect, subscribe, subscribeMultiple } = require('./helper')
+const aedes = require('../')
 
 test('authenticate successfully a client with username and password', function (t) {
   t.plan(4)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -48,7 +48,7 @@ test('authenticate successfully a client with username and password', function (
 test('authenticate unsuccessfully a client with username and password', function (t) {
   t.plan(5)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -91,7 +91,7 @@ test('authenticate unsuccessfully a client with username and password', function
 test('authenticate errors', function (t) {
   t.plan(5)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -134,7 +134,7 @@ test('authenticate errors', function (t) {
 test('authentication error when return code 1 (unacceptable protocol version) is passed', function (t) {
   t.plan(5)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -179,7 +179,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
 test('authentication error when return code 2 (identifier rejected) is passed', function (t) {
   t.plan(5)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -224,7 +224,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
 test('authentication error when return code 3 (Server unavailable) is passed', function (t) {
   t.plan(5)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -269,7 +269,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
 test('authentication error when non numeric return code is passed', function (t) {
   t.plan(5)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -314,7 +314,7 @@ test('authentication error when non numeric return code is passed', function (t)
 test('authorize publish', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   var expected = {
@@ -353,7 +353,7 @@ test('authorize publish', function (t) {
 test('authorize waits for authenticate', function (t) {
   t.plan(6)
 
-  var s = setup()
+  const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -412,7 +412,7 @@ test('authorize waits for authenticate', function (t) {
 test('authorize publish from configOptions', function (t) {
   t.plan(4)
 
-  var s = connect(setup(aedes({
+  const s = connect(setup(aedes({
     authorizePublish: function (client, packet, cb) {
       t.ok(client, 'client exists')
       t.deepEqual(packet, expected, 'packet matches')
@@ -451,10 +451,10 @@ test('authorize publish from configOptions', function (t) {
 test('do not authorize publish', function (t) {
   t.plan(3)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -484,7 +484,7 @@ test('do not authorize publish', function (t) {
 test('authorize subscribe', function (t) {
   t.plan(5)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
@@ -502,7 +502,7 @@ test('authorize subscribe', function (t) {
 test('authorize subscribe multiple same topics with same qos', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
@@ -519,7 +519,7 @@ test('authorize subscribe multiple same topics with same qos', function (t) {
 test('authorize subscribe multiple same topics with different qos', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
@@ -536,7 +536,7 @@ test('authorize subscribe multiple same topics with different qos', function (t)
 test('authorize subscribe multiple different topics', function (t) {
   t.plan(7)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
@@ -561,7 +561,7 @@ test('authorize subscribe multiple different topics', function (t) {
 test('authorize subscribe from config options', function (t) {
   t.plan(5)
 
-  var s = connect(setup(aedes({
+  const s = connect(setup(aedes({
     authorizeSubscribe: function (client, sub, cb) {
       t.ok(client, 'client exists')
       t.deepEqual(sub, {
@@ -579,7 +579,7 @@ test('authorize subscribe from config options', function (t) {
 test('negate subscription', function (t) {
   t.plan(5)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
@@ -610,7 +610,7 @@ test('negate subscription', function (t) {
 test('negate multiple subscriptions', function (t) {
   t.plan(5)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
@@ -640,7 +640,7 @@ test('negate multiple subscriptions', function (t) {
 test('negate subscription with correct persistence', function (t) {
   t.plan(6)
 
-  var expected = [{
+  const expected = [{
     topic: 'hello',
     qos: 0
   }, {
@@ -648,7 +648,7 @@ test('negate subscription with correct persistence', function (t) {
     qos: 0
   }]
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   broker.authorizeSubscribe = function (client, sub, cb) {
@@ -659,7 +659,7 @@ test('negate subscription with correct persistence', function (t) {
     cb(null, sub)
   }
 
-  var s = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  const s = connect(setup(broker), { clean: false, clientId: 'abcde' })
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
     t.deepEqual(packet.granted, [128, 0])
@@ -685,7 +685,7 @@ test('negate subscription with correct persistence', function (t) {
 test('negate multiple subscriptions random times', function (t) {
   t.plan(5)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
@@ -721,11 +721,11 @@ test('negate multiple subscriptions random times', function (t) {
 test('failed authentication does not disconnect other client with same clientId', function (t) {
   t.plan(3)
 
-  var broker = aedes()
+  const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var s = setup(broker)
-  var s0 = setup(broker)
+  const s = setup(broker)
+  const s0 = setup(broker)
 
   broker.authenticate = function (client, username, password, cb) {
     cb(null, password.toString() === 'right')
@@ -767,7 +767,7 @@ test('failed authentication does not disconnect other client with same clientId'
     })
   })
 
-  var removeEos = eos(s0.outStream, function () {
+  const removeEos = eos(s0.outStream, function () {
     t.fail('ended before time')
   })
 
@@ -794,7 +794,7 @@ test('failed authentication does not disconnect other client with same clientId'
 test('unauthorized connection should not unregister the correct one with same clientId', function (t) {
   t.plan(2)
 
-  var broker = aedes({
+  const broker = aedes({
     authenticate: function (client, username, password, callback) {
       if (username === 'correct') {
         callback(null, true)
@@ -829,7 +829,7 @@ test('unauthorized connection should not unregister the correct one with same cl
 test('set authentication method in config options', function (t) {
   t.plan(5)
 
-  var s = setup(aedes({
+  const s = setup(aedes({
     authenticate: function (client, username, password, cb) {
       t.ok(client instanceof Client, 'client is there')
       t.equal(username, 'my username', 'username is there')
@@ -872,7 +872,7 @@ test('set authentication method in config options', function (t) {
 test('change a topic name inside authorizeForward method in QoS 1 mode', function (t) {
   t.plan(3)
 
-  var broker = aedes({
+  const broker = aedes({
     authorizeForward: function (client, packet, cb) {
       packet.payload = Buffer.from('another-world')
       packet.messageId = 2
@@ -881,7 +881,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
   })
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('another-world'),
@@ -909,7 +909,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, expected, 'packet matches')
@@ -919,7 +919,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
 test('prevent publish in QoS1 mode', function (t) {
   t.plan(2)
 
-  var broker = aedes({
+  const broker = aedes({
     authorizeForward: function (client, packet, cb) {
       return null
     }
@@ -943,7 +943,7 @@ test('prevent publish in QoS1 mode', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.fail('Should have not recieved this packet')
@@ -953,7 +953,7 @@ test('prevent publish in QoS1 mode', function (t) {
 test('prevent publish in QoS 0 mode', function (t) {
   t.plan(2)
 
-  var broker = aedes({
+  const broker = aedes({
     authorizeForward: function (client, packet, cb) {
       return null
     }
@@ -977,7 +977,7 @@ test('prevent publish in QoS 0 mode', function (t) {
     })
   })
 
-  var s = connect(setup(broker))
+  const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
     t.fail('Should have not recieved this packet')
