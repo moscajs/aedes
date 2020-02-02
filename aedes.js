@@ -1,22 +1,22 @@
 'use strict'
 
-var mqemitter = require('mqemitter')
-var EE = require('events').EventEmitter
-var util = require('util')
-var memory = require('aedes-persistence')
-var parallel = require('fastparallel')
-var series = require('fastseries')
-var uuidv4 = require('uuid/v4')
-var Packet = require('aedes-packet')
-var bulk = require('bulk-write-stream')
-var reusify = require('reusify')
-var Client = require('./lib/client')
-var protocolDecoder = require('./lib/protocol-decoder')
+const mqemitter = require('mqemitter')
+const EE = require('events').EventEmitter
+const util = require('util')
+const memory = require('aedes-persistence')
+const parallel = require('fastparallel')
+const series = require('fastseries')
+const uuidv4 = require('uuid/v4')
+const Packet = require('aedes-packet')
+const bulk = require('bulk-write-stream')
+const reusify = require('reusify')
+const Client = require('./lib/client')
+const protocolDecoder = require('./lib/protocol-decoder')
 
 module.exports = Aedes
 Aedes.Server = Aedes
 
-var defaultOptions = {
+const defaultOptions = {
   concurrency: 100,
   heartbeatInterval: 60000, // 1 minute
   connectTimeout: 30000, // 30 secs
@@ -33,7 +33,7 @@ var defaultOptions = {
 }
 
 function Aedes (opts) {
-  var that = this
+  const that = this
 
   if (!(this instanceof Aedes)) {
     return new Aedes(opts)
@@ -72,10 +72,10 @@ function Aedes (opts) {
   this.clients = {}
   this.brokers = {}
 
-  var heartbeatTopic = '$SYS/' + that.id + '/heartbeat'
+  const heartbeatTopic = '$SYS/' + that.id + '/heartbeat'
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
 
-  var bufId = Buffer.from(that.id, 'utf8')
+  const bufId = Buffer.from(that.id, 'utf8')
 
   function heartbeat () {
     that.publish({
@@ -103,7 +103,7 @@ function Aedes (opts) {
   }
 
   function checkAndPublish (will, done) {
-    var needsPublishing =
+    const needsPublishing =
       !that.brokers[will.brokerId] ||
       that.brokers[will.brokerId] + (3 * opts.heartbeatInterval) <
       Date.now()
@@ -132,8 +132,8 @@ function Aedes (opts) {
   })
 
   this.mq.on('$SYS/+/new/clients', function closeSameClients (packet, done) {
-    var serverId = packet.topic.split('/')[1]
-    var clientId = packet.payload.toString()
+    const serverId = packet.topic.split('/')[1]
+    const clientId = packet.payload.toString()
 
     if (that.clients[clientId] && serverId !== that.id) {
       that.clients[clientId].close(done)
@@ -182,10 +182,10 @@ function DoEnqueues () {
   this.topic = null
   this.broker = null
 
-  var that = this
+  const that = this
 
   this.done = function doneEnqueue (err, subs) {
-    var broker = that.broker
+    const broker = that.broker
 
     if (err) {
       // is this really recoverable?
@@ -198,8 +198,8 @@ function DoEnqueues () {
       subs = subs.filter(removeSharp)
     }
 
-    var packet = that.packet
-    var complete = that.complete
+    const packet = that.packet
+    const complete = that.complete
 
     that.packet = null
     that.complete = null
@@ -213,7 +213,7 @@ function DoEnqueues () {
 // + is 43
 // # is 35
 function removeSharp (sub) {
-  var code = sub.topic.charCodeAt(0)
+  const code = sub.topic.charCodeAt(0)
   return code !== 43 && code !== 35
 }
 
@@ -222,12 +222,12 @@ function callPublished (_, done) {
   this.broker.emit('publish', this.packet, this.client)
 }
 
-var publishFuncsSimple = [
+const publishFuncsSimple = [
   storeRetained,
   emitPacket,
   callPublished
 ]
-var publishFuncsQoS = [
+const publishFuncsQoS = [
   storeRetained,
   enqueueOffline,
   emitPacket,
@@ -239,7 +239,7 @@ Aedes.prototype.publish = function (packet, client, done) {
     client = null
   }
   var p = new Packet(packet, this)
-  var publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
+  const publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
 
   this._series(new PublishState(this, client, packet), publishFuncs, p, done)
 }
@@ -253,7 +253,7 @@ Aedes.prototype.unsubscribe = function (topic, func, done) {
 }
 
 Aedes.prototype.registerClient = function (client) {
-  var that = this
+  const that = this
   if (this.clients[client.id]) {
     // [MQTT-3.1.4-2]
     this.clients[client.id].close(function closeClient () {
@@ -289,7 +289,7 @@ function closeClient (client, cb) {
 }
 
 Aedes.prototype.close = function (cb = noop) {
-  var that = this
+  const that = this
   if (this.closed) {
     return cb()
   }
@@ -306,7 +306,7 @@ Aedes.prototype.close = function (cb = noop) {
 Aedes.prototype.version = require('./package.json').version
 
 function defaultDecodeProtocol (client, buffer) {
-  var proto = protocolDecoder(client, buffer)
+  const proto = protocolDecoder(client, buffer)
   return proto
 }
 
