@@ -66,6 +66,9 @@ test('reject client requested for unacceptable protocol version', function (t) {
     t.equal(packet.returnCode, 1, 'unacceptable protocol version')
     t.equal(broker.connectedClients, 0)
   })
+  broker.on('clientError', function (client, err) {
+    t.fail('should not raise clientError error')
+  })
   broker.on('connectionError', function (client, err) {
     t.equal(err.message, 'unacceptable protocol version')
   })
