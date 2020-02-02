@@ -1,18 +1,16 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
-var aedes = require('../')
+var { test } = require('tap')
 var eos = require('end-of-stream')
-var setup = helper.setup
-var connect = helper.connect
-var noError = helper.noError
-var subscribe = helper.subscribe
+var { setup, connect, subscribe, noError } = require('./helper')
+var aedes = require('../')
 
 test('publish QoS 0', function (t) {
   t.plan(2)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -27,7 +25,6 @@ test('publish QoS 0', function (t) {
     t.equal(packet.messageId, undefined, 'MUST not contain a packet identifier in QoS 0')
     t.deepEqual(packet, expected, 'packet matches')
     cb()
-    t.end()
   })
 
   s.inStream.write({
@@ -41,6 +38,8 @@ test('subscribe QoS 0', function (t) {
   t.plan(4)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -54,7 +53,6 @@ test('subscribe QoS 0', function (t) {
   subscribe(t, s, 'hello', 0, function () {
     s.outStream.once('data', function (packet) {
       t.deepEqual(packet, expected, 'packet matches')
-      t.end()
     })
 
     s.broker.publish({
@@ -69,6 +67,7 @@ test('does not die badly on connection error', function (t) {
   t.plan(3)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'subscribe',
@@ -100,6 +99,7 @@ test('unsubscribe', function (t) {
   t.plan(5)
 
   var s = noError(connect(setup()), t)
+  t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
     s.inStream.write({
@@ -137,6 +137,7 @@ test('unsubscribe without subscribe', function (t) {
   t.plan(1)
 
   var s = noError(connect(setup()), t)
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'unsubscribe',
@@ -157,10 +158,11 @@ test('unsubscribe without subscribe', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=true client', function (t) {
-  t.plan(7)
+  t.plan(6)
 
   var opts = { clean: true }
   var s = connect(setup(), opts)
+  t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
     s.conn.destroy(null, function () {
@@ -171,10 +173,6 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
     })
     s.broker.once('unsubscribe', function () {
       t.pass('should emit unsubscribe')
-    })
-    s.broker.once('closed', function () {
-      t.ok(true)
-      t.end()
     })
     s.broker.publish({
       cmd: 'publish',
@@ -187,10 +185,11 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
 })
 
 test('unsubscribe on disconnect for a clean=false client', function (t) {
-  t.plan(6)
+  t.plan(5)
 
   var opts = { clean: false }
   var s = connect(setup(), opts)
+  t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
     s.conn.destroy(null, function () {
@@ -201,10 +200,6 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
     })
     s.broker.once('unsubscribe', function () {
       t.fail('should not emit unsubscribe')
-    })
-    s.broker.once('closed', function () {
-      t.ok(true)
-      t.end()
     })
     s.broker.publish({
       cmd: 'publish',
@@ -217,12 +212,13 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
 })
 
 test('disconnect', function (t) {
-  t.plan(0)
+  t.plan(1)
 
   var s = noError(connect(setup()), t)
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.outStream.on('finish', function () {
-    t.end()
+    t.pass('closed stream')
   })
 
   s.inStream.write({
@@ -235,10 +231,10 @@ test('client closes', function (t) {
 
   var broker = aedes()
   var brokerClient
-  var client = noError(connect(setup(broker, false), { clientId: 'abcde' }, function () {
+  var client = noError(connect(setup(broker), { clientId: 'abcde' }, function () {
     brokerClient = broker.clients.abcde
     t.equal(brokerClient.connected, true, 'client connected')
-    eos(client.conn, t.pass.bind('client closes'))
+    eos(client.conn, t.pass.bind(t, 'client closes'))
     setImmediate(() => {
       brokerClient.close(function () {
         t.equal(broker.clients.abcde, undefined, 'client instance is removed')
@@ -246,7 +242,6 @@ test('client closes', function (t) {
       t.equal(brokerClient.connected, false, 'client disconnected')
       broker.close(function (err) {
         t.error(err, 'no error')
-        t.end()
       })
     })
   }))
@@ -256,10 +251,10 @@ test('broker closes', function (t) {
   t.plan(3)
 
   var broker = aedes()
-  var client = noError(connect(setup(broker, false), {
+  var client = noError(connect(setup(broker), {
     clientId: 'abcde'
   }, function () {
-    eos(client.conn, t.pass.bind('client closes'))
+    eos(client.conn, t.pass.bind(t, 'client closes'))
     broker.close(function (err) {
       t.error(err, 'no error')
       t.equal(broker.clients.abcde, undefined, 'client instance is removed')
@@ -272,13 +267,13 @@ test('broker closes gracefully', function (t) {
 
   var broker = aedes()
   var client1, client2
-  client1 = noError(connect(setup(broker, false), {
+  client1 = noError(connect(setup(broker), {
   }, function () {
-    client2 = noError(connect(setup(broker, false), {
+    client2 = noError(connect(setup(broker), {
     }, function () {
       t.equal(broker.connectedClients, 2, '2 connected clients')
-      eos(client1.conn, t.pass.bind('client1 closes'))
-      eos(client2.conn, t.pass.bind('client2 closes'))
+      eos(client1.conn, t.pass.bind(t, 'client1 closes'))
+      eos(client2.conn, t.pass.bind(t, 'client2 closes'))
       broker.close(function (err) {
         t.error(err, 'no error')
         t.ok(broker.mq.closed, 'broker mq closes')
@@ -293,11 +288,12 @@ test('testing other event', function (t) {
   t.plan(1)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var client = setup(broker)
 
   broker.on('connectionError', function (client, error) {
     t.notOk(client.id, null)
-    t.end()
   })
   client.conn.emit('error', 'Connect not yet arrived')
 })
@@ -306,6 +302,7 @@ test('connect without a clientId for MQTT 3.1.1', function (t) {
   t.plan(1)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'connect',
@@ -327,15 +324,15 @@ test('connect without a clientId for MQTT 3.1.1', function (t) {
       payload: null,
       sessionPresent: false
     }, 'successful connack')
-
-    t.end()
   })
 })
 
-test('disconnect another client with the same clientId', function (t) {
+test('disconnect existing client with the same clientId', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var c1 = connect(setup(broker), {
     clientId: 'abcde'
   }, function () {
@@ -347,34 +344,28 @@ test('disconnect another client with the same clientId', function (t) {
       clientId: 'abcde'
     }, function () {
       t.pass('second client connected')
-
-      // setImmediate needed because eos
-      // will happen at the next tick
-      setImmediate(t.end.bind(t))
     })
   })
 })
 
-test('disconnect if another broker connects the same client', function (t) {
+test('disconnect if another broker connects the same clientId', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var c1 = connect(setup(broker), {
     clientId: 'abcde'
   }, function () {
     eos(c1.conn, function () {
-      t.pass('first client disconnected')
+      t.pass('disconnect first client')
     })
 
     broker.publish({
       topic: '$SYS/anotherBroker/new/clients',
       payload: Buffer.from('abcde')
     }, function () {
-      t.pass('published')
-
-      // setImmediate needed because eos
-      // will happen at the next tick
-      setImmediate(t.end.bind(t))
+      t.pass('second client connects to another broker')
     })
   })
 })
@@ -383,6 +374,7 @@ test('publish to $SYS/broker/new/clients', function (t) {
   t.plan(1)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.mq.on('$SYS/' + broker.id + '/new/clients', function (packet, done) {
     t.equal(packet.payload.toString(), 'abcde', 'clientId matches')
@@ -398,6 +390,8 @@ test('restore QoS 0 subscriptions not clean', function (t) {
   t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -427,7 +421,6 @@ test('restore QoS 0 subscriptions not clean', function (t) {
         })
         subscriber.outStream.once('data', function (packet) {
           t.deepEqual(packet, expected, 'packet must match')
-          t.end()
         })
       })
     })
@@ -435,9 +428,11 @@ test('restore QoS 0 subscriptions not clean', function (t) {
 })
 
 test('do not restore QoS 0 subscriptions when clean', function (t) {
-  t.plan(6)
+  t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), {
     clean: true, clientId: 'abcde'
@@ -462,11 +457,6 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
         })
         subscriber.outStream.once('data', function (packet) {
           t.fail('packet received')
-          t.end()
-        })
-        eos(subscriber.conn, function () {
-          t.equal(subscriber.broker.connectedClients, 0, 'no connected clients')
-          t.end()
         })
       })
     })
@@ -494,8 +484,6 @@ test('double sub does not double deliver', function (t) {
           s.outStream.on('data', function () {
             t.fail('double deliver')
           })
-          // wait for a tick, so it will double deliver
-          setImmediate(t.end.bind(t))
         })
 
         s.broker.publish({
@@ -506,6 +494,7 @@ test('double sub does not double deliver', function (t) {
       })
     })
   })
+  t.tearDown(s.broker.close.bind(s.broker))
 })
 
 test('overlapping sub does not double deliver', function (t) {
@@ -529,8 +518,6 @@ test('overlapping sub does not double deliver', function (t) {
           s.outStream.on('data', function () {
             t.fail('double deliver')
           })
-          // wait for a tick, so it will double deliver
-          setImmediate(t.end.bind(t))
         })
 
         s.broker.publish({
@@ -541,6 +528,7 @@ test('overlapping sub does not double deliver', function (t) {
       })
     })
   })
+  t.tearDown(s.broker.close.bind(s.broker))
 })
 
 test('clear drain', function (t) {
@@ -565,24 +553,34 @@ test('clear drain', function (t) {
       s.conn.destroy()
     })
   })
+
+  t.tearDown(s.broker.close.bind(s.broker))
 })
 
 test('id option', function (t) {
   t.plan(2)
 
   var broker1 = aedes()
+
   setup(broker1).conn.destroy()
   t.ok(broker1.id, 'broker gets random id when id option not set')
 
   var broker2 = aedes({ id: 'abc' })
   setup(broker2).conn.destroy()
   t.equal(broker2.id, 'abc', 'broker id equals id option when set')
+
+  t.tearDown(() => {
+    broker1.close()
+    broker2.close()
+  })
 })
 
 test('not duplicate client close when client error occurs', function (t) {
   t.plan(1)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   connect(setup(broker))
   broker.on('client', function (client) {
     client.conn.on('drain', () => {
@@ -594,16 +592,15 @@ test('not duplicate client close when client error occurs', function (t) {
       t.fail('double client close calls')
     })
   })
-  broker.on('closed', () => {
-    t.end()
-  })
 })
 
 test('not duplicate client close when double close() called', function (t) {
   t.plan(1)
 
   var broker = aedes()
-  connect(setup(broker), false)
+  t.tearDown(broker.close.bind(broker))
+
+  connect(setup(broker))
   broker.on('clientReady', function (client) {
     client.conn.on('drain', () => {
       t.pass('client closed ok')
@@ -614,9 +611,5 @@ test('not duplicate client close when double close() called', function (t) {
       t.fail('double execute client close function')
     })
     client.close()
-    broker.close()
-  })
-  broker.on('closed', () => {
-    t.end()
   })
 })

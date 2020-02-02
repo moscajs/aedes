@@ -1,21 +1,21 @@
 'use strict'
 
+var { test } = require('tap')
 var mqtt = require('mqtt')
-var test = require('tape').test
-var aedes = require('../')
 var net = require('net')
+var aedes = require('../')
 var port = 4883
 
 test('do not block after a subscription', function (t) {
   t.plan(3)
 
-  var instance = aedes()
-  var server = net.createServer(instance.handle)
+  var broker = aedes()
+  var server = net.createServer(broker.handle)
   var total = 10000
   var sent = 0
   var received = 0
 
-  server.listen(4883, function (err) {
+  server.listen(port, function (err) {
     t.error(err, 'no error')
 
     var publisher = mqtt.connect({
@@ -65,11 +65,10 @@ test('do not block after a subscription', function (t) {
       clearTimeout(timer)
       subscriber.end()
       publisher.end()
-      instance.close()
+      broker.close()
       server.close()
       t.equal(total, sent, 'messages sent')
       t.equal(total, received, 'messages received')
-      t.end()
     }
   })
 })
@@ -77,13 +76,13 @@ test('do not block after a subscription', function (t) {
 test('do not block with overlapping subscription', function (t) {
   t.plan(3)
 
-  var instance = aedes({ concurrency: 15 })
-  var server = net.createServer(instance.handle)
+  var broker = aedes({ concurrency: 15 })
+  var server = net.createServer(broker.handle)
   var total = 10000
   var sent = 0
   var received = 0
 
-  server.listen(4883, function (err) {
+  server.listen(port, function (err) {
     t.error(err, 'no error')
 
     var publisher = mqtt.connect({
@@ -138,11 +137,10 @@ test('do not block with overlapping subscription', function (t) {
       clearTimeout(timer)
       subscriber.end()
       publisher.end()
-      instance.close()
+      broker.close()
       server.close()
       t.equal(total, sent, 'messages sent')
       t.equal(total, received, 'messages received')
-      t.end()
     }
   })
 })

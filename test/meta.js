@@ -1,16 +1,14 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
+var { test } = require('tap')
+var { setup, connect, subscribe } = require('./helper')
 var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
-var subscribe = helper.subscribe
 
 test('count connected clients', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   t.equal(broker.connectedClients, 0, 'no connected clients')
 
@@ -37,12 +35,12 @@ test('call published method', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.published = function (packet, client, done) {
     t.equal(packet.topic, 'hello', 'topic matches')
     t.equal(packet.payload.toString(), 'world', 'payload matches')
     t.equal(client, null, 'no client')
-    broker.close()
     done()
   }
 
@@ -58,6 +56,7 @@ test('call published method with client', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.published = function (packet, client, done) {
     // for internal messages, client will be null
@@ -66,7 +65,6 @@ test('call published method with client', function (t) {
       t.equal(packet.payload.toString(), 'world', 'payload matches')
       t.equal(packet.qos, 1)
       t.equal(packet.messageId, 42)
-      broker.close()
       done()
     }
   }
@@ -86,6 +84,7 @@ test('emit publish event with client - QoS 0', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('publish', function (packet, client) {
     // for internal messages, client will be null
@@ -93,7 +92,6 @@ test('emit publish event with client - QoS 0', function (t) {
       t.equal(packet.qos, 0)
       t.equal(packet.topic, 'hello', 'topic matches')
       t.equal(packet.payload.toString(), 'world', 'payload matches')
-      broker.close()
     }
   })
 
@@ -111,6 +109,7 @@ test('emit publish event with client - QoS 1', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('publish', function (packet, client) {
     // for internal messages, client will be null
@@ -119,7 +118,6 @@ test('emit publish event with client - QoS 1', function (t) {
       t.equal(packet.messageId, 42)
       t.equal(packet.topic, 'hello', 'topic matches')
       t.equal(packet.payload.toString(), 'world', 'payload matches')
-      broker.close()
     }
   })
 
@@ -138,6 +136,8 @@ test('emit subscribe event', function (t) {
   t.plan(6)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = connect(setup(broker), { clientId: 'abcde' })
 
   broker.on('subscribe', function (subscriptions, client) {
@@ -157,6 +157,8 @@ test('emit unsubscribe event', function (t) {
   t.plan(6)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = connect(setup(broker), { clean: true, clientId: 'abcde' })
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
@@ -183,6 +185,8 @@ test('dont emit unsubscribe event on client close', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var s = connect(setup(broker), { clientId: 'abcde' })
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
@@ -203,6 +207,7 @@ test('emit clientDisconnect event', function (t) {
   t.plan(1)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('clientDisconnect', function (client) {
     t.equal(client.id, 'abcde', 'client matches')
@@ -220,6 +225,7 @@ test('emits client', function (t) {
   t.plan(1)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     t.equal(client.id, 'abcde', 'clientId matches')
@@ -234,22 +240,22 @@ test('get aedes version', function (t) {
   t.plan(1)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   t.equal(broker.version, require('../package.json').version)
-  broker.close()
-  t.end()
 })
 
-test('connect and connackSent event', function (t) {
+test('connect and connackSent event', { timeout: 50 }, function (t) {
   t.plan(3)
-  t.timeoutAfter(50)
 
   var s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var clientId = 'my-client'
 
   s.broker.on('connackSent', function (packet, client) {
     t.equal(packet.returnCode, 0)
     t.equal(client.id, clientId, 'connackSent event and clientId matches')
-    t.end()
   })
 
   s.inStream.write({

@@ -1,9 +1,7 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
-var setup = helper.setup
-var connect = helper.connect
+var { test } = require('tap')
+var { setup, connect } = require('./helper')
 
 test('after an error, outstanding packets are discarded', function (t) {
   t.plan(1)
@@ -11,6 +9,8 @@ test('after an error, outstanding packets are discarded', function (t) {
   var s = connect(setup(), {
     keepalive: 1000
   })
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var packet = {
     cmd: 'publish',
     topic: 'hello',

@@ -1,11 +1,8 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
+var { test } = require('tap')
+var { setup, connect, subscribe } = require('./helper')
 var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
-var subscribe = helper.subscribe
 
 function publish (t, s, packet, done) {
   var msgId = packet.messageId
@@ -72,7 +69,9 @@ function receive (t, subscriber, expected, done) {
         dup: false
       }, 'pubrel must match')
 
-      done()
+      if (done) {
+        done()
+      }
     })
   })
 }
@@ -81,6 +80,8 @@ test('publish QoS 2', function (t) {
   t.plan(2)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
   var packet = {
     cmd: 'publish',
     topic: 'hello',
@@ -88,13 +89,15 @@ test('publish QoS 2', function (t) {
     qos: 2,
     messageId: 42
   }
-  publish(t, s, packet, t.end.bind(t))
+  publish(t, s, packet)
 })
 
 test('subscribe QoS 2', function (t) {
   t.plan(8)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var toPublish = {
@@ -111,7 +114,7 @@ test('subscribe QoS 2', function (t) {
   subscribe(t, subscriber, 'hello', 2, function () {
     publish(t, publisher, toPublish)
 
-    receive(t, subscriber, toPublish, t.end.bind(t))
+    receive(t, subscriber, toPublish)
   })
 })
 
@@ -119,6 +122,8 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
   t.plan(8)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var toPublish = {
     cmd: 'publish',
     topic: 'hello',
@@ -143,7 +148,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
 
   subscribe(t, subscriber, 'hello', 2, function () {
     t.pass('subscribed')
-    receive(t, subscriber, toPublish, t.end.bind(t))
+    receive(t, subscriber, toPublish)
     brokerClient.publish(toPublish, function (err) {
       t.error(err)
     })
@@ -151,9 +156,11 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
 })
 
 test('call published method with client with QoS 2', function (t) {
-  t.plan(10)
+  t.plan(9)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var toPublish = {
@@ -178,7 +185,7 @@ test('call published method with client with QoS 2', function (t) {
   subscribe(t, subscriber, 'hello', 2, function () {
     publish(t, publisher, toPublish)
 
-    receive(t, subscriber, toPublish, t.pass.bind(t))
+    receive(t, subscriber, toPublish)
   })
 })
 
@@ -186,8 +193,10 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
   t.plan(6)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker, false))
+  var subscriber = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -213,15 +222,16 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
       dup: false
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('subscribe QoS 1, but publish QoS 2', function (t) {
   t.plan(6)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker))
-  var subscriber = connect(setup(broker, false))
+  var subscriber = connect(setup(broker))
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -248,13 +258,14 @@ test('subscribe QoS 1, but publish QoS 2', function (t) {
       dup: false
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('restore QoS 2 subscriptions not clean', function (t) {
   t.plan(9)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   var expected = {
@@ -278,7 +289,7 @@ test('restore QoS 2 subscriptions not clean', function (t) {
       publish(t, publisher, expected)
     })
 
-    receive(t, subscriber, expected, t.end.bind(t))
+    receive(t, subscriber, expected)
   })
 })
 
@@ -286,6 +297,8 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
   t.plan(8)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
@@ -308,7 +321,7 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
     publish(t, publisher, expected, function () {
       subscriber = connect(setup(broker), opts)
 
-      receive(t, subscriber, expected, t.end.bind(t))
+      receive(t, subscriber, expected)
     })
   })
 })
@@ -317,6 +330,8 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
   t.plan(9)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher
   var opts = { clean: false, clientId: 'abcde' }
   var subscriber = connect(setup(broker), opts)
@@ -380,8 +395,6 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
               cmd: 'pubcomp',
               messageId: msgId
             })
-
-            t.end()
           })
         })
       })
@@ -393,6 +406,8 @@ test('publish after disconnection', function (t) {
   t.plan(10)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker))
   var subscriber = connect(setup(broker))
   var toPublish = {
@@ -420,7 +435,7 @@ test('publish after disconnection', function (t) {
     publish(t, publisher, toPublish)
 
     receive(t, subscriber, toPublish, function () {
-      publish(t, publisher, toPublish2, t.end.bind(t))
+      publish(t, publisher, toPublish2)
     })
   })
 })
@@ -429,6 +444,7 @@ test('multiple publish and store one', function (t) {
   t.plan(2)
 
   var broker = aedes()
+
   var sid = {
     id: 'abcde'
   }
@@ -443,16 +459,19 @@ test('multiple publish and store one', function (t) {
   }
 
   var count = 5
-  while (--count) {
+  while (count--) {
     s.inStream.write(toPublish)
   }
-  broker.on('closed', function () {
-    broker.persistence.incomingGetPacket(sid, toPublish, function (err, origPacket) {
-      delete origPacket.brokerId
-      delete origPacket.brokerCounter
-      t.deepEqual(origPacket, toPublish, 'packet must match')
-      t.error(err)
-      t.end()
+  var recvcnt = 0
+  s.outStream.on('data', function (packet) {
+    if (++recvcnt < 5) return
+    broker.close(function () {
+      broker.persistence.incomingGetPacket(sid, toPublish, function (err, origPacket) {
+        delete origPacket.brokerId
+        delete origPacket.brokerCounter
+        t.deepEqual(origPacket, toPublish, 'packet must match')
+        t.error(err)
+      })
     })
   })
 })

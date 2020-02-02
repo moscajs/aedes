@@ -1,24 +1,21 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
+var { test } = require('tap')
+var { setup, connect, subscribe } = require('./helper')
 var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
-var subscribe = helper.subscribe
 
 test('publishes an hearbeat', function (t) {
-  t.plan(3)
+  t.plan(2)
 
   var broker = aedes({
     heartbeatInterval: 10 // ms
   })
+  t.tearDown(broker.close.bind(broker))
 
   broker.subscribe('$SYS/+/heartbeat', function (message, cb) {
     var id = message.topic.match(/\$SYS\/([^/]+)\/heartbeat/)[1]
     t.equal(id, broker.id, 'broker id matches')
     t.deepEqual(message.payload.toString(), id, 'message has id as the payload')
-    broker.close(t.pass.bind(t, 'broker closes'))
   })
 })
 
@@ -27,6 +24,7 @@ test('publishes an hearbeat', function (t) {
     t.plan(4)
 
     var s = connect(setup())
+    t.tearDown(s.broker.close.bind(s.broker))
 
     subscribe(t, s, '#', 0, function () {
       s.outStream.once('data', function (packet) {
@@ -47,6 +45,7 @@ test('publishes an hearbeat', function (t) {
     t.plan(4)
 
     var s = connect(setup())
+    t.tearDown(s.broker.close.bind(s.broker))
 
     subscribe(t, s, '+/#', 0, function () {
       s.outStream.once('data', function (packet) {
@@ -68,6 +67,8 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var opts = { clean: false, clientId: 'abcde' }
   var s = connect(setup(broker), opts)
 
@@ -80,9 +81,7 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
       payload: 'world',
       qos: 1
     }, function () {
-      s = connect(setup(broker), { clean: false, clientId: 'abcde' }, function () {
-        t.end()
-      })
+      s = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
       s.outStream.once('data', function (packet) {
         t.fail('no packet should be received')
@@ -91,11 +90,11 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
   })
 })
 
-test('Emit event when receives a ping', function (t) {
-  t.plan(6)
-  t.timeoutAfter(2000)
+test('Emit event when receives a ping', { timeout: 2000 }, function (t) {
+  t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('ping', function (packet, client) {
     if (client && client) {
@@ -104,8 +103,6 @@ test('Emit event when receives a ping', function (t) {
       t.equal(packet.payload, null)
       t.equal(packet.topic, null)
       t.equal(packet.length, 0)
-      t.pass('ended')
-      broker.close()
     }
   })
 

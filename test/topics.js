@@ -1,12 +1,8 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
+var { test } = require('tap')
+var { setup, connect, subscribe } = require('./helper')
 var aedes = require('../')
-var eos = require('end-of-stream')
-var setup = helper.setup
-var connect = helper.connect
-var subscribe = helper.subscribe
 
 // [MQTT-4.7.3-1]
 test('publish empty topic', function (t) {
@@ -17,7 +13,7 @@ test('publish empty topic', function (t) {
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
       t.fail('no packet')
-      t.end()
+      // t.end()
     })
 
     s.inStream.write({
@@ -25,11 +21,10 @@ test('publish empty topic', function (t) {
       topic: '',
       payload: 'world'
     })
-  })
 
-  eos(s.conn, function () {
-    t.equal(s.broker.connectedClients, 0, 'no connected clients')
-    t.end()
+    s.broker.close(function () {
+      t.equal(s.broker.connectedClients, 0, 'no connected clients')
+    })
   })
 })
 
@@ -37,11 +32,11 @@ test('publish invalid topic with #', function (t) {
   t.plan(4)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
       t.fail('no packet')
-      t.end()
     })
 
     s.inStream.write({
@@ -53,7 +48,6 @@ test('publish invalid topic with #', function (t) {
 
   s.broker.on('clientError', function () {
     t.pass('raise an error')
-    t.end()
   })
 })
 
@@ -61,11 +55,11 @@ test('publish invalid topic with +', function (t) {
   t.plan(4)
 
   var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
       t.fail('no packet')
-      t.end()
     })
 
     s.inStream.write({
@@ -77,7 +71,6 @@ test('publish invalid topic with +', function (t) {
 
   s.broker.on('clientError', function () {
     t.pass('raise an error')
-    t.end()
   })
 })
 
@@ -86,10 +79,10 @@ test('publish invalid topic with +', function (t) {
     t.plan(1)
 
     var s = connect(setup())
+    t.tearDown(s.broker.close.bind(s.broker))
 
     s.broker.on('clientError', function () {
       t.pass('raise an error')
-      t.end()
     })
 
     s.inStream.write({
@@ -106,10 +99,10 @@ test('publish invalid topic with +', function (t) {
     t.plan(1)
 
     var s = connect(setup())
+    t.tearDown(s.broker.close.bind(s.broker))
 
     s.broker.on('clientError', function () {
       t.pass('raise an error')
-      t.end()
     })
 
     s.inStream.write({
@@ -124,8 +117,10 @@ test('topics are case-sensitive', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publisher = connect(setup(broker), { clean: true })
-  var subscriber = connect(setup(broker, false), { clean: true })
+  var subscriber = connect(setup(broker), { clean: true })
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -150,11 +145,10 @@ test('topics are case-sensitive', function (t) {
       })
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 function subscribeMultipleTopics (t, broker, qos, subscriber, subscriptions, done) {
-  var publisher = connect(setup(broker, false))
+  var publisher = connect(setup(broker))
   subscriber.inStream.write({
     cmd: 'subscribe',
     messageId: 24,
@@ -184,6 +178,8 @@ test('Overlapped topics with same QoS', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var subscriber = connect(setup(broker))
   var expected = {
     cmd: 'publish',
@@ -203,7 +199,6 @@ test('Overlapped topics with same QoS', function (t) {
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 // [MQTT-3.3.5-1]
@@ -211,6 +206,8 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var subscriber = connect(setup(broker))
   var expected = {
     cmd: 'publish',
@@ -230,7 +227,6 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 // [MQTT-3.3.5-1]
@@ -238,6 +234,8 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var subscriber = connect(setup(broker))
 
   var sub = [
@@ -248,13 +246,14 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
       t.fail('should receive messages with the maximum QoS')
     })
   })
-  broker.on('closed', t.end.bind(t))
 })
 
 test('Overlapped topics with QoS downgrade', function (t) {
   t.plan(4)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var subscriber = connect(setup(broker))
   var expected = {
     cmd: 'publish',
@@ -273,5 +272,4 @@ test('Overlapped topics with QoS downgrade', function (t) {
       t.deepEqual(packet, expected, 'packet must match')
     })
   })
-  broker.on('closed', t.end.bind(t))
 })

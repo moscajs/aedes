@@ -1,15 +1,15 @@
 'use strict'
 
-var test = require('tape').test
-var helper = require('./helper')
+var { test } = require('tap')
+var { setup, connect } = require('./helper')
 var aedes = require('../')
-var setup = helper.setup
-var connect = helper.connect
 
 test('publish direct to a single client QoS 0', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -41,6 +41,8 @@ test('publish direct to a single client QoS 1', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -77,6 +79,8 @@ test('publish direct to a single client QoS 2', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var publishCount = 0
   var nonPublishCount = 0
 
@@ -95,6 +99,11 @@ test('publish direct to a single client QoS 2', function (t) {
 
   var s = connect(setup(broker))
 
+  s.inStream.on('close', () => {
+    t.equal(publishCount, 1)
+    t.equal(nonPublishCount, 1)
+  })
+
   s.outStream.on('data', function (packet) {
     if (packet.cmd === 'publish') {
       publishCount++
@@ -108,13 +117,8 @@ test('publish direct to a single client QoS 2', function (t) {
         cmd: 'pubcomp',
         messageId: packet.messageId
       })
+      s.inStream.destroy()
     }
-  })
-
-  broker.on('closed', function () {
-    t.equal(publishCount, 1)
-    t.equal(nonPublishCount, 1)
-    t.end()
   })
 })
 
@@ -122,6 +126,8 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -162,6 +168,7 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=true]', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('clientReady', function (client) {
     client.publish({
@@ -192,6 +199,8 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
   t.plan(5)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var messageId
   var clientId
 
@@ -211,7 +220,6 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
     t.equal(packet.messageId, messageId)
     t.equal(packet.cmd, 'pubrel', 'ack packet is purel')
     t.pass('got the ack event')
-    t.end()
   })
 
   var s = connect(setup(broker), { clean: false })
@@ -236,6 +244,7 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=true]', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('clientReady', function (client) {
     client.publish({
@@ -250,7 +259,6 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=true]', function (t) {
   broker.once('ack', function (packet, client) {
     t.equal(packet, undefined, 'ack packet is undefined')
     t.pass('got the ack event')
-    t.end()
   })
 
   var s = connect(setup(broker), { clean: true })
@@ -274,6 +282,8 @@ test('offline message support for direct publish', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -319,6 +329,8 @@ test('subscribe a client programmatically', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -357,6 +369,8 @@ test('subscribe a client programmatically - wildcard', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello/world/1',
@@ -395,6 +409,7 @@ test('unsubscribe a client', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     client.subscribe({
@@ -417,6 +432,8 @@ test('subscribe a client programmatically multiple topics', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -458,6 +475,8 @@ test('subscribe a client programmatically with full packet', function (t) {
   t.plan(3)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   var expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -502,6 +521,7 @@ test('get message when client connects', function (t) {
 
   var client1 = 'gav'
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     client.subscribe({
@@ -527,6 +547,7 @@ test('get message when client disconnects', function (t) {
   var client1 = 'gav'
   var client2 = 'friend'
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     if (client.id === client1) {
@@ -555,6 +576,8 @@ test('should not receive a message on negated subscription', function (t) {
   t.plan(2)
 
   var broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
   broker.authorizeSubscribe = function (client, sub, callback) {
     callback(null, null)
   }
@@ -580,5 +603,4 @@ test('should not receive a message on negated subscription', function (t) {
   s.outStream.once('data', function (packet) {
     t.fail('Packet should not be received')
   })
-  broker.on('closed', t.end.bind(t))
 })
