@@ -7,6 +7,7 @@ const mqtt = require('mqtt')
 const mqttPacket = require('mqtt-packet')
 const net = require('net')
 const proxyProtocol = require('proxy-protocol-js')
+const { protocolDecoder } = require('aedes-protocol-decoder')
 const { setup, connect, delay } = require('./helper')
 const aedes = require('../')
 
@@ -574,6 +575,7 @@ test('tcp clients have access to the ipAddress from the socket', function (t) {
       }
       done(null, true)
     },
+    decodeProtocol: protocolDecoder,
     trustProxy: true
   })
 
@@ -630,6 +632,7 @@ test('tcp proxied (protocol v1) clients have access to the ipAddress(v4)', funct
       }
       done(null, true)
     },
+    decodeProtocol: protocolDecoder,
     trustProxy: true
   })
 
@@ -687,6 +690,7 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v4)', funct
       }
       done(null, true)
     },
+    decodeProtocol: protocolDecoder,
     trustProxy: true
   })
 
@@ -747,6 +751,7 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v6)', funct
       }
       done(null, true)
     },
+    decodeProtocol: protocolDecoder,
     trustProxy: true
   })
 
@@ -786,6 +791,7 @@ test('websocket clients have access to the ipAddress from the socket (if no ip h
       }
       done(null, true)
     },
+    decodeProtocol: protocolDecoder,
     trustProxy: true
   })
 
@@ -822,6 +828,7 @@ test('websocket proxied clients have access to the ipAddress from x-real-ip head
       }
       done(null, true)
     },
+    decodeProtocol: protocolDecoder,
     trustProxy: true
   })
 
@@ -864,6 +871,7 @@ test('websocket proxied clients have access to the ipAddress from x-forwarded-fo
       }
       done(null, true)
     },
+    decodeProtocol: protocolDecoder,
     trustProxy: true
   })
 

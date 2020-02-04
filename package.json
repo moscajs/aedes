@@ -60,6 +60,10 @@
     {
       "name": "Gnought",
       "url": "https://github.com/gnought"
+    },
+    {
+      "name": "Daniel Lando",
+      "url": "https://github.com/robertsLando"
     }
   ],
   "license": "MIT",
@@ -85,6 +89,7 @@
   "dependencies": {
     "aedes-packet": "^2.1.0",
     "aedes-persistence": "^7.2.1",
+    "aedes-protocol-decoder": "^1.0.0",
     "bulk-write-stream": "^2.0.1",
     "end-of-stream": "^1.4.4",
     "fastfall": "^1.5.1",

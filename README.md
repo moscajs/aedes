@@ -252,8 +252,7 @@ The reverse of [subscribe](#subscribe).
 <a name="decodeProtocol"></a>
 ### instance.decodeProtocol(client, buffer)
 
-It will be called when aedes instance trustProxy is true and that it receives a first valid buffer from client. client object state is in default and its connected state is false. A default function parse https headers (x-real-ip | x-forwarded-for) and proxy protocol v1 and v2 to retrieve information in client.connDetails. Override to supply custom protocolDecoder logic, if it returns an object with data property, this property will be parsed as an mqtt-packet.
-
+It will be called when aedes instance `trustProxy` is `true` and that it receives a first valid buffer from client. client object state is in default and its connected state is false. Use `aedes-protocol-decoder` to parse https headers (x-real-ip | x-forwarded-for) and proxy protocol v1 and v2 to retrieve information in client.connDetails. Override to supply custom protocolDecoder logic, if it returns an object with data property, this property will be parsed as an mqtt-packet.
 
 ```js
 instance.decodeProtocol = function(client, buffer) {
@@ -517,6 +516,7 @@ The payload will contain the `clientId` of the connected/disconnected client
   - [mqemitter-aerospike](https://github.com/GavinDmello/mqemitter-aerospike): Aerospike mqemitter based on @mcollina 's mqemitter
 - [aedes-logging](https://github.com/moscajs/aedes-logging): Logging module for Aedes, based on Pino
 - [aedes-stats](https://github.com/moscajs/aedes-stats): Stats for Aedes
+- [aedes-protocol-decoder](https://github.com/moscajs/aedes-protocol-decoder): Protocol decoder for Aedes MQTT Broker
 
 ## Collaborators
 
