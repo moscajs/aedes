@@ -34,6 +34,23 @@ test('publish QoS 0', function (t) {
   })
 })
 
+test('publish empty topic throws error', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: '',
+    payload: 'world'
+  })
+
+  s.broker.on('clientError', function (client, err) {
+    t.pass('should emit error')
+  })
+})
+
 test('subscribe QoS 0', function (t) {
   t.plan(4)
 
