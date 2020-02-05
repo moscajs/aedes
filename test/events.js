@@ -133,8 +133,7 @@ test('Test backpressure aedes published function', function (t) {
         setTimeout(() => {
           publisher.end()
           done()
-        }
-        , 1000)
+        })
       } else { done() }
     }
   })
