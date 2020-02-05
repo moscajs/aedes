@@ -123,6 +123,17 @@ test('Emit event when broker closed', function (t) {
   broker.close()
 })
 
+test('Emit closed event one only when dobule broker.close()', function (t) {
+  t.plan(1)
+
+  const broker = aedes()
+  broker.on('closed', function () {
+    t.pass('closed')
+  })
+  broker.close()
+  broker.close()
+})
+
 test('Test backpressure aedes published function', function (t) {
   t.plan(2)
 
