@@ -96,6 +96,7 @@
     "mqemitter": "^3.0.0",
     "mqtt-packet": "^6.3.0",
     "proxy-protocol-js": "^4.0.3",
+    "readable-stream": "^3.5.0",
     "retimer": "^2.0.0",
     "reusify": "^1.0.4",
     "shortid": "^2.2.15",
