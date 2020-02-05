@@ -27,7 +27,7 @@
     "url": "http://github.com/moscajs/aedes/issues"
   },
   "engines": {
-    "node": ">=8"
+    "node": ">=10"
   },
   "keywords": [
     "mqtt",
