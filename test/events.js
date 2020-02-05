@@ -162,4 +162,3 @@ test('Test backpressure aedes published function', { timeout: 500 }, function (t
     client.on('connect', publish)
   })
 })
-
