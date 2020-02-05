@@ -112,6 +112,25 @@ test('does not die badly on connection error', function (t) {
   })
 })
 
+// Guarded in mqtt-packet
+test('subscribe should have messageId', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    subscriptions: [{
+      topic: 'hello',
+      qos: 0
+    }]
+  })
+  s.broker.on('connectionError', function (client, err) {
+    t.ok(err.message, 'Invalid messageId')
+  })
+})
+
 test('unsubscribe', function (t) {
   t.plan(5)
 
