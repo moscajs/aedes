@@ -1,7 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
-const { setup, connect, subscribe } = require('./helper')
+const { setup, connect, subscribe, noError } = require('./helper')
 const aedes = require('../')
 
 test('count connected clients', function (t) {
