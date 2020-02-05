@@ -123,30 +123,33 @@ test('Emit event when broker closed', function (t) {
   broker.close()
 })
 
-test('Test backpressure aedes published function', { timeout: 500 }, function (t) {
+test('Test backpressure aedes published function', function (t) {
   t.plan(1)
 
   const broker = aedes({
     published: function (packet, client, done) {
       if (client) {
         t.pass('published')
-        setTimeout(done, 1000)
+        setTimeout(() => {
+          publisher.end()
+          done()
+        }
+        , 1000)
       } else { done() }
     }
   })
   t.tearDown(() => {
-    client.end()
     broker.close()
     server.close()
   })
 
   const mqtt = require('mqtt')
   const server = require('net').createServer(broker.handle)
-  var client
+  var publisher
 
   server.listen(0, function () {
     const port = server.address().port
-    client = mqtt.connect({ port: port, host: 'localhost', clean: true, keepalive: 30 })
+    publisher = mqtt.connect({ port: port, host: 'localhost', clean: true, keepalive: 30 })
 
     var count = 10
 
@@ -156,9 +159,9 @@ test('Test backpressure aedes published function', { timeout: 500 }, function (t
 
     function publish () {
       count--
-      client.publish('test', 'payload', immediatePublish)
+      publisher.publish('test', 'payload', immediatePublish)
     }
 
-    client.on('connect', publish)
+    publisher.on('connect', publish)
   })
 })
