@@ -58,6 +58,10 @@ test('authenticate unsuccessfully a client with username and password', function
     cb(null, false)
   }
 
+  s.broker.on('clientReady', function (client) {
+    t.fail('client should not ready')
+  })
+
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
       cmd: 'connack',
@@ -100,6 +104,10 @@ test('authenticate errors', function (t) {
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(new Error('this should happen!'))
   }
+
+  s.broker.on('clientReady', function (client) {
+    t.fail('client should not ready')
+  })
 
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
@@ -146,6 +154,10 @@ test('authentication error when return code 1 (unacceptable protocol version) is
     cb(error, null)
   }
 
+  s.broker.on('clientReady', function (client) {
+    t.fail('client should not ready')
+  })
+
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
       cmd: 'connack',
@@ -190,6 +202,10 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
     error.returnCode = 2
     cb(error, null)
   }
+
+  s.broker.on('clientReady', function (client) {
+    t.fail('client should not ready')
+  })
 
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
@@ -236,6 +252,10 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
     cb(error, null)
   }
 
+  s.broker.on('clientReady', function (client) {
+    t.fail('client should not ready')
+  })
+
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
       cmd: 'connack',
@@ -280,6 +300,10 @@ test('authentication error when non numeric return code is passed', function (t)
     error.returnCode = 'return Code'
     cb(error, null)
   }
+
+  s.broker.on('clientReady', function (client) {
+    t.fail('client should not ready')
+  })
 
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
