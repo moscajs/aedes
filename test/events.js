@@ -142,10 +142,10 @@ test('Test backpressure aedes published function', { timeout: 500 }, function (t
 
   const mqtt = require('mqtt')
   const server = require('net').createServer(broker.handle)
-  const port = 1883
   var client
 
-  server.listen(port, function () {
+  server.listen(0, function () {
+    const port = server.address().port
     client = mqtt.connect({ port: port, host: 'localhost', clean: true, keepalive: 30 })
 
     var count = 10
