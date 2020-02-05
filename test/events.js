@@ -154,7 +154,7 @@ test('Test backpressure aedes published function', function (t) {
     }
 
     function publish () {
-      publisher.publish(count.toString(), 'payload', next)
+      publisher.publish('test', 'payload', next)
     }
 
     publisher.on('connect', publish)
