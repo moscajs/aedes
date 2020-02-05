@@ -492,12 +492,12 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
 })
 
 test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
-  t.plan(8)
+  t.plan(7)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -517,7 +517,7 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
       console.log('original', packet)
     })
 
-    const publisher = connect(setup(broker))
+    const publisher = noError(connect(setup(broker)), t)
 
     publisher.inStream.write({
       cmd: 'publish',
@@ -530,10 +530,6 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
 
     publisher.outStream.once('data', function (packet) {
       t.equal(packet.cmd, 'puback')
-
-      broker.on('clientError', function (client, err) {
-        t.equal(err.message, 'connection closed')
-      })
 
       subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
         t.equal(connect.sessionPresent, true, 'session present is set to true')
@@ -556,12 +552,12 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
 })
 
 test('disconnect and two retain messages with QoS 1 [clean=false]', function (t) {
-  t.plan(17)
+  t.plan(15)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  var subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -580,7 +576,7 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
       console.log('original', packet)
     })
 
-    const publisher = connect(setup(broker))
+    const publisher = noError(connect(setup(broker)), t)
 
     publisher.inStream.write({
       cmd: 'publish',
@@ -605,10 +601,6 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
 
       publisher.outStream.once('data', function (packet) {
         t.equal(packet.cmd, 'puback')
-
-        broker.on('clientError', function (client, err) {
-          t.equal(err.message, 'connection closed')
-        })
 
         subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
           t.equal(connect.sessionPresent, true, 'session present is set to true')

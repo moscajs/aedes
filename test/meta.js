@@ -1,7 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
-const { setup, connect, subscribe } = require('./helper')
+const { setup, connect, subscribe, noError } = require('./helper')
 const aedes = require('../')
 
 test('count connected clients', function (t) {
@@ -187,7 +187,7 @@ test('dont emit unsubscribe event on client close', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  const s = connect(setup(broker), { clientId: 'abcde' })
+  const s = noError(connect(setup(broker), { clientId: 'abcde' }), t)
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
     t.error('unsubscribe should not be emitted')
@@ -213,7 +213,7 @@ test('emit clientDisconnect event', function (t) {
     t.equal(client.id, 'abcde', 'client matches')
   })
 
-  const s = connect(setup(broker), { clientId: 'abcde' })
+  const s = noError(connect(setup(broker), { clientId: 'abcde' }), t)
 
   s.inStream.end({
     cmd: 'disconnect'

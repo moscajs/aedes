@@ -253,7 +253,7 @@ test('disconnect', function (t) {
   const s = noError(connect(setup()), t)
   t.tearDown(s.broker.close.bind(s.broker))
 
-  s.outStream.on('finish', function () {
+  s.broker.on('clientDisconnect', function () {
     t.pass('closed stream')
   })
 

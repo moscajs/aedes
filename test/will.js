@@ -2,7 +2,7 @@
 
 const { test } = require('tap')
 const memory = require('aedes-persistence')
-const { setup, connect } = require('./helper')
+const { setup, connect, noError } = require('./helper')
 const aedes = require('../')
 
 function willConnect (s, opts, connected) {
@@ -332,11 +332,11 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  const s = willConnect(setup(broker), {}, function () {
+  const s = noError(willConnect(setup(broker), {}, function () {
     s.inStream.end({
       cmd: 'disconnect'
     })
-  })
+  }), t)
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.fail(packet)
@@ -351,12 +351,12 @@ test('does not store multiple will with same clientid', function (t) {
 
   const broker = aedes()
 
-  var s = willConnect(setup(broker), opts, function () {
+  var s = noError(willConnect(setup(broker), opts, function () {
     // gracefully close client so no will is sent
     s.inStream.end({
       cmd: 'disconnect'
     })
-  })
+  }), t)
 
   broker.on('clientDisconnect', function (client) {
     // reconnect same client with will
