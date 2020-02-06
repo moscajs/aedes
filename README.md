@@ -8,6 +8,11 @@
 [![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 [![NPM downloads](https://img.shields.io/npm/dm/aedes.svg?style=flat)](https://www.npmjs.com/package/aedes)
 
+[![Become a Backer](https://opencollective.com/aedes/tiers/backer.svg?avatarHeight=80&width=600)](https://opencollective.com/aedes)
+
+<object type="image/svg+xml" data=""></object>
+
+
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
 
 Barebone MQTT server that can run on any stream server.
@@ -22,9 +27,10 @@ Barebone MQTT server that can run on any stream server.
 * [TODO](#todo)
 * [Plugins](#plugins)
 * [Collaborators](#collaborators)
-* [Contributing](#contributing)
+* [Developers](#developers)
 * [Acknowledgements](#acknowledgements)
 * [Mosca Vs Aedes](#mosca-vs-aedes)
+* [Contributors](#contributors)
 * [License](#license)
 
 <a name="install"></a>
@@ -531,7 +537,7 @@ This library is born after a lot of discussion with all
 production. This addresses your concerns about performance and
 stability.
 
-## Contributing
+## Developers
 
 Want to contribute? Check our list of features/bugs [here](https://github.com/moscajs/aedes/projects/1)
 
@@ -570,6 +576,25 @@ Msg time mean std (ms):      0.074
 Average Bandwidth (msg/sec): 18.926
 Total Bandwidth (msg/sec):   18925.942
 ```
+
+## Contributors
+
+#### Backers
+
+Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/aedes#backer)]
+
+<a href="https://opencollective.com/aedes#backers" target="_blank"><img src="https://opencollective.com/aedes/backers.svg?width=890"></a>
+
+#### Sponsors
+
+Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/aedes#sponsor)]
+
+<a href="https://opencollective.com/aedes/sponsor/0/website" target="_blank">
+  <img src="https://opencollective.com/aedes/sponsor/0/avatar.svg">
+</a>
+<a href="https://opencollective.com/aedes/sponsor/1/website" target="_blank">
+  <img src="https://opencollective.com/aedes/sponsor/1/avatar.svg">
+</a>
 
 ## License
 
