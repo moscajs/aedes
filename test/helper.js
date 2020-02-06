@@ -115,9 +115,9 @@ function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
 function createWebsocketServer (server, broker) {
   const ws = new Server({ server })
 
-  createWebSocketStream(ws)
-
-  ws.on('message', broker.handle)
+  ws.on('connection', function (conn, req) {
+    broker.handle(createWebSocketStream(conn), req)
+  })
 }
 
 module.exports = {
