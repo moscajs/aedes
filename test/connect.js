@@ -304,7 +304,8 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
   broker.on('clientError', function (client, err) {
     t.equal(err.message, 'Invalid protocol')
   })
-  const s = connect(setup(broker), { clientId: 'abcde' }, function () {
+  const s = connect(setup(broker), { clientId: 'abcde' })
+  s.broker.on('clientReady', function () {
     t.ok(broker.clients.abcde.connected)
     // destory client when there is a 2nd cmd:connect, even the clientId is dfferent
     s.inStream.write(packet)

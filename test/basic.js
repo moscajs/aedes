@@ -266,7 +266,8 @@ test('client closes', function (t) {
   t.plan(5)
 
   const broker = aedes()
-  const client = noError(connect(setup(broker), { clientId: 'abcde' }, function () {
+  const client = noError(connect(setup(broker), { clientId: 'abcde' }))
+  broker.on('clientReady', function () {
     const brokerClient = broker.clients.abcde
     t.equal(brokerClient.connected, true, 'client connected')
     eos(client.conn, t.pass.bind(t, 'client closes'))
@@ -279,7 +280,7 @@ test('client closes', function (t) {
         t.error(err, 'no error')
       })
     })
-  }))
+  })
 })
 
 test('broker closes', function (t) {
