@@ -83,7 +83,8 @@
     "snazzy": "^8.0.0",
     "standard": "^14.3.1",
     "tap": "^14.10.6",
-    "typescript": "^3.7.5"
+    "typescript": "^3.7.5",
+    "ws": "^7.2.1"
   },
   "dependencies": {
     "aedes-packet": "^2.1.0",
@@ -103,7 +104,6 @@
     "reusify": "^1.0.4",
     "shortid": "^2.2.15",
     "through2": "^3.0.1",
-    "uuid": "^3.4.0",
-    "ws": "^7.2.1"
+    "uuid": "^3.4.0"
   }
 }
