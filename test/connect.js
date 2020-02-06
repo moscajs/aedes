@@ -2,13 +2,12 @@
 
 const { test } = require('tap')
 const http = require('http')
-const ws = require('websocket-stream')
 const mqtt = require('mqtt')
 const mqttPacket = require('mqtt-packet')
 const net = require('net')
 const proxyProtocol = require('proxy-protocol-js')
 const { protocolDecoder } = require('aedes-protocol-decoder')
-const { setup, connect, delay } = require('./helper')
+const { setup, connect, delay, createWebsocketServer } = require('./helper')
 const aedes = require('../')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
@@ -537,9 +536,7 @@ test('websocket clients have access to the request object', function (t) {
   })
 
   const server = http.createServer()
-  ws.createServer({
-    server: server
-  }, broker.handle)
+  createWebsocketServer(server, broker)
 
   server.listen(port, function (err) {
     t.error(err, 'no error')
@@ -796,9 +793,7 @@ test('websocket clients have access to the ipAddress from the socket (if no ip h
   })
 
   const server = http.createServer()
-  ws.createServer({
-    server: server
-  }, broker.handle)
+  createWebsocketServer(server, broker)
 
   server.listen(port, function (err) {
     t.error(err, 'no error')
@@ -833,9 +828,7 @@ test('websocket proxied clients have access to the ipAddress from x-real-ip head
   })
 
   const server = http.createServer()
-  ws.createServer({
-    server: server
-  }, broker.handle)
+  createWebsocketServer(server, broker)
 
   server.listen(port, function (err) {
     t.error(err, 'no error')
@@ -876,9 +869,7 @@ test('websocket proxied clients have access to the ipAddress from x-forwarded-fo
   })
 
   const server = http.createServer()
-  ws.createServer({
-    server: server
-  }, broker.handle)
+  createWebsocketServer(server, broker)
 
   server.listen(port, function (err) {
     t.error(err, 'no error')

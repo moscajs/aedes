@@ -3,7 +3,9 @@
 const duplexify = require('duplexify')
 const mqtt = require('mqtt-connection')
 const through = require('through2')
+const { createWebSocketStream, Server } = require('ws')
 const util = require('util')
+
 const aedes = require('../')
 
 const parseStream = mqtt.parseStream
@@ -110,11 +112,20 @@ function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
   })
 }
 
+function createWebsocketServer (server, broker) {
+  const ws = new Server({ server })
+
+  createWebSocketStream(ws)
+
+  ws.on('message', broker.handle)
+}
+
 module.exports = {
   setup: setup,
   connect: connect,
   noError: noError,
   subscribe: subscribe,
   subscribeMultiple: subscribeMultiple,
-  delay: util.promisify(setTimeout)
+  delay: util.promisify(setTimeout),
+  createWebsocketServer: createWebsocketServer
 }
