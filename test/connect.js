@@ -476,15 +476,18 @@ test('Test queue limit', function (t) {
   })
 })
 
-;[[0, null, false], [0, null, true], [1, new Error('connection banned'), false], [1, new Error('connection banned'), true]].forEach(function (ele, idx) {
-  const plan = ele[0]
-  const err = ele[1]
-  const ok = ele[2]
-  test('preConnect handler', function (t) {
+;[['fail with no error msg', 2, null, false], ['succeed with no error msg', 8, null, true], ['fail with error msg', 5, new Error('connection banned'), false], ['succeed with error msg', 5, new Error('connection banned'), true]].forEach(function (ele, idx) {
+  const title = ele[0]
+  const plan = ele[1]
+  const err = ele[2]
+  const ok = ele[3]
+  test('preConnect handler - ' + title, function (t) {
     t.plan(plan)
 
     const broker = aedes({
       preConnect: function (client, done) {
+        t.ok(client.connecting)
+        t.notOk(client.connected)
         return done(err, ok)
       }
     })
@@ -501,17 +504,26 @@ test('Test queue limit', function (t) {
       keepalive: 0
     })
     broker.on('client', function (client) {
-      if (ok) {
-        t.pass('connect ok')
+      if (ok && !err) {
+        t.ok(client.connecting)
+        t.notOk(client.connected)
+        t.pass('register client ok')
       } else {
         t.fail('no reach here')
       }
+    })
+    broker.on('clientReady', function (client) {
+      t.notOk(client.connecting)
+      t.ok(client.connected)
+      t.pass('connect ok')
     })
     broker.on('clientError', function (client, err) {
       t.fail('no client error')
     })
     broker.on('connectionError', function (client, err) {
       if (err) {
+        t.notOk(client.connecting)
+        t.notOk(client.connected)
         t.equal(err.message, 'connection banned')
       } else {
         t.fail('no connection error')
