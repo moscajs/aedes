@@ -116,7 +116,9 @@ function createWebsocketServer (server, broker) {
   const ws = new Server({ server })
 
   ws.on('connection', function (conn, req) {
-    broker.handle(createWebSocketStream(conn), req)
+    var stream = createWebSocketStream(conn)
+    stream._socket = conn._socket
+    broker.handle(stream, req)
   })
 }
 
