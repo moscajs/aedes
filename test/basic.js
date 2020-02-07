@@ -34,6 +34,37 @@ test('publish QoS 0', function (t) {
   })
 })
 
+test('messageId shoud reset to 1 if it reached 65535', function (t) {
+  t.plan(7)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  const publishPacket = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 42
+  }
+  var count = 0
+  s.broker.on('clientReady', function (client) {
+    subscribe(t, s, 'hello', 1, function () {
+      client._nextId = 65535
+      s.outStream.on('data', function (packet) {
+        if (packet.cmd === 'puback') {
+          t.equal(packet.messageId, 42)
+        }
+        if (packet.cmd === 'publish') {
+          t.equal(packet.messageId, count++ === 0 ? 65535 : 1)
+        }
+      })
+      s.inStream.write(publishPacket)
+      s.inStream.write(publishPacket)
+    })
+  })
+})
+
 test('publish empty topic throws error', function (t) {
   t.plan(1)
 
