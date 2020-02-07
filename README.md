@@ -33,7 +33,7 @@ Barebone MQTT server that can run on any stream server.
 To install aedes, simply use npm:
 
 ```sh
-npm install aedes --save
+npm install aedes
 ```
 
 <a name="example"></a>
