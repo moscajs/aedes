@@ -604,3 +604,90 @@ test('should not receive a message on negated subscription', function (t) {
     t.fail('Packet should not be received')
   })
 })
+
+test('custom function in broker.subscribe', function (t) {
+  t.plan(4)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = setup(broker)
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    retain: false,
+    messageId: undefined
+  }
+  connect(s, {}, function () {
+    broker.subscribe('hello', deliver, function () {
+      t.pass('subscribed')
+    })
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42
+    })
+  })
+  broker.on('publish', function (packet, client) {
+    if (client) {
+      t.equal(packet.topic, 'hello')
+      t.equal(packet.messageId, 42)
+    }
+  })
+  function deliver (packet, cb) {
+    expected.brokerId = s.broker.id
+    expected.brokerCounter = s.broker.counter
+    t.deepEqual(packet, expected, 'packet matches')
+    cb()
+  }
+})
+
+test('custom function in broker.unsubscribe', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  var published = 0
+
+  const s = setup(broker)
+  connect(s, {}, function () {
+    broker.subscribe('hello', deliver, function () {
+      t.pass('subscribed')
+      broker.unsubscribe('hello', deliver, function () {
+        t.pass('unsubscribe')
+      })
+      s.inStream.write({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world',
+        qos: 1,
+        messageId: 42
+      })
+      s.inStream.end()
+    })
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42
+    })
+  })
+  broker.on('clientDisconnect', function () {
+    t.equal(published, 1)
+    broker.close()
+  })
+  broker.on('publish', function (packet, client) {
+    if (client) {
+      published++
+    }
+  })
+  function deliver (packet, cb) {
+    cb()
+  }
+})
