@@ -87,12 +87,12 @@ declare namespace aedes {
     ): void
     subscribe (
       topic: string,
-      deliverfunc: (packet: ISubscribePacket, callback: () => void) => void,
+      deliverfunc: (packet: IPublishPacket, callback: () => void) => void,
       callback: () => void
     ): void
     unsubscribe (
       topic: string,
-      deliverfunc: (packet: IUnsubscribePacket, callback: () => void) => void,
+      deliverfunc: (packet: IPublishPacket, callback: () => void) => void,
       callback: () => void
     ): void
     close (callback?: () => void): void
