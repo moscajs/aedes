@@ -1,7 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
-const { setup, connect } = require('./helper')
+const { setup, connect, subscribe } = require('./helper')
 const aedes = require('../')
 
 test('publish direct to a single client QoS 0', function (t) {
@@ -603,6 +603,52 @@ test('should not receive a message on negated subscription', function (t) {
   s.outStream.once('data', function (packet) {
     t.fail('Packet should not be received')
   })
+})
+
+test('programmatically add custom subscribe', function (t) {
+  t.plan(6)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = connect(setup(broker))
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false,
+    length: 12,
+    dup: false
+  }
+  var deliverP = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false
+  }
+  subscribe(t, s, 'hello', 0, function () {
+    broker.subscribe('hello', deliver, function () {
+      t.pass('subscribed')
+    })
+    s.outStream.on('data', function (packet) {
+      t.deepEqual(packet, expected, 'packet matches')
+    })
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 0,
+      messageId: 42
+    })
+  })
+  function deliver (packet, cb) {
+    deliverP.brokerId = s.broker.id
+    deliverP.brokerCounter = s.broker.counter
+    t.deepEqual(packet, deliverP, 'packet matches')
+    cb()
+  }
 })
 
 test('custom function in broker.subscribe', function (t) {
