@@ -12,8 +12,7 @@ const bulk = require('bulk-write-stream')
 const reusify = require('reusify')
 const Client = require('./lib/client')
 
-module.exports = Aedes
-Aedes.Server = Aedes
+module.exports = Aedes.Server = Aedes
 
 const defaultOptions = {
   concurrency: 100,

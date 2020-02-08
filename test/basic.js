@@ -5,6 +5,17 @@ const eos = require('end-of-stream')
 const { setup, connect, subscribe, noError } = require('./helper')
 const aedes = require('../')
 
+test('test aedes.Server', function (t) {
+  t.plan(1)
+
+  const broker = new aedes.Server()
+  t.tearDown(broker.close.bind(broker))
+
+  connect(setup(broker), {}, function () {
+    t.pass('connected')
+  })
+})
+
 test('publish QoS 0', function (t) {
   t.plan(2)
 
