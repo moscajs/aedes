@@ -297,7 +297,8 @@ test('client closes', function (t) {
   t.plan(5)
 
   const broker = aedes()
-  const client = noError(connect(setup(broker), { clientId: 'abcde' }, function () {
+  const client = noError(connect(setup(broker), { clientId: 'abcde' }))
+  broker.on('clientReady', function () {
     const brokerClient = broker.clients.abcde
     t.equal(brokerClient.connected, true, 'client connected')
     eos(client.conn, t.pass.bind(t, 'client closes'))
@@ -310,11 +311,11 @@ test('client closes', function (t) {
         t.error(err, 'no error')
       })
     })
-  }))
+  })
 })
 
 test('broker closes', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   const broker = aedes()
   const client = noError(connect(setup(broker), {
@@ -323,6 +324,7 @@ test('broker closes', function (t) {
     eos(client.conn, t.pass.bind(t, 'client closes'))
     broker.close(function (err) {
       t.error(err, 'no error')
+      t.ok(broker.closed)
       t.equal(broker.clients.abcde, undefined, 'client instance is removed')
     })
   }))
