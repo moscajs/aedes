@@ -660,15 +660,15 @@ test('custom function in broker.unsubscribe', function (t) {
       t.pass('subscribed')
       broker.unsubscribe('hello', deliver, function () {
         t.pass('unsubscribe')
+        s.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 1,
+          messageId: 42
+        })
+        s.inStream.end()
       })
-      s.inStream.write({
-        cmd: 'publish',
-        topic: 'hello',
-        payload: 'world',
-        qos: 1,
-        messageId: 42
-      })
-      s.inStream.end()
     })
     s.inStream.write({
       cmd: 'publish',
