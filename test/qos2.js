@@ -1,6 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
+const concat = require('concat-stream')
 const { setup, connect, subscribe } = require('./helper')
 const aedes = require('../')
 
@@ -186,6 +187,108 @@ test('call published method with client with QoS 2', function (t) {
     publish(t, publisher, toPublish)
 
     receive(t, subscriber, toPublish)
+  })
+})
+
+;[true, false].forEach(function (cleanSession) {
+  test(`authorized forward publish packets in QoS 2 [clean=${cleanSession}]`, function (t) {
+    t.plan(9)
+
+    const broker = aedes()
+    t.tearDown(broker.close.bind(broker))
+
+    const opts = { clean: cleanSession }
+    const publisher = connect(setup(broker))
+    const subscriber = connect(setup(broker), { ...opts, clientId: 'abcde' })
+    const forwarded = {
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 2,
+      retain: false,
+      messageId: undefined
+    }
+    const expected = {
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 2,
+      retain: false,
+      length: 14,
+      dup: false
+    }
+    broker.authorizeForward = function (client, packet) {
+      forwarded.brokerId = broker.id
+      forwarded.brokerCounter = broker.counter
+      t.deepEqual(packet, forwarded, 'forwarded packet must match')
+      return packet
+    }
+
+    subscribe(t, subscriber, 'hello', 2, function () {
+      subscriber.outStream.once('data', function (packet) {
+        t.notEqual(packet.messageId, 42)
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+      })
+
+      publish(t, publisher, {
+        cmd: 'publish',
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 2,
+        retain: false,
+        messageId: 42,
+        dup: false
+      }, function () {
+        const stream = broker.persistence.outgoingStream({ id: 'abcde' })
+        stream.pipe(concat(function (list) {
+          if (cleanSession) {
+            t.equal(list.length, 0, 'should have empty item in queue')
+          } else {
+            t.equal(list.length, 1, 'should have one item in queue')
+          }
+        }))
+      })
+    })
+  })
+})
+
+;[true, false].forEach(function (cleanSession) {
+  test(`unauthorized forward publish packets in QoS 2 [clean=${cleanSession}]`, function (t) {
+    t.plan(6)
+
+    const broker = aedes()
+    t.tearDown(broker.close.bind(broker))
+
+    const opts = { clean: cleanSession }
+
+    const publisher = connect(setup(broker))
+    const subscriber = connect(setup(broker), { ...opts, clientId: 'abcde' })
+
+    broker.authorizeForward = function (client, packet) {
+
+    }
+
+    subscribe(t, subscriber, 'hello', 2, function () {
+      subscriber.outStream.once('data', function (packet) {
+        t.fail('should not receive any packets')
+      })
+
+      publish(t, publisher, {
+        cmd: 'publish',
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 2,
+        retain: false,
+        messageId: 42,
+        dup: false
+      }, function () {
+        const stream = broker.persistence.outgoingStream({ id: 'abcde' })
+        stream.pipe(concat(function (list) {
+          t.equal(list.length, 0, 'should empty in queue')
+        }))
+      })
+    })
   })
 })
 
