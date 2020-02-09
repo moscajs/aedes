@@ -1025,37 +1025,39 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
   })
 })
 
-test('prevent publish in QoS1 mode', function (t) {
-  t.plan(2)
+;[true, false].forEach(function (cleanSession) {
+  test(`unauthorized forward publish in QoS 1 mode [clean=${cleanSession}]`, function (t) {
+    t.plan(2)
 
-  const broker = aedes({
-    authorizeForward: function (client, packet) {
-      return null
-    }
-  })
-  t.tearDown(broker.close.bind(broker))
+    const broker = aedes({
+      authorizeForward: function (client, packet) {
+        return null
+      }
+    })
+    t.tearDown(broker.close.bind(broker))
 
-  broker.on('client', function (client) {
-    client.subscribe({
-      topic: 'hello',
-      qos: 1
-    }, function (err) {
-      t.error(err, 'no error')
-
-      broker.publish({
+    broker.on('client', function (client) {
+      client.subscribe({
         topic: 'hello',
-        payload: Buffer.from('world'),
         qos: 1
       }, function (err) {
         t.error(err, 'no error')
+
+        broker.publish({
+          topic: 'hello',
+          payload: Buffer.from('world'),
+          qos: 1
+        }, function (err) {
+          t.error(err, 'no error')
+        })
       })
     })
-  })
 
-  const s = connect(setup(broker))
+    const s = connect(setup(broker), { clean: cleanSession })
 
-  s.outStream.once('data', function (packet) {
-    t.fail('Should have not recieved this packet')
+    s.outStream.once('data', function (packet) {
+      t.fail('Should have not recieved this packet')
+    })
   })
 })
 
