@@ -3,13 +3,13 @@
 const { test } = require('tap')
 const eos = require('end-of-stream')
 const Client = require('../lib/client')
-const { setup, connect, subscribe, subscribeMultiple } = require('./helper')
+const { setup, connect, noError, subscribe, subscribeMultiple } = require('./helper')
 const aedes = require('../')
 
 test('authenticate successfully a client with username and password', function (t) {
   t.plan(4)
 
-  const s = setup()
+  const s = noError(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -46,7 +46,7 @@ test('authenticate successfully a client with username and password', function (
 })
 
 test('authenticate unsuccessfully a client with username and password', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
@@ -57,6 +57,10 @@ test('authenticate unsuccessfully a client with username and password', function
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(null, false)
   }
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.errorCode, 5)
+  })
 
   s.broker.on('clientReady', function (client) {
     t.fail('client should not ready')
@@ -73,7 +77,7 @@ test('authenticate unsuccessfully a client with username and password', function
       topic: null,
       payload: null,
       sessionPresent: false
-    }, 'unsuccessful connack')
+    }, 'unsuccessful connack, unauthorized')
   })
 
   eos(s.outStream, function () {
@@ -93,7 +97,7 @@ test('authenticate unsuccessfully a client with username and password', function
 })
 
 test('authenticate errors', function (t) {
-  t.plan(5)
+  t.plan(7)
 
   const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
@@ -105,6 +109,11 @@ test('authenticate errors', function (t) {
     cb(new Error('this should happen!'))
   }
 
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'this should happen!')
+    t.equal(err.errorCode, 5)
+  })
+
   s.broker.on('clientReady', function (client) {
     t.fail('client should not ready')
   })
@@ -112,7 +121,7 @@ test('authenticate errors', function (t) {
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
       cmd: 'connack',
-      returnCode: 4,
+      returnCode: 5,
       length: 2,
       qos: 0,
       retain: false,
@@ -120,7 +129,7 @@ test('authenticate errors', function (t) {
       topic: null,
       payload: null,
       sessionPresent: false
-    }, 'unsuccessful connack')
+    }, 'unsuccessful connack, unauthorized')
   })
 
   eos(s.outStream, function () {
@@ -140,7 +149,7 @@ test('authenticate errors', function (t) {
 })
 
 test('authentication error when return code 1 (unacceptable protocol version) is passed', function (t) {
-  t.plan(5)
+  t.plan(7)
 
   const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
@@ -154,6 +163,11 @@ test('authentication error when return code 1 (unacceptable protocol version) is
     cb(error, null)
   }
 
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'Auth error')
+    t.equal(err.errorCode, 5)
+  })
+
   s.broker.on('clientReady', function (client) {
     t.fail('client should not ready')
   })
@@ -161,7 +175,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
   s.outStream.on('data', function (packet) {
     t.deepEqual(packet, {
       cmd: 'connack',
-      returnCode: 1,
+      returnCode: 5,
       length: 2,
       qos: 0,
       retain: false,
@@ -169,7 +183,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
       topic: null,
       payload: null,
       sessionPresent: false
-    }, 'unsuccessful connack,unacceptable protocol version')
+    }, 'unsuccessful connack, unauthorized')
   })
 
   eos(s.outStream, function () {
@@ -189,7 +203,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
 })
 
 test('authentication error when return code 2 (identifier rejected) is passed', function (t) {
-  t.plan(5)
+  t.plan(7)
 
   const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
@@ -202,6 +216,11 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
     error.returnCode = 2
     cb(error, null)
   }
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'Auth error')
+    t.equal(err.errorCode, 2)
+  })
 
   s.broker.on('clientReady', function (client) {
     t.fail('client should not ready')
@@ -238,7 +257,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
 })
 
 test('authentication error when return code 3 (Server unavailable) is passed', function (t) {
-  t.plan(5)
+  t.plan(7)
 
   const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
@@ -251,6 +270,11 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
     error.returnCode = 3
     cb(error, null)
   }
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'Auth error')
+    t.equal(err.errorCode, 3)
+  })
 
   s.broker.on('clientReady', function (client) {
     t.fail('client should not ready')
@@ -286,8 +310,8 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
   })
 })
 
-test('authentication error when non numeric return code is passed', function (t) {
-  t.plan(5)
+test('authentication error when return code 4 (bad user or password) is passed', function (t) {
+  t.plan(7)
 
   const s = setup()
   t.tearDown(s.broker.close.bind(s.broker))
@@ -296,10 +320,15 @@ test('authentication error when non numeric return code is passed', function (t)
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
-    var error = new Error('Non numeric error codes')
-    error.returnCode = 'return Code'
+    var error = new Error('Auth error')
+    error.returnCode = 4
     cb(error, null)
   }
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'Auth error')
+    t.equal(err.errorCode, 4)
+  })
 
   s.broker.on('clientReady', function (client) {
     t.fail('client should not ready')
@@ -316,7 +345,61 @@ test('authentication error when non numeric return code is passed', function (t)
       topic: null,
       payload: null,
       sessionPresent: false
-    }, 'unsuccessful connack, bad user name or password')
+    }, 'unsuccessful connack, bad username or password')
+  })
+
+  eos(s.outStream, function () {
+    t.equal(s.broker.connectedClients, 0, 'no connected clients')
+  })
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client',
+    username: 'my username',
+    password: 'my pass',
+    keepalive: 0
+  })
+})
+
+test('authentication error when non numeric return code is passed', function (t) {
+  t.plan(7)
+
+  const s = setup()
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.authenticate = function (client, username, password, cb) {
+    t.ok(client instanceof Client, 'client is there')
+    t.equal(username, 'my username', 'username is there')
+    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    var error = new Error('Non numeric error codes')
+    error.returnCode = 'return Code'
+    cb(error, null)
+  }
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'Non numeric error codes')
+    t.equal(err.errorCode, 5)
+  })
+
+  s.broker.on('clientReady', function (client) {
+    t.fail('client should not ready')
+  })
+
+  s.outStream.on('data', function (packet) {
+    t.deepEqual(packet, {
+      cmd: 'connack',
+      returnCode: 5,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'unsuccessful connack, unauthorized')
   })
 
   eos(s.outStream, function () {
@@ -816,7 +899,7 @@ test('failed authentication does not disconnect other client with same clientId'
 })
 
 test('unauthorized connection should not unregister the correct one with same clientId', function (t) {
-  t.plan(2)
+  t.plan(4)
 
   const broker = aedes({
     authenticate: function (client, username, password, callback) {
@@ -832,6 +915,8 @@ test('unauthorized connection should not unregister the correct one with same cl
   t.tearDown(broker.close.bind(broker))
 
   broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'bad user name or password')
+    t.equal(err.errorCode, 4)
     t.equal(broker.connectedClients, 1, 'my-client still connected')
   })
 
