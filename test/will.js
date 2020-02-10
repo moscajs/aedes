@@ -392,3 +392,48 @@ test('does not store multiple will with same clientid', function (t) {
     })
   })
 })
+
+test('don\'t delivers a will', function (t) {
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  var oldBroker = 'broker1'
+
+  persistence.broker = {
+    id: oldBroker
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    const opts = {
+      persistence: persistence,
+      heartbeatInterval: 10
+    }
+
+    var count = 0
+
+    const broker = aedes(opts)
+    t.tearDown(broker.close.bind(broker))
+
+    broker.mq.on('mywill', function (packet, cb) {
+      t.fail('Will received')
+      cb()
+    })
+
+    broker.mq.on('$SYS/+/heartbeat', function () {
+      // update old broker heartbeat to simulate it is alive
+      broker.brokers[oldBroker] = Date.now()
+      t.pass('Heartbeat received')
+
+      if (++count === 5) t.end()
+    })
+  })
+})
