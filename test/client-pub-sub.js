@@ -1,7 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
-const { setup, connect, subscribe } = require('./helper')
+const { setup, connect, subscribe, noError } = require('./helper')
 const aedes = require('../')
 
 test('publish direct to a single client QoS 0', function (t) {
@@ -698,9 +698,7 @@ test('custom function in broker.unsubscribe', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var published = 0
-
-  const s = setup(broker)
+  const s = noError(setup(broker))
   connect(s, {}, function () {
     broker.subscribe('hello', deliver, function () {
       t.pass('subscribed')
@@ -709,31 +707,20 @@ test('custom function in broker.unsubscribe', function (t) {
         s.inStream.write({
           cmd: 'publish',
           topic: 'hello',
-          payload: 'world',
+          payload: 'word',
           qos: 1,
           messageId: 42
         })
-        s.inStream.end()
       })
     })
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world',
-      qos: 1,
-      messageId: 42
-    })
-  })
-  broker.on('clientDisconnect', function () {
-    t.equal(published, 1)
-    broker.close()
   })
   broker.on('publish', function (packet, client) {
     if (client) {
-      published++
+      t.pass('publish')
     }
   })
   function deliver (packet, cb) {
+    t.fail('shoudl not be called')
     cb()
   }
 })
