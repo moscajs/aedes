@@ -37,6 +37,56 @@ test('publish direct to a single client QoS 0', function (t) {
   })
 })
 
+test('publish direct to a single client throws error', function (t) {
+  t.plan(1)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.persistence.outgoingEnqueue = function (sub, packet, done) {
+    done(new Error('Throws error'))
+  }
+
+  broker.on('client', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 1,
+      retain: false
+    }, function (err) {
+      t.pass('Throws error', err.message, 'throws error')
+    })
+  })
+
+  connect(setup(broker), { clean: false })
+})
+
+test('publish direct to a single client throws error 2', function (t) {
+  t.plan(1)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.persistence.outgoingUpdate = function (client, packet, done) {
+    done(new Error('Throws error'), client, packet)
+  }
+
+  broker.on('client', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 1,
+      retain: false
+    }, () => {})
+
+    client.once('error', function (err) {
+      t.pass('Throws error', err.message, 'throws error')
+    })
+  })
+
+  connect(setup(broker), { clean: false })
+})
+
 test('publish direct to a single client QoS 1', function (t) {
   t.plan(2)
 
