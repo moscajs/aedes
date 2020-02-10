@@ -113,6 +113,24 @@ test('delivers old will in case of a crash', function (t) {
   })
 })
 
+test('delete old broker', function (t) {
+  t.plan(1)
+
+  var heartbeatInterval = 100
+  const broker = aedes({
+    heartbeatInterval: heartbeatInterval
+  })
+  t.tearDown(broker.close.bind(broker))
+
+  var brokerId = 'dummyBroker'
+
+  broker.brokers[brokerId] = Date.now() - heartbeatInterval * 3.5
+
+  setTimeout(() => {
+    t.equal(broker.brokers[brokerId], undefined, 'Broker deleted')
+  }, heartbeatInterval * 4)
+})
+
 test('store the will in the persistence', function (t) {
   t.plan(5)
 
