@@ -2,7 +2,7 @@
 /* eslint no-undef: 0 */
 
 import { Server, Client, AuthenticateError } from '../../aedes'
-import { IPublishPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
+import { IPublishPacket, ISubscription } from 'mqtt-packet'
 import { createServer } from 'net'
 
 const broker = Server({
@@ -122,17 +122,17 @@ broker.on('unsubscribe', (subscriptions, client) => {
   console.log(`client: ${client.id} subsribe`)
 })
 
-broker.subscribe('aaaa', (packet: ISubscribePacket, cb) => {
+broker.subscribe('aaaa', (packet: IPublishPacket, cb) => {
   console.log('cmd')
-  console.log(packet.subscriptions)
+  console.log(packet.cmd)
   cb()
 }, () => {
   console.log('done subscribing')
 })
 
-broker.unsubscribe('aaaa', (packet: IUnsubscribePacket, cb) => {
+broker.unsubscribe('aaaa', (packet: IPublishPacket, cb) => {
   console.log('cmd')
-  console.log(packet.unsubscriptions)
+  console.log(packet.cmd)
   cb()
 }, () => {
   console.log('done unsubscribing')

@@ -1,7 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
-const { setup, connect } = require('./helper')
+const { setup, connect, subscribe, noError } = require('./helper')
 const aedes = require('../')
 
 test('publish direct to a single client QoS 0', function (t) {
@@ -603,4 +603,124 @@ test('should not receive a message on negated subscription', function (t) {
   s.outStream.once('data', function (packet) {
     t.fail('Packet should not be received')
   })
+})
+
+test('programmatically add custom subscribe', function (t) {
+  t.plan(6)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = connect(setup(broker))
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false,
+    length: 12,
+    dup: false
+  }
+  var deliverP = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    retain: false
+  }
+  subscribe(t, s, 'hello', 0, function () {
+    broker.subscribe('hello', deliver, function () {
+      t.pass('subscribed')
+    })
+    s.outStream.on('data', function (packet) {
+      t.deepEqual(packet, expected, 'packet matches')
+    })
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 0,
+      messageId: 42
+    })
+  })
+  function deliver (packet, cb) {
+    deliverP.brokerId = s.broker.id
+    deliverP.brokerCounter = s.broker.counter
+    t.deepEqual(packet, deliverP, 'packet matches')
+    cb()
+  }
+})
+
+test('custom function in broker.subscribe', function (t) {
+  t.plan(4)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = setup(broker)
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    retain: false,
+    messageId: undefined
+  }
+  connect(s, {}, function () {
+    broker.subscribe('hello', deliver, function () {
+      t.pass('subscribed')
+    })
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42
+    })
+  })
+  broker.on('publish', function (packet, client) {
+    if (client) {
+      t.equal(packet.topic, 'hello')
+      t.equal(packet.messageId, 42)
+    }
+  })
+  function deliver (packet, cb) {
+    expected.brokerId = s.broker.id
+    expected.brokerCounter = s.broker.counter
+    t.deepEqual(packet, expected, 'packet matches')
+    cb()
+  }
+})
+
+test('custom function in broker.unsubscribe', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = noError(setup(broker))
+  connect(s, {}, function () {
+    broker.subscribe('hello', deliver, function () {
+      t.pass('subscribed')
+      broker.unsubscribe('hello', deliver, function () {
+        t.pass('unsubscribe')
+        s.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'word',
+          qos: 1,
+          messageId: 42
+        })
+      })
+    })
+  })
+  broker.on('publish', function (packet, client) {
+    if (client) {
+      t.pass('publish')
+    }
+  })
+  function deliver (packet, cb) {
+    t.fail('shoudl not be called')
+    cb()
+  }
 })
