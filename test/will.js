@@ -400,7 +400,7 @@ test('does not store multiple will with same clientid', function (t) {
   })
 })
 
-test('don\'t delivers a will', function (t) {
+test('don\'t delivers a will if broker alive', function (t) {
   const persistence = memory()
   const will = {
     topic: 'mywill',
@@ -441,6 +441,43 @@ test('don\'t delivers a will', function (t) {
       t.pass('Heartbeat received')
 
       if (++count === 5) t.end()
+    })
+  })
+})
+
+test('handle will publish fail', function (t) {
+  t.plan(2)
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  persistence.broker = {
+    id: 'broker1'
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    const opts = {
+      persistence: persistence,
+      heartbeatInterval: 10
+    }
+
+    persistence.delWill = function (client, cb) {
+      cb(new Error('Throws error'))
+    }
+
+    const broker = aedes(opts)
+    t.tearDown(broker.close.bind(broker))
+
+    broker.once('error', function (err) {
+      t.equal('Throws error', err.message, 'throws error')
     })
   })
 })
