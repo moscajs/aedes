@@ -27,7 +27,8 @@ test('publish QoS 0', function (t) {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 0,
-    retain: false
+    retain: false,
+    dup: false
   }
 
   s.broker.mq.on('hello', function (packet, cb) {

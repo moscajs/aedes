@@ -444,7 +444,6 @@ test('authorize publish', function (t) {
     t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
     cb()
@@ -492,7 +491,6 @@ test('authorize waits for authenticate', function (t) {
     t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
     cb()
@@ -542,7 +540,6 @@ test('authorize publish from configOptions', function (t) {
     t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    delete expected.dup
     delete expected.length
     t.deepEqual(packet, expected, 'packet matches')
     cb()
