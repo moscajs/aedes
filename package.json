@@ -93,7 +93,7 @@
     "fastparallel": "^2.3.0",
     "fastseries": "^1.7.2",
     "from2": "^2.3.0",
-    "mqemitter": "^3.0.0",
+    "mqemitter": "^4.0.0",
     "mqtt-packet": "^6.3.0",
     "proxy-protocol-js": "^4.0.3",
     "readable-stream": "^3.5.0",
