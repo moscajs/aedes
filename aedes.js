@@ -1,17 +1,17 @@
 'use strict'
 
-const mqemitter = require('mqemitter')
 const EE = require('events').EventEmitter
 const util = require('util')
-const memory = require('aedes-persistence')
 const parallel = require('fastparallel')
 const series = require('fastseries')
 const uuidv4 = require('uuid/v4')
-const Packet = require('aedes-packet')
 const bulk = require('bulk-write-stream')
 const reusify = require('reusify')
+const { pipeline } = require('readable-stream')
+const Packet = require('aedes-packet')
+const memory = require('aedes-persistence')
+const mqemitter = require('mqemitter')
 const Client = require('./lib/client')
-const { pipeline } = require('stream')
 
 module.exports = Aedes.Server = Aedes
 

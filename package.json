@@ -69,9 +69,9 @@
   "license": "MIT",
   "devDependencies": {
     "@sinonjs/fake-timers": "^6.0.0",
-    "@types/node": "^12.12.26",
-    "@typescript-eslint/eslint-plugin": "^2.19.0",
-    "@typescript-eslint/parser": "^2.19.0",
+    "@types/node": "^12.12.27",
+    "@typescript-eslint/eslint-plugin": "^2.19.2",
+    "@typescript-eslint/parser": "^2.19.2",
     "concat-stream": "^2.0.0",
     "duplexify": "^4.1.1",
     "license-checker": "^25.0.1",
@@ -85,7 +85,7 @@
     "websocket-stream": "^5.5.0"
   },
   "dependencies": {
-    "aedes-packet": "^2.1.0",
+    "aedes-packet": "^2.3.0",
     "aedes-persistence": "^7.2.1",
     "aedes-protocol-decoder": "^1.0.0",
     "bulk-write-stream": "^2.0.1",
