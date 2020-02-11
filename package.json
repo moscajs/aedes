@@ -68,6 +68,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@sinonjs/fake-timers": "^6.0.0",
     "@types/node": "^12.12.26",
     "@typescript-eslint/eslint-plugin": "^2.19.0",
     "@typescript-eslint/parser": "^2.19.0",
