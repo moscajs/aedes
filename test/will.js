@@ -445,7 +445,7 @@ test('don\'t delivers a will if broker alive', function (t) {
   })
 })
 
-test('handle will publish fail', function (t) {
+test('handle will publish error', function (t) {
   t.plan(2)
   const persistence = memory()
   const will = {
@@ -470,6 +470,43 @@ test('handle will publish fail', function (t) {
     }
 
     persistence.delWill = function (client, cb) {
+      cb(new Error('Throws error'))
+    }
+
+    const broker = aedes(opts)
+    t.tearDown(broker.close.bind(broker))
+
+    broker.once('error', function (err) {
+      t.equal('Throws error', err.message, 'throws error')
+    })
+  })
+})
+
+test('handle will publish error 2', function (t) {
+  t.plan(2)
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: true
+  }
+
+  persistence.broker = {
+    id: 'broker1'
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    const opts = {
+      persistence: persistence,
+      heartbeatInterval: 10
+    }
+
+    persistence.storeRetained = function (packet, cb) {
       cb(new Error('Throws error'))
     }
 
