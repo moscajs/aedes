@@ -11,6 +11,7 @@ const Packet = require('aedes-packet')
 const bulk = require('bulk-write-stream')
 const reusify = require('reusify')
 const Client = require('./lib/client')
+const { pipeline } = require('stream')
 
 module.exports = Aedes.Server = Aedes
 
@@ -91,9 +92,15 @@ function Aedes (opts) {
   this._clearWillInterval = setInterval(function () {
     Object.keys(that.brokers).forEach(deleteOldBrokers)
 
-    that.persistence
-      .streamWill(that.brokers)
-      .pipe(bulk.obj(receiveWills))
+    pipeline(
+      that.persistence.streamWill(that.brokers),
+      bulk.obj(receiveWills),
+      function done (err) {
+        if (err) {
+          that.emit('error', err)
+        }
+      }
+    )
   }, opts.heartbeatInterval * 4)
 
   function receiveWills (chunks, done) {

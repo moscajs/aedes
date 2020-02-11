@@ -4,6 +4,7 @@ const { test } = require('tap')
 const memory = require('aedes-persistence')
 const { setup, connect, noError } = require('./helper')
 const aedes = require('../')
+const Faketimers = require('@sinonjs/fake-timers')
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -111,6 +112,30 @@ test('delivers old will in case of a crash', function (t) {
       cb()
     }
   })
+})
+
+test('delete old broker', function (t) {
+  t.plan(1)
+
+  var clock = Faketimers.install()
+
+  var heartbeatInterval = 100
+  const broker = aedes({
+    heartbeatInterval: heartbeatInterval
+  })
+  t.tearDown(broker.close.bind(broker))
+
+  var brokerId = 'dummyBroker'
+
+  broker.brokers[brokerId] = Date.now() - heartbeatInterval * 3.5
+
+  setTimeout(() => {
+    t.equal(broker.brokers[brokerId], undefined, 'Broker deleted')
+  }, heartbeatInterval * 4)
+
+  clock.tick(heartbeatInterval * 4)
+
+  clock.uninstall()
 })
 
 test('store the will in the persistence', function (t) {
@@ -371,6 +396,125 @@ test('does not store multiple will with same clientid', function (t) {
           broker.close()
         })
       })
+    })
+  })
+})
+
+test('don\'t delivers a will if broker alive', function (t) {
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  var oldBroker = 'broker1'
+
+  persistence.broker = {
+    id: oldBroker
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    const opts = {
+      persistence: persistence,
+      heartbeatInterval: 10
+    }
+
+    var count = 0
+
+    const broker = aedes(opts)
+    t.tearDown(broker.close.bind(broker))
+
+    broker.mq.on('mywill', function (packet, cb) {
+      t.fail('Will received')
+      cb()
+    })
+
+    broker.mq.on('$SYS/+/heartbeat', function () {
+      // update old broker heartbeat to simulate it is alive
+      broker.brokers[oldBroker] = Date.now()
+      t.pass('Heartbeat received')
+
+      if (++count === 5) t.end()
+    })
+  })
+})
+
+test('handle will publish error', function (t) {
+  t.plan(2)
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  persistence.broker = {
+    id: 'broker1'
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    const opts = {
+      persistence: persistence,
+      heartbeatInterval: 10
+    }
+
+    persistence.delWill = function (client, cb) {
+      cb(new Error('Throws error'))
+    }
+
+    const broker = aedes(opts)
+    t.tearDown(broker.close.bind(broker))
+
+    broker.once('error', function (err) {
+      t.equal('Throws error', err.message, 'throws error')
+    })
+  })
+})
+
+test('handle will publish error 2', function (t) {
+  t.plan(2)
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: true
+  }
+
+  persistence.broker = {
+    id: 'broker1'
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    const opts = {
+      persistence: persistence,
+      heartbeatInterval: 10
+    }
+
+    persistence.storeRetained = function (packet, cb) {
+      cb(new Error('Throws error'))
+    }
+
+    const broker = aedes(opts)
+    t.tearDown(broker.close.bind(broker))
+
+    broker.once('error', function (err) {
+      t.equal('Throws error', err.message, 'throws error')
     })
   })
 })

@@ -33,6 +33,29 @@ test('publish QoS 1', function (t) {
   })
 })
 
+test('publish QoS 1 throws error', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.persistence.subscriptionsByTopic = function (packet, done) {
+    return done(new Error('Throws error'))
+  }
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 42
+  })
+
+  s.broker.on('error', function (err) {
+    t.equal('Throws error', err.message, 'Throws error')
+  })
+})
+
 test('publish QoS 1 and check offline queue', function (t) {
   t.plan(13)
 
