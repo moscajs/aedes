@@ -321,21 +321,6 @@ test('disconnect client on wrong cmd', function (t) {
   })
 })
 
-test('catch error mqtt-packet parse error', function (t) {
-  t.plan(1)
-
-  const s = noError(connect(setup()), t)
-  t.tearDown(s.broker.close.bind(s.broker))
-
-  s.broker.on('clientError', function () {
-    t.pass('error thrown')
-  })
-
-  s.broker.on('clientReady', function (c) {
-    s.inStream.write({ cmd: 'pippo' })
-  })
-})
-
 test('client closes', function (t) {
   t.plan(5)
 
