@@ -514,6 +514,61 @@ test('unsubscribe a client', function (t) {
   connect(setup(broker))
 })
 
+test('unsubscribe throws error', function (t) {
+  t.plan(2)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+      broker.unsubscribe = function (topic, func, done) {
+        done(new Error('error'))
+      }
+      client.unsubscribe({
+        topic: 'hello',
+        qos: 0
+      }, function () {
+        t.pass('throws error')
+      })
+    })
+  })
+  connect(setup(broker))
+})
+
+test('unsubscribe throws error 2', function (t) {
+  t.plan(2)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 2
+    }, function (err) {
+      t.error(err, 'no error')
+      broker.persistence.removeSubscriptions = function (client, unsubscriptions, done) {
+        done(new Error('error'))
+      }
+      client.unsubscribe({
+        unsubscriptions: [{
+          topic: 'hello',
+          qos: 2
+        }],
+        messageId: 42
+      }, function () {
+        t.pass('throws error')
+      })
+    })
+  })
+  connect(setup(broker))
+})
+
 test('subscribe a client programmatically multiple topics', function (t) {
   t.plan(3)
 
