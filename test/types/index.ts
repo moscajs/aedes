@@ -1,9 +1,8 @@
 /* eslint no-unused-vars: 0 */
 /* eslint no-undef: 0 */
 
-import { Server, Client, AuthenticateError } from '../../aedes'
-import { IPublishPacket, ISubscription } from 'mqtt-packet'
-import { createServer } from 'net'
+import { Server, Client, AuthenticateError, AedesPublishPacket, PublishPacket, Subscription } from '../../aedes'
+import { createServer, Socket } from 'net'
 
 const broker = Server({
   concurrency: 100,
@@ -13,14 +12,14 @@ const broker = Server({
     if (client.req) {
       callback(new Error('not websocket stream'), false)
     }
-    if (client.conn.remoteAddress === '::1') {
+    if (client.conn instanceof Socket && client.conn.remoteAddress === '::1') {
       callback(null, true)
     } else {
       callback(new Error('connection error'), false)
     }
   },
-  authenticate: (client: Client, username: string, password: string, callback) => {
-    if (username === 'test' && password === 'test') {
+  authenticate: (client: Client, username: string, password: Buffer, callback) => {
+    if (username === 'test' && password === Buffer.from('test')) {
       callback(null, true)
     } else {
       const error = new Error() as AuthenticateError
@@ -29,7 +28,7 @@ const broker = Server({
       callback(error, false)
     }
   },
-  authorizePublish: (client: Client, packet: IPublishPacket, callback) => {
+  authorizePublish: (client: Client, packet: PublishPacket, callback) => {
     if (packet.topic === 'aaaa') {
       return callback(new Error('wrong topic'))
     }
@@ -40,7 +39,7 @@ const broker = Server({
 
     callback(null)
   },
-  authorizeSubscribe: (client: Client, sub: ISubscription, callback) => {
+  authorizeSubscribe: (client: Client, sub: Subscription, callback) => {
     if (sub.topic === 'aaaa') {
       return callback(new Error('wrong topic'))
     }
@@ -52,7 +51,7 @@ const broker = Server({
 
     callback(null, sub)
   },
-  authorizeForward: (client: Client, packet: IPublishPacket) => {
+  authorizeForward: (client: Client, packet: AedesPublishPacket) => {
     if (packet.topic === 'aaaa' && client.id === 'I should not see this') {
       return null
       // also works with return undefined
@@ -90,7 +89,7 @@ broker.on('keepaliveTimeout', client => {
   console.log(`client: ${client.id} timed out`)
 })
 
-broker.on('connackSent', client => {
+broker.on('connackSent', (packet, client) => {
   console.log(`client: ${client.id} connack sent`)
 })
 
@@ -103,15 +102,15 @@ broker.on('connectionError', client => {
 })
 
 broker.on('ping', (packet, client) => {
-  console.log(`client: ${client.id} ping with packet ${packet.id}`)
+  console.log(`client: ${client.id} ping with packet ${packet.cmd}`)
 })
 
 broker.on('publish', (packet, client) => {
-  console.log(`client: ${client.id} published packet ${packet.id}`)
+  console.log(`client: ${client.id} published packet ${packet.cmd}`)
 })
 
 broker.on('ack', (packet, client) => {
-  console.log(`client: ${client.id} ack with packet ${packet.id}`)
+  console.log(`client: ${client.id} ack with packet ${packet.cmd}`)
 })
 
 broker.on('subscribe', (subscriptions, client) => {
@@ -122,7 +121,7 @@ broker.on('unsubscribe', (subscriptions, client) => {
   console.log(`client: ${client.id} subsribe`)
 })
 
-broker.subscribe('aaaa', (packet: IPublishPacket, cb) => {
+broker.subscribe('aaaa', (packet: AedesPublishPacket, cb) => {
   console.log('cmd')
   console.log(packet.cmd)
   cb()
@@ -130,7 +129,7 @@ broker.subscribe('aaaa', (packet: IPublishPacket, cb) => {
   console.log('done subscribing')
 })
 
-broker.unsubscribe('aaaa', (packet: IPublishPacket, cb) => {
+broker.unsubscribe('aaaa', (packet: AedesPublishPacket, cb) => {
   console.log('cmd')
   console.log(packet.cmd)
   cb()
