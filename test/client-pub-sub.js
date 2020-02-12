@@ -183,7 +183,8 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 1,
-    retain: false
+    retain: false,
+    dup: false
   }
 
   broker.on('clientReady', function (client) {
@@ -676,7 +677,8 @@ test('programmatically add custom subscribe', function (t) {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 0,
-    retain: false
+    retain: false,
+    dup: false
   }
   subscribe(t, s, 'hello', 0, function () {
     broker.subscribe('hello', deliver, function () {
@@ -714,6 +716,7 @@ test('custom function in broker.subscribe', function (t) {
     payload: Buffer.from('world'),
     qos: 1,
     retain: false,
+    dup: false,
     messageId: undefined
   }
   connect(s, {}, function () {

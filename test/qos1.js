@@ -88,7 +88,8 @@ test('publish QoS 1 and check offline queue', function (t) {
     payload: 'world',
     qos: 1,
     messageId: 10,
-    retain: false
+    retain: false,
+    dup: false
   }
   var queue = []
   subscribe(t, subscriber, 'hello', 1, function () {

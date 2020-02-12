@@ -206,6 +206,7 @@ test('call published method with client with QoS 2', function (t) {
       payload: Buffer.from('world'),
       qos: 2,
       retain: false,
+      dup: false,
       messageId: undefined
     }
     const expected = {
@@ -555,6 +556,7 @@ test('multiple publish and store one', function (t) {
     payload: Buffer.from('world'),
     qos: 2,
     retain: false,
+    dup: false,
     messageId: 42
   }
 
