@@ -27,8 +27,8 @@ Barebone MQTT server that can run on any stream servers
   - [Acknowledgements](#acknowledgements)
   - [Contribution](#contribution)
   - [Contributors](#contributors)
-  - [Backers](#backers)
-  - [Sponsors](#sponsors)
+    - [Backers](#backers)
+    - [Sponsors](#sponsors)
   - [Mosca vs Aedes](#mosca-vs-aedes)
     - [Benchmark: Aedes](#benchmark-aedes)
     - [Benchmark: Mosca](#benchmark-mosca)
@@ -125,13 +125,13 @@ This project exists thanks to all the people who contribute ❤️
 
 [![Backers](https://opencollective.com/aedes/contributors.svg?width=890&button=false)](https://opencollective.com/aedes#backers)
 
-## Backers
+### Backers
 
 Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/aedes#backer)]
 
 [![Backers](https://opencollective.com/aedes/backers.svg?width=890)](https://opencollective.com/aedes#backers)
 
-## Sponsors
+### Sponsors
 
 Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/aedes#sponsor)]
 
