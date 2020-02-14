@@ -26,9 +26,9 @@ Barebone MQTT server that can run on any stream servers
   - [Collaborators](#collaborators)
   - [Acknowledgements](#acknowledgements)
   - [Contribution](#contribution)
-    - [Contributors](#contributors)
-    - [Backers](#backers)
-    - [Sponsors](#sponsors)
+  - [Contributors](#contributors)
+  - [Backers](#backers)
+  - [Sponsors](#sponsors)
   - [Mosca vs Aedes](#mosca-vs-aedes)
     - [Benchmark: Aedes](#benchmark-aedes)
     - [Benchmark: Mosca](#benchmark-mosca)
@@ -119,27 +119,25 @@ production. This addresses your concerns about performance and stability.
 Want to contribute? Check our list of
 [features/bugs](https://github.com/moscajs/aedes/projects/1)
 
-#### Contributors
+## Contributors
 
-This project exists thanks to all the people who contribute.
-<a href="https://opencollective.com/aedes#backer"><img src="https://opencollective.com/aedes/contributors.svg?width=890&button=false" /></a>
+This project exists thanks to all the people who contribute ❤️
 
-#### Backers
+[![Backers](https://opencollective.com/aedes/contributors.svg?width=890&button=false)](https://opencollective.com/aedes#backers)
+
+## Backers
 
 Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/aedes#backer)]
 
-<a href="https://opencollective.com/aedes#backers" target="_blank"><img src="https://opencollective.com/aedes/backers.svg?width=890"></a>
+[![Backers](https://opencollective.com/aedes/backers.svg?width=890)](https://opencollective.com/aedes#backers)
 
-#### Sponsors
+## Sponsors
 
 Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/aedes#sponsor)]
 
-<a href="https://opencollective.com/aedes/sponsor/0/website" target="_blank">
-  <img src="https://opencollective.com/aedes/sponsor/0/avatar.svg">
-</a>
-<a href="https://opencollective.com/aedes/sponsor/1/website" target="_blank">
-  <img src="https://opencollective.com/aedes/sponsor/1/avatar.svg">
-</a>
+[![Sponsor 1](https://opencollective.com/aedes/sponsor/0/avatar.svg)](https://opencollective.com/aedes/sponsor/0/website)
+
+[![Sponsor 2](https://opencollective.com/aedes/sponsor/1/avatar.svg)](https://opencollective.com/aedes/sponsor/1/website)
 
 ## Mosca vs Aedes
 
