@@ -430,17 +430,24 @@ test('don\'t delivers a will if broker alive', function (t) {
     const broker = aedes(opts)
     t.tearDown(broker.close.bind(broker))
 
+    var streamWill = persistence.streamWill
+    persistence.streamWill = function () {
+      // don't pass broker.brokers to streamWill
+      return streamWill.call(persistence)
+    }
+
     broker.mq.on('mywill', function (packet, cb) {
       t.fail('Will received')
       cb()
     })
 
     broker.mq.on('$SYS/+/heartbeat', function () {
-      // update old broker heartbeat to simulate it is alive
-      broker.brokers[oldBroker] = Date.now()
       t.pass('Heartbeat received')
+      broker.brokers[oldBroker] = Date.now()
 
-      if (++count === 5) t.end()
+      if (++count === 5) {
+        t.end()
+      }
     })
   })
 })

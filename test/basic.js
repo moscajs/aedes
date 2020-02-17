@@ -305,6 +305,22 @@ test('disconnect', function (t) {
   })
 })
 
+test('disconnect client on wrong cmd', function (t) {
+  t.plan(1)
+
+  const s = noError(connect(setup()), t)
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.on('clientDisconnect', function () {
+    t.pass('closed stream')
+  })
+
+  s.broker.on('clientReady', function (c) {
+    // don't use stream write here because it will throw an error on mqtt_packet genetete
+    c._parser.emit('packet', { cmd: 'pippo' })
+  })
+})
+
 test('client closes', function (t) {
   t.plan(5)
 

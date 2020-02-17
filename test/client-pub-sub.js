@@ -125,6 +125,41 @@ test('publish direct to a single client QoS 1', function (t) {
   })
 })
 
+test('publish QoS 2 throws error in pubrel', function (t) {
+  t.plan(2)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = connect(setup(broker))
+
+  broker.on('clientError', function (c, err) {
+    t.pass('throws error')
+  })
+
+  s.outStream.on('data', function (packet) {
+    if (packet.cmd === 'publish') {
+      s.inStream.write({
+        cmd: 'pubrec',
+        messageId: packet.messageId
+      })
+      s.broker.persistence.outgoingUpdate = function (client, pubrel, cb) {
+        cb(new Error('error'))
+      }
+    }
+  })
+
+  broker.on('clientReady', function (client) {
+    client.publish({
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 2
+    }, function (err) {
+      t.error(err, 'no error')
+    })
+  })
+})
+
 test('publish direct to a single client QoS 2', function (t) {
   t.plan(3)
 
@@ -468,11 +503,66 @@ test('unsubscribe a client', function (t) {
       qos: 0
     }, function (err) {
       t.error(err, 'no error')
+      client.unsubscribe([{
+        topic: 'hello',
+        qos: 0
+      }], function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+  connect(setup(broker))
+})
+
+test('unsubscribe throws error', function (t) {
+  t.plan(2)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+      broker.unsubscribe = function (topic, func, done) {
+        done(new Error('error'))
+      }
       client.unsubscribe({
         topic: 'hello',
         qos: 0
-      }, function (err) {
-        t.error(err, 'no error')
+      }, function () {
+        t.pass('throws error')
+      })
+    })
+  })
+  connect(setup(broker))
+})
+
+test('unsubscribe throws error 2', function (t) {
+  t.plan(2)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 2
+    }, function (err) {
+      t.error(err, 'no error')
+      broker.persistence.removeSubscriptions = function (client, unsubscriptions, done) {
+        done(new Error('error'))
+      }
+      client.unsubscribe({
+        unsubscriptions: [{
+          topic: 'hello',
+          qos: 2
+        }],
+        messageId: 42
+      }, function () {
+        t.pass('throws error')
       })
     })
   })

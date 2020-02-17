@@ -74,7 +74,7 @@ test('publish invalid topic with +', function (t) {
   })
 })
 
-;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub'].forEach(function (topic) {
+;['base/#/sub', 'base/#sub', 'base/sub#', 'base/xyz+/sub', 'base/+xyz/sub', ''].forEach(function (topic) {
   test('subscribe to invalid topic with "' + topic + '"', function (t) {
     t.plan(1)
 

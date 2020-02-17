@@ -178,6 +178,76 @@ test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated
   })
 })
 
+test('client connect error while fetching subscriptions', function (t) {
+  t.plan(1)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = setup(broker)
+
+  broker.persistence.subscriptionsByClient = function (c, cb) {
+    cb(new Error('error'), [], c)
+  }
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: false,
+    clientId: 'my-client',
+    keepalive: 0
+  })
+
+  broker.on('clientError', function (client, err) {
+    t.pass('throws error')
+  })
+})
+
+test('client connect clear outgoing', function (t) {
+  t.plan(1)
+
+  var clientId = 'abcde'
+  var brokerId = 'pippo'
+
+  const broker = aedes({ id: brokerId })
+  t.tearDown(broker.close.bind(broker))
+
+  var subs = [{ clientId: clientId }]
+  var packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 1,
+    brokerId: brokerId,
+    brokerCounter: 2,
+    retain: true,
+    messageId: 42,
+    dup: false
+  }
+
+  broker.persistence.outgoingEnqueueCombi(subs, packet, function () {
+    const s = setup(broker)
+
+    console.log(broker.persistence._outgoing[clientId][0])
+
+    s.inStream.write({
+      cmd: 'connect',
+      protocolId: 'MQTT',
+      protocolVersion: 4,
+      clean: true,
+      clientId: clientId,
+      keepalive: 0
+    })
+
+    broker.on('clientReady', function (client) {
+      broker.persistence.outgoingUpdate(client, packet, function (err) {
+        t.equal('no such packet', err.message, 'packet not found')
+      })
+    })
+  })
+})
+
 test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {
   t.plan(4)
 
