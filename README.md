@@ -12,6 +12,8 @@
 [![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/aedes)
 [![NPM downloads](https://img.shields.io/npm/dm/aedes.svg?style=flat)](https://www.npmjs.com/aedes)
 
+[![opencollective](https://opencollective.com/aedes/donate/button.png)](https://opencollective.com/aedes/donate)
+
 Barebone MQTT server that can run on any stream servers
 
 - [Aedes](#aedes)
@@ -165,7 +167,8 @@ Thank you to all our backers! :raised_hands:
 
 ### Sponsors
 
-Become a sponsor to get your logo on our README on Github.
+Become a sponsor to get your logo on our README on Github
+
 [![Sponsor](https://opencollective.com/aedes/sponsors.svg)](https://opencollective.com/aedes#sponsor)
 
 ## License
