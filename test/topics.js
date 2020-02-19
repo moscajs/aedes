@@ -4,6 +4,26 @@ const { test } = require('tap')
 const { setup, connect, subscribe } = require('./helper')
 const aedes = require('../')
 
+// [MQTT-4.7.1-3]
+test('Single-level wildcard should match empty level', function (t) {
+  t.plan(4)
+
+  var s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  subscribe(t, s, 'a/+/b', 0, function () {
+    s.outStream.once('data', function (packet) {
+      t.pass('ok')
+    })
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'a//b',
+      payload: 'world'
+    })
+  })
+})
+
 // [MQTT-4.7.3-1]
 test('publish empty topic', function (t) {
   t.plan(4)
@@ -13,7 +33,6 @@ test('publish empty topic', function (t) {
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
       t.fail('no packet')
-      // t.end()
     })
 
     s.inStream.write({
