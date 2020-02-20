@@ -95,7 +95,7 @@
     "fastfall": "^1.5.1",
     "fastparallel": "^2.3.0",
     "fastseries": "^1.7.2",
-    "mqemitter": "^4.1.0",
+    "mqemitter": "^4.1.1",
     "mqtt-packet": "^6.3.1",
     "proxy-protocol-js": "^4.0.3",
     "readable-stream": "^3.6.0",
