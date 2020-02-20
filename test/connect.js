@@ -304,6 +304,32 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
   })
 })
 
+test('connect clients with > 23 clientId length using aedes maxClientsIdLength option in MQTT 3.1.0', function (t) {
+  t.plan(3)
+
+  const broker = aedes({ maxClientsIdLength: 26 })
+  t.tearDown(broker.close.bind(broker))
+
+  const s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 3,
+    clean: true,
+    clientId: 'abcdefghijklmnopqrstuvwxyz',
+    keepalive: 0
+  })
+  s.outStream.on('data', function (packet) {
+    t.equal(packet.cmd, 'connack')
+    t.equal(packet.returnCode, 0)
+    t.equal(broker.connectedClients, 1)
+  })
+  broker.on('connectionError', function (client, err) {
+    t.error(err, 'no error')
+  })
+})
+
 test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
   t.plan(3)
 

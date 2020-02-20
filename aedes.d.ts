@@ -11,7 +11,7 @@ import { Socket } from 'net'
 import { IncomingMessage } from 'http'
 import EventEmitter = NodeJS.EventEmitter
 
-declare function aedes (options?: aedes.AedesOptions): aedes.Aedes
+declare function aedes(options?: aedes.AedesOptions): aedes.Aedes
 
 // eslint-disable-next-line no-redeclare
 declare namespace aedes {
@@ -69,6 +69,7 @@ declare namespace aedes {
     authorizeForward?: AuthorizeForwardHandler
     published?: PublishedHandler
     queueLimit?: number
+    maxClientsIdLength?: number
   }
   interface Client extends EventEmitter {
     id: string
@@ -79,16 +80,16 @@ declare namespace aedes {
     connected: boolean
     closed: boolean
 
-    on (event: 'connected', listener: () => void): this
-    on (event: 'error', listener: (error: Error) => void): this
+    on(event: 'connected', listener: () => void): this
+    on(event: 'error', listener: (error: Error) => void): this
 
-    publish (message: PublishPacket, callback?: (error?: Error) => void): void
-    subscribe (
+    publish(message: PublishPacket, callback?: (error?: Error) => void): void
+    subscribe(
       subscriptions: Subscriptions | Subscription | Subscription[] | SubscribePacket,
       callback?: (error?: Error) => void
     ): void
-    unsubscribe (topicObjects: Subscriptions | Subscription | Subscription[] | UnsubscribePacket, callback?: (error?: Error) => void): void
-    close (callback?: () => void): void
+    unsubscribe(topicObjects: Subscriptions | Subscription | Subscription[] | UnsubscribePacket, callback?: (error?: Error) => void): void
+    close(callback?: () => void): void
   }
 
   interface Aedes extends EventEmitter {
@@ -98,34 +99,34 @@ declare namespace aedes {
 
     handle: (stream: Connection) => Client
 
-    on (event: 'closed', listener: () => void): this
-    on (event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout', listener: (client: Client) => void): this
-    on (event: 'clientError' | 'connectionError', listener: (client: Client, error: Error) => void): this
-    on (event: 'connackSent', listener: (packet: ConnackPacket, client: Client) => void): this
-    on (event: 'ping', listener: (packet: PingreqPacket, client: Client) => void): this
-    on (event: 'publish', listener: (packet: AedesPublishPacket, client: Client) => void): this
-    on (event: 'ack', listener: (packet: PublishPacket | PubrelPacket, client: Client) => void): this
-    on (event: 'subscribe', listener: (subscriptions: Subscription[], client: Client) => void): this
-    on (event: 'unsubscribe', listener: (unsubscriptions: string[], client: Client) => void): this
+    on(event: 'closed', listener: () => void): this
+    on(event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout', listener: (client: Client) => void): this
+    on(event: 'clientError' | 'connectionError', listener: (client: Client, error: Error) => void): this
+    on(event: 'connackSent', listener: (packet: ConnackPacket, client: Client) => void): this
+    on(event: 'ping', listener: (packet: PingreqPacket, client: Client) => void): this
+    on(event: 'publish', listener: (packet: AedesPublishPacket, client: Client) => void): this
+    on(event: 'ack', listener: (packet: PublishPacket | PubrelPacket, client: Client) => void): this
+    on(event: 'subscribe', listener: (subscriptions: Subscription[], client: Client) => void): this
+    on(event: 'unsubscribe', listener: (unsubscriptions: string[], client: Client) => void): this
 
-    publish (
+    publish(
       packet: PublishPacket,
       callback: (error?: Error) => void
     ): void
-    subscribe (
+    subscribe(
       topic: string,
       deliverfunc: (packet: AedesPublishPacket, callback: () => void) => void,
       callback: () => void
     ): void
-    unsubscribe (
+    unsubscribe(
       topic: string,
       deliverfunc: (packet: AedesPublishPacket, callback: () => void) => void,
       callback: () => void
     ): void
-    close (callback?: () => void): void
+    close(callback?: () => void): void
   }
 
-  function Server (options?: aedes.AedesOptions): aedes.Aedes
+  function Server(options?: aedes.AedesOptions): aedes.Aedes
 }
 
 export = aedes
