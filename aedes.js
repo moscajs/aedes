@@ -28,7 +28,8 @@ const defaultOptions = {
   published: defaultPublished,
   trustProxy: false,
   trustedProxies: [],
-  queueLimit: 42
+  queueLimit: 42,
+  maxClientsIdLength: 23
 }
 
 function Aedes (opts) {
@@ -44,6 +45,7 @@ function Aedes (opts) {
   this.counter = 0
   this.queueLimit = opts.queueLimit
   this.connectTimeout = opts.connectTimeout
+  this.maxClientsIdLength = opts.maxClientsIdLength
   this.mq = opts.mq || mqemitter(opts)
   this.handle = function handle (conn, req) {
     conn.setMaxListeners(opts.concurrency * 2)

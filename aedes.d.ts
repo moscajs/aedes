@@ -69,6 +69,7 @@ declare namespace aedes {
     authorizeForward?: AuthorizeForwardHandler
     published?: PublishedHandler
     queueLimit?: number
+    maxClientsIdLength?: number
   }
   interface Client extends EventEmitter {
     id: string
