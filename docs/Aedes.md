@@ -23,7 +23,7 @@
   - [aedes.subscribe (topic, deliverfunc, callback)](#aedessubscribe-topic-deliverfunc-callback)
   - [aedes.unsubscribe (topic, deliverfunc, callback)](#aedesunsubscribe-topic-deliverfunc-callback)
   - [aedes.publish (packet, callback)](#aedespublish-packet-callback)
-  - [aedes.close (callback)](#aedesclose-callback)
+  - [aedes.close ([callback])](#aedesclose-callback)
   - [Handler: decodeProtocol (client, buffer)](#handler-decodeprotocol-client-buffer)
   - [Handler: preConnect (client, callback)](#handler-preconnect-client-callback)
   - [Handler: authenticate (client, username, password, callback)](#handler-authenticate-client-username-password-callback)
@@ -39,6 +39,7 @@
   - `concurrency` `<number>` maximum number of concurrent messages delivered by `mq`. __Default__: `100`
   - `persistence` [`<Persistence>`](../README.md#persistence) a middleware stores _QoS > 0, retained, will_ packets and subscriptions. __Default__: `aedes-persistence`
   - `queueLimit` `<number>` maximum number of queued messages before client session is established. If number of queued items exceeds, `connectionError` throws an error `Client queue limit reached`. __Default__: `42`
+  - `maxClientsIdLength` option to override MQTT 3.1.0 clients Id length limit. __Default__: `23`
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
 - Returns `<Aedes>`
