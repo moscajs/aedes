@@ -249,6 +249,64 @@ test('restore QoS 1 subscriptions not clean', function (t) {
   })
 })
 
+test('restore multiple QoS 1 subscriptions not clean w/ authorizeSubscribe', function (t) {
+  t.plan(11)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  const expected = {
+    cmd: 'publish',
+    topic: 'foo',
+    payload: Buffer.from('bar'),
+    qos: 1,
+    dup: false,
+    length: 10,
+    retain: false
+  }
+  const publisher = connect(setup(broker))
+
+  subscribe(t, subscriber, 'hello', 1, function () {
+    subscribe(t, subscriber, 'foo', 1, function () {
+      subscriber.inStream.end()
+      broker.authorizeSubscribe = function (client, sub, done) {
+        done(null, sub.topic === 'hello' ? 123 : sub)
+      }
+      subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' }, function (connect) {
+        t.equal(connect.sessionPresent, true, 'session present is set to true')
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'hello',
+          payload: 'world',
+          qos: 1,
+          messageId: 42
+        })
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic: 'foo',
+          payload: 'bar',
+          qos: 1,
+          messageId: 48
+        })
+      })
+      publisher.outStream.on('data', function (packet) {
+        t.equal(packet.cmd, 'puback')
+      })
+
+      subscriber.outStream.on('data', function (packet) {
+        subscriber.inStream.write({
+          cmd: 'puback',
+          messageId: packet.messageId
+        })
+        t.notEqual(packet.messageId, 48, 'messageId must differ')
+        delete packet.messageId
+        t.deepEqual(packet, expected, 'packet must match')
+      })
+    })
+  })
+})
+
 test('remove stored subscriptions if connected with clean=true', function (t) {
   t.plan(5)
 
