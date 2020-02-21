@@ -46,7 +46,10 @@ function Aedes (opts) {
   this.queueLimit = opts.queueLimit
   this.connectTimeout = opts.connectTimeout
   this.maxClientsIdLength = opts.maxClientsIdLength
-  this.mq = opts.mq || mqemitter(opts)
+  this.mq = opts.mq || mqemitter({
+    concurrency: opts.concurrency,
+    matchEmptyLevels: true // [MQTT-4.7.1-3]
+  })
   this.handle = function handle (conn, req) {
     conn.setMaxListeners(opts.concurrency * 2)
     // create a new Client instance for a new connection
