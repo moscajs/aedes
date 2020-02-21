@@ -2,15 +2,17 @@
 # Aedes
 
 ![ci](https://github.com/moscajs/aedes/workflows/ci/badge.svg)
-[![Known Vulnerabilities](https://snyk.io/test/github/moscajs/aedes/badge.svg)](https://snyk.io/test/github/moscajs/aedes)
-[![Coverage Status](https://coveralls.io/repos/moscajs/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/moscajs/aedes?branch=master)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)\
+![LGTM Grade](https://img.shields.io/lgtm/grade/javascript/github/moscajs/aedes)
+[![Coverage Status](https://coveralls.io/repos/moscajs/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/moscajs/aedes?branch=master)
+[![Known Vulnerabilities](https://snyk.io/test/github/moscajs/aedes/badge.svg)](https://snyk.io/test/github/moscajs/aedes)\
 [![Dependencies Status](https://david-dm.org/moscajs/aedes/status.svg)](https://david-dm.org/moscajs/aedes)
 [![devDependencies Status](https://david-dm.org/moscajs/aedes/dev-status.svg)](https://david-dm.org/moscajs/aedes?type=dev)\
+![node](https://img.shields.io/node/v/aedes)
 [![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/aedes)
 [![NPM downloads](https://img.shields.io/npm/dm/aedes.svg?style=flat)](https://www.npmjs.com/aedes)
 
-[![Become a Backer](https://opencollective.com/aedes/tiers/backer.svg?avatarHeight=80&width=600)](https://opencollective.com/aedes)
+[![opencollective](https://opencollective.com/aedes/donate/button.png)](https://opencollective.com/aedes/donate)
 
 Barebone MQTT server that can run on any stream servers
 
@@ -23,15 +25,14 @@ Barebone MQTT server that can run on any stream servers
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
     - [MQEmitter](#mqemitter)
-  - [Collaborators](#collaborators)
   - [Acknowledgements](#acknowledgements)
-  - [Contribution](#contribution)
-  - [Contributors](#contributors)
-    - [Backers](#backers)
-    - [Sponsors](#sponsors)
   - [Mosca vs Aedes](#mosca-vs-aedes)
     - [Benchmark: Aedes](#benchmark-aedes)
     - [Benchmark: Mosca](#benchmark-mosca)
+  - [Collaborators](#collaborators)
+  - [Contribution](#contribution)
+    - [Backers](#backers)
+    - [Sponsors](#sponsors)
   - [License](#license)
 
 ## Install
@@ -98,46 +99,11 @@ npm install aedes
   a Merkle DAG
 - [mqemitter-aerospike]: Aerospike mqemitter
 
-## Collaborators
-
-- [__Gavin D'mello__](https://github.com/GavinDmello)
-- [__Behrad Zari__](https://github.com/behrad)
-- [__Gnought__](https://github.com/gnought)
-- [__Daniel Lando__](https://github.com/robertsLando)
-
 ## Acknowledgements
 
 This library is born after a lot of discussion with all
 [Mosca](http://www.npmjs.com/mosca) users and how that was deployed in
 production. This addresses your concerns about performance and stability.
-
-## Contribution
-
-[![Help wanted](https://img.shields.io/github/labels/moscajs/aedes/help%20wanted)](https://github.com/moscajs/aedes/labels/help%20wanted)
-[![Contributors](https://img.shields.io/github/contributors/moscajs/aedes)](https://github.com/moscajs/aedes/graphs/contributors)
-
-Want to contribute? Check our list of
-[features/bugs](https://github.com/moscajs/aedes/projects/1)
-
-## Contributors
-
-This project exists thanks to all the people who contribute ❤️
-
-[![Backers](https://opencollective.com/aedes/contributors.svg?width=890&button=false)](https://opencollective.com/aedes#backers)
-
-### Backers
-
-Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/aedes#backer)]
-
-[![Backers](https://opencollective.com/aedes/backers.svg?width=890)](https://opencollective.com/aedes#backers)
-
-### Sponsors
-
-Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/aedes#sponsor)]
-
-[![Sponsor 1](https://opencollective.com/aedes/sponsor/0/avatar.svg)](https://opencollective.com/aedes/sponsor/0/website)
-
-[![Sponsor 2](https://opencollective.com/aedes/sponsor/1/avatar.svg)](https://opencollective.com/aedes/sponsor/1/website)
 
 ## Mosca vs Aedes
 
@@ -177,6 +143,33 @@ Msg time mean std (ms):      0.074
 Average Bandwidth (msg/sec): 18.926
 Total Bandwidth (msg/sec):   18925.942
 ```
+
+## Collaborators
+
+- [__Gavin D'mello__](https://github.com/GavinDmello)
+- [__Behrad Zari__](https://github.com/behrad)
+- [__Gnought__](https://github.com/gnought)
+- [__Daniel Lando__](https://github.com/robertsLando)
+
+## Contribution
+
+[![Help wanted](https://img.shields.io/github/labels/moscajs/aedes/help%20wanted)](https://github.com/moscajs/aedes/labels/help%20wanted)
+[![Contributors](https://img.shields.io/github/contributors/moscajs/aedes)](https://github.com/moscajs/aedes/graphs/contributors)
+
+Want to contribute? Check our list of
+[features/bugs](https://github.com/moscajs/aedes/projects/1)
+
+### Backers
+
+Thank you to all our backers! :raised_hands:
+
+[![Backers](https://opencollective.com/aedes/backers.svg?avatarHeight=64&width=890&button=false)](https://opencollective.com/aedes#backers)
+
+### Sponsors
+
+Become a sponsor to get your logo on our README on Github
+
+[![Sponsor](https://opencollective.com/aedes/sponsors.svg)](https://opencollective.com/aedes#sponsor)
 
 ## License
 
