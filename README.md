@@ -29,6 +29,7 @@ Barebone MQTT server that can run on any stream servers
   - [Mosca vs Aedes](#mosca-vs-aedes)
     - [Benchmark: Aedes](#benchmark-aedes)
     - [Benchmark: Mosca](#benchmark-mosca)
+  - [Made with Aedes](#made-with-aedes)
   - [Collaborators](#collaborators)
   - [Contribution](#contribution)
     - [Backers](#backers)
@@ -143,6 +144,13 @@ Msg time mean std (ms):      0.074
 Average Bandwidth (msg/sec): 18.926
 Total Bandwidth (msg/sec):   18925.942
 ```
+
+## Made with Aedes
+
+Here is a list of some interesting projects that are using Aedes as MQTT Broker. Submit a PR or an issue if you would like to add yours
+
+- [node-red-contrib-aedes](https://github.com/martin-doyle/node-red-contrib-aedes): MQTT broker for Node-Red based on Aedes
+- [Mqtt2Mqtt](https://github.com/robertsLando/Mqtt2Mqtt): Mqtt Bridge between two brokers with UI
 
 ## Collaborators
 
