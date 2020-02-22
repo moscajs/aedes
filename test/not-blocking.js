@@ -6,6 +6,50 @@ const net = require('net')
 const Faketimers = require('@sinonjs/fake-timers')
 const aedes = require('../')
 
+test('connect 500 concurrent clients', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  const server = net.createServer(broker.handle)
+  const total = 500
+
+  server.listen(0, function (err) {
+    t.error(err, 'no error')
+
+    const clock = Faketimers.createClock()
+    t.tearDown(clock.reset.bind(clock))
+
+    const port = server.address().port
+
+    var connected = 0
+    var clients = []
+    clock.setTimeout(function () {
+      t.equal(clients.length, total)
+      t.equal(connected, total)
+      for (var i = 0; i < clients.length; i++) {
+        clients[i].end()
+      }
+      broker.close()
+      server.close()
+    }, total)
+
+    for (var i = 0; i < total; i++) {
+      clients[i] = mqtt.connect({
+        port: port,
+        keepalive: 0
+      }).on('connect', function () {
+        connected++
+        if ((connected % (total / 10)) === 0) {
+          console.log('connected', connected)
+        }
+        clock.tick(1)
+      }).on('error', function () {
+        clock.tick(1)
+      })
+    }
+  })
+})
+
 test('do not block after a subscription', function (t) {
   t.plan(3)
 
