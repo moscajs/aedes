@@ -170,7 +170,10 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
 
   const clock = Faketimers.createClock()
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.tearDown(function () {
+    clock.reset()
+    broker.close()
+  })
 
   const publisher = connect(setup(broker), { clean: true })
   const expected = {
@@ -205,7 +208,6 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
   })
 
   clock.setTimeout(() => {
-    clock.reset()
     t.equal(broker.counter, 6)
   }, 200)
 })
