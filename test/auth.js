@@ -2,6 +2,7 @@
 
 const { test } = require('tap')
 const eos = require('end-of-stream')
+const Faketimers = require('@sinonjs/fake-timers')
 const Client = require('../lib/client')
 const { setup, connect, noError, subscribe, subscribeMultiple } = require('./helper')
 const aedes = require('../')
@@ -789,17 +790,22 @@ test('negate subscription with correct persistence', function (t) {
 test('negate multiple subscriptions random times', function (t) {
   t.plan(5)
 
+  const clock = Faketimers.createClock()
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.tearDown(function () {
+    clock.reset()
+    s.broker.close()
+  })
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
     if (sub.topic === 'hello') {
-      setTimeout(function () {
+      clock.setTimeout(function () {
         cb(null, sub)
       }, 100)
     } else {
       cb(null, null)
+      clock.tick(100)
     }
   }
 
