@@ -12,6 +12,7 @@ const Packet = require('aedes-packet')
 const memory = require('aedes-persistence')
 const mqemitter = require('mqemitter')
 const Client = require('./lib/client')
+const { noop } = require('./lib/utils')
 
 module.exports = Aedes.Server = Aedes
 
@@ -344,5 +345,3 @@ function PublishState (broker, client, packet) {
   this.client = client
   this.packet = packet
 }
-
-function noop () {}
