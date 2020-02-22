@@ -17,9 +17,8 @@ function setup (broker) {
 
   broker = broker || aedes()
 
-  broker.handle(conn)
-
   return {
+    client: broker.handle(conn),
     conn: conn,
     inStream: inStream,
     outStream: outStream,

@@ -2,6 +2,7 @@
 
 const { test } = require('tap')
 const eos = require('end-of-stream')
+const Faketimers = require('@sinonjs/fake-timers')
 const { setup, connect, noError } = require('./helper')
 const aedes = require('../')
 
@@ -10,6 +11,10 @@ test('supports pingreq/pingresp', function (t) {
 
   const s = noError(connect(setup()))
   t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.on('keepaliveTimeout', function (client) {
+    t.fail('keep alive should not timeout')
+  })
 
   s.inStream.write({
     cmd: 'pingreq'
@@ -20,48 +25,68 @@ test('supports pingreq/pingresp', function (t) {
   })
 })
 
-test('supports keep alive disconnections', { timeout: 2000 }, function (t) {
-  t.plan(1)
+test('supports keep alive disconnections', function (t) {
+  t.plan(2)
 
-  const start = Date.now()
+  const clock = Faketimers.install()
+  const s = connect(setup(), { keepalive: 1 })
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.on('keepaliveTimeout', function (client) {
+    t.pass('keep alive timeout')
+  })
+  eos(s.conn, function () {
+    t.pass('waits 1 and a half the keepalive timeout')
+  })
+
+  setTimeout(() => {
+    clock.uninstall()
+  }, 1.5)
+  clock.tick(1.5)
+})
+
+test('supports keep alive disconnections after a pingreq', function (t) {
+  t.plan(3)
+
+  const clock = Faketimers.install()
   const s = connect(setup(), { keepalive: 1 })
   t.tearDown(s.broker.close.bind(s.broker))
 
   eos(s.conn, function () {
-    t.ok(Date.now() >= start + 1500, 'waits 1 and a half the keepalive timeout')
+    t.pass('waits 1 and a half the keepalive timeout')
   })
-})
-
-test('supports keep alive disconnections after a pingreq', { timeout: 3000 }, function (t) {
-  t.plan(1)
-
-  const s = connect(setup(), { keepalive: 1 })
-  t.tearDown(s.broker.close.bind(s.broker))
-
-  var start
-
-  setTimeout(function () {
-    start = Date.now()
+  s.broker.on('keepaliveTimeout', function (client) {
+    t.pass('keep alive timeout')
+  })
+  s.outStream.on('data', function (packet) {
+    t.equal(packet.cmd, 'pingresp', 'the response is a pingresp')
+  })
+  setTimeout(() => {
     s.inStream.write({
       cmd: 'pingreq'
     })
-  }, 1000)
-
-  eos(s.conn, function () {
-    t.ok(Date.now() >= start + 1500, 'waits 1 and a half the keepalive timeout')
-  })
+    clock.uninstall()
+  }, 1)
+  clock.tick(3)
 })
 
-test('disconnect if a connect does not arrive in time', { timeout: 1000 }, function (t) {
-  t.plan(1)
+test('disconnect if a connect does not arrive in time', function (t) {
+  t.plan(2)
 
-  const start = Date.now()
+  const clock = Faketimers.install()
   const s = setup(aedes({
     connectTimeout: 500
   }))
   t.tearDown(s.broker.close.bind(s.broker))
 
-  eos(s.conn, function () {
-    t.ok(Date.now() >= start + 500, 'waits waitConnectTimeout before ending')
+  s.client.on('error', function (err) {
+    t.equal(err.message, 'connect did not arrive in time')
   })
+  eos(s.conn, function () {
+    t.pass('waits waitConnectTimeout before ending')
+  })
+  setTimeout(() => {
+    clock.uninstall()
+  }, 1000)
+  clock.tick(1000)
 })
