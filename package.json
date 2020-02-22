@@ -70,7 +70,7 @@
   "license": "MIT",
   "devDependencies": {
     "@sinonjs/fake-timers": "^6.0.0",
-    "@types/node": "^12.12.27",
+    "@types/node": "^12.12.28",
     "@typescript-eslint/eslint-plugin": "^2.20.0",
     "@typescript-eslint/parser": "^2.20.0",
     "concat-stream": "^2.0.0",
@@ -83,7 +83,7 @@
     "snazzy": "^8.0.0",
     "standard": "^14.3.1",
     "tap": "^14.10.6",
-    "typescript": "^3.7.5",
+    "typescript": "^3.8.2",
     "websocket-stream": "^5.5.0"
   },
   "dependencies": {
