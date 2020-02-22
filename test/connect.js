@@ -207,14 +207,14 @@ test('client connect error while fetching subscriptions', function (t) {
 test('client connect clear outgoing', function (t) {
   t.plan(1)
 
-  var clientId = 'abcde'
-  var brokerId = 'pippo'
+  const clientId = 'abcde'
+  const brokerId = 'pippo'
 
   const broker = aedes({ id: brokerId })
   t.tearDown(broker.close.bind(broker))
 
-  var subs = [{ clientId: clientId }]
-  var packet = {
+  const subs = [{ clientId: clientId }]
+  const packet = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -228,8 +228,6 @@ test('client connect clear outgoing', function (t) {
 
   broker.persistence.outgoingEnqueueCombi(subs, packet, function () {
     const s = setup(broker)
-
-    console.log(broker.persistence._outgoing[clientId][0])
 
     s.inStream.write({
       cmd: 'connect',

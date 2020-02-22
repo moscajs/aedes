@@ -3,8 +3,8 @@
 const { test } = require('tap')
 const mqtt = require('mqtt')
 const net = require('net')
+const Faketimers = require('@sinonjs/fake-timers')
 const aedes = require('../')
-const port = 4883
 
 test('do not block after a subscription', function (t) {
   t.plan(3)
@@ -15,12 +15,22 @@ test('do not block after a subscription', function (t) {
   var sent = 0
   var received = 0
 
-  server.listen(port, function (err) {
+  server.listen(0, function (err) {
     t.error(err, 'no error')
 
-    var publisher = mqtt.connect({
+    const clock = Faketimers.createClock()
+    t.tearDown(clock.reset.bind(clock))
+
+    const clockId = clock.setTimeout(finish, total)
+
+    const port = server.address().port
+
+    const publisher = mqtt.connect({
       port: port,
       keepalive: 0
+    }).on('error', function (err) {
+      clock.clearTimeout(clockId)
+      t.fail(err)
     })
 
     var subscriber
@@ -42,6 +52,9 @@ test('do not block after a subscription', function (t) {
       subscriber = mqtt.connect({
         port: port,
         keepalive: 0
+      }).on('error', function (err) {
+        clock.clearTimeout(clockId)
+        t.fail(err)
       })
 
       subscriber.subscribe('test', publish)
@@ -50,19 +63,14 @@ test('do not block after a subscription', function (t) {
         if (received % (total / 10) === 0) {
           console.log('sent / received', sent, received)
         }
-
-        if (++received === total) {
-          finish()
-        }
+        received++
+        clock.tick(1)
       })
     }
 
     publisher.on('connect', startSubscriber)
 
-    const timer = setTimeout(finish, 10000)
-
     function finish () {
-      clearTimeout(timer)
       subscriber.end()
       publisher.end()
       broker.close()
@@ -82,12 +90,22 @@ test('do not block with overlapping subscription', function (t) {
   var sent = 0
   var received = 0
 
-  server.listen(port, function (err) {
+  server.listen(0, function (err) {
     t.error(err, 'no error')
+
+    const clock = Faketimers.createClock()
+    t.tearDown(clock.reset.bind(clock))
+
+    const clockId = clock.setTimeout(finish, total)
+
+    const port = server.address().port
 
     const publisher = mqtt.connect({
       port: port,
       keepalive: 0
+    }).on('error', function (err) {
+      clock.clearTimeout(clockId)
+      t.fail(err)
     })
 
     var subscriber
@@ -109,6 +127,9 @@ test('do not block with overlapping subscription', function (t) {
       subscriber = mqtt.connect({
         port: port,
         keepalive: 0
+      }).on('error', function (err) {
+        clock.clearTimeout(clockId)
+        t.fail(err)
       })
 
       subscriber.subscribe('#', function () {
@@ -118,23 +139,17 @@ test('do not block with overlapping subscription', function (t) {
       })
 
       subscriber.on('message', function () {
-        // console.log('received', arguments)
         if (received % (total / 10) === 0) {
           console.log('sent / received', sent, received)
         }
-
-        if (++received === total) {
-          finish()
-        }
+        received++
+        clock.tick(1)
       })
     }
 
     publisher.on('connect', startSubscriber)
 
-    const timer = setTimeout(finish, 10000)
-
     function finish () {
-      clearTimeout(timer)
       subscriber.end()
       publisher.end()
       broker.close()

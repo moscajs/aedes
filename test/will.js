@@ -2,9 +2,9 @@
 
 const { test } = require('tap')
 const memory = require('aedes-persistence')
+const Faketimers = require('@sinonjs/fake-timers')
 const { setup, connect, noError } = require('./helper')
 const aedes = require('../')
-const Faketimers = require('@sinonjs/fake-timers')
 
 function willConnect (s, opts, connected) {
   opts = opts || {}
@@ -117,15 +117,15 @@ test('delivers old will in case of a crash', function (t) {
 test('delete old broker', function (t) {
   t.plan(1)
 
-  var clock = Faketimers.install()
+  const clock = Faketimers.install()
 
-  var heartbeatInterval = 100
+  const heartbeatInterval = 100
   const broker = aedes({
     heartbeatInterval: heartbeatInterval
   })
   t.tearDown(broker.close.bind(broker))
 
-  var brokerId = 'dummyBroker'
+  const brokerId = 'dummyBroker'
 
   broker.brokers[brokerId] = Date.now() - heartbeatInterval * 3.5
 
