@@ -333,7 +333,7 @@ test('does not deliver will if broker is closed during authentication', function
     authenticate: function (client, username, password, callback) {
       setTimeout(function () {
         callback(null, true)
-      }, 3000)
+      })
       broker.close()
     }
   })
