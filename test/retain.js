@@ -204,9 +204,9 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
     })
   })
 
-  setTimeout(() => {
+  clock.setTimeout(() => {
     t.equal(broker.counter, 6)
-  }, 500)
+  }, 200)
 })
 
 // [MQTT-3.3.1-5]
