@@ -205,6 +205,7 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
   })
 
   clock.setTimeout(() => {
+    clock.reset()
     t.equal(broker.counter, 6)
   }, 200)
 })
