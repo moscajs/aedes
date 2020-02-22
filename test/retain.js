@@ -2,6 +2,7 @@
 
 const { test } = require('tap')
 const through = require('through2')
+const Faketimers = require('@sinonjs/fake-timers')
 const { setup, connect, subscribe, noError } = require('./helper')
 const aedes = require('../')
 
@@ -167,7 +168,9 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
 test('new QoS 0 subscribers receive QoS 0 retained messages when clean', function (t) {
   t.plan(9)
 
+  const clock = Faketimers.createClock()
   const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
   const expected = {
@@ -190,19 +193,19 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
   subscribe(t, subscriber1, 'hello/world', 0, function () {
     subscriber1.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
+      clock.tick(100)
     })
   })
   const subscriber2 = connect(setup(broker), { clean: true })
   subscribe(t, subscriber2, 'hello/+', 0, function () {
     subscriber2.outStream.on('data', function (packet) {
       t.deepEqual(packet, expected, 'packet must match')
+      clock.tick(100)
     })
   })
 
   setTimeout(() => {
-    broker.close(function () {
-      t.equal(broker.counter, 9)
-    })
+    t.equal(broker.counter, 6)
   }, 500)
 })
 
