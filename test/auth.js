@@ -792,7 +792,10 @@ test('negate multiple subscriptions random times', function (t) {
 
   const clock = Faketimers.createClock()
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.tearDown(function () {
+    clock.reset()
+    s.broker.close()
+  })
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
