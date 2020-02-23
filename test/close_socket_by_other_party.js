@@ -1,14 +1,14 @@
 'use strict'
 
 const { test } = require('tap')
-const EE = require('events').EventEmitter
+const EventEmitter = require('events')
 const { setup, connect, subscribe } = require('./helper')
 const aedes = require('../')
 
 test('aedes is closed before client authenticate returns', function (t) {
   t.plan(1)
 
-  const evt = new EE()
+  const evt = new EventEmitter()
   const broker = aedes({
     authenticate: (client, username, password, done) => {
       evt.emit('AuthenticateBegin', client)
@@ -39,7 +39,7 @@ test('aedes is closed before client authenticate returns', function (t) {
 test('client is closed before authenticate returns', function (t) {
   t.plan(1)
 
-  const evt = new EE()
+  const evt = new EventEmitter()
   const broker = aedes({
     authenticate: async (client, username, password, done) => {
       evt.emit('AuthenticateBegin', client)
@@ -71,7 +71,7 @@ test('client is closed before authenticate returns', function (t) {
 test('client is closed before authorizePublish returns', function (t) {
   t.plan(3)
 
-  const evt = new EE()
+  const evt = new EventEmitter()
   const broker = aedes({
     authorizePublish: (client, packet, done) => {
       evt.emit('AuthorizePublishBegin', client)

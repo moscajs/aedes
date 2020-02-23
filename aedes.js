@@ -1,6 +1,6 @@
 'use strict'
 
-const EE = require('events').EventEmitter
+const EventEmitter = require('events')
 const util = require('util')
 const parallel = require('fastparallel')
 const series = require('fastseries')
@@ -157,7 +157,7 @@ function Aedes (opts) {
   this.closed = false
 }
 
-util.inherits(Aedes, EE)
+util.inherits(Aedes, EventEmitter)
 
 function storeRetained (packet, done) {
   if (packet.retain) {
