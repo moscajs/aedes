@@ -6,12 +6,12 @@ const net = require('net')
 const Faketimers = require('@sinonjs/fake-timers')
 const aedes = require('../')
 
-test('connect 500 concurrent clients', function (t) {
+test('connect 200 concurrent clients', function (t) {
   t.plan(3)
 
   const broker = aedes()
   const server = net.createServer(broker.handle)
-  const total = 500
+  const total = 200
 
   server.listen(0, function (err) {
     t.error(err, 'no error')
