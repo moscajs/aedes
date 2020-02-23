@@ -42,6 +42,8 @@ function Aedes (opts) {
   opts = Object.assign({}, defaultOptions, opts)
 
   this.id = opts.id || uuidv4()
+  // +1 when construct a new aedes-packet
+  // internal track for last brokerCounter
   this.counter = 0
   this.queueLimit = opts.queueLimit
   this.connectTimeout = opts.connectTimeout
@@ -200,6 +202,7 @@ function DoEnqueues () {
     if (err) {
       // is this really recoverable?
       // let's just error the whole aedes
+      // https://nodejs.org/api/events.html#events_error_events
       broker.emit('error', err)
       return
     }
