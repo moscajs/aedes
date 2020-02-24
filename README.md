@@ -21,6 +21,7 @@ Barebone MQTT server that can run on any stream servers
   - [API](#api)
   - [Features](#features)
   - [Examples](#examples)
+    - [Clusters](#clusters)
   - [Exensions](#exensions)
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
@@ -60,6 +61,7 @@ npm install aedes
 - Offline Buffering
 - Backpress-support API
 - High Availability
+- [Clusterable](#clusters)
 - Authenticaion and Authorization
 - `$SYS` support
 - Pluggable middlewares
@@ -71,6 +73,18 @@ npm install aedes
 ## Examples
 
 - [Examples](./docs/Examples.md)
+
+### Clusters
+
+In order to use Aedes in clusters you have to choose a persistence and an mqemitter that supports clusters. Tested persistence/mqemitters that works with clusters are:
+
+- [mqemitter-redis]
+- [mqemitter-child-process]
+- [mqemitter-mongodb]
+- [aedes-persistence-mongodb]
+- [aedes-persistence-redis]
+
+[This](https://github.com/moscajs/aedes/blob/master/examples/clusters/index.js) is an example using [mqemitter-child-process] and [aedes-persistence-mongodb]
 
 ## Exensions
 
