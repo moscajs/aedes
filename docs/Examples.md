@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD013 MD024 -->
 # Examples
 
-Simple plain MQTT server
+## Simple plain MQTT server
 
 ```js
 const aedes = require('aedes')()
@@ -13,7 +13,7 @@ server.listen(port, function () {
 })
 ```
 
-MQTT over TLS / MQTTS
+## MQTT over TLS / MQTTS
 
 ```js
 const fs = require('fs')
@@ -32,7 +32,7 @@ server.listen(port, function () {
 })
 ```
 
-MQTT server over WebSocket
+## MQTT server over WebSocket
 
 ```js
 const aedes = require('./aedes')()
@@ -46,3 +46,22 @@ httpServer.listen(port, function () {
   console.log('websocket server listening on port ', port)
 })
 ```
+
+## Clusters
+
+In order to use Aedes in clusters you have to choose a persistence and an mqemitter that supports clusters. Tested persistence/mqemitters that works with clusters are:
+
+- [mqemitter-redis]
+- [mqemitter-child-process]
+- [mqemitter-mongodb]
+- [aedes-persistence-mongodb]
+- [aedes-persistence-redis]
+
+[This](https://github.com/moscajs/aedes/blob/master/examples/clusters/index.js) is an example using [mqemitter-child-process] and [aedes-persistence-mongodb]
+
+[aedes-persistence-mongodb]: https://www.npmjs.com/aedes-persistence-mongodb
+[aedes-persistence-redis]: https://www.npmjs.com/aedes-persistence-redis
+
+[mqemitter-redis]: https://www.npmjs.com/mqemitter-redis
+[mqemitter-mongodb]: https://www.npmjs.com/mqemitter-mongodb
+[mqemitter-child-process]: https://www.npmjs.com/mqemitter-child-process
