@@ -60,6 +60,7 @@ npm install aedes
 - Offline Buffering
 - Backpress-support API
 - High Availability
+- Clusterable
 - Authenticaion and Authorization
 - `$SYS` support
 - Pluggable middlewares
