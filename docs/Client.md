@@ -109,7 +109,8 @@ Subscribe client to the list of topics.
 ## client.unsubscribe (unsubscriptions, [callback])
 
 - `unsubscriptions` `<object>`
-- `callback` `<Function>`
+- `callback` `<Function>` `(error) => void`
+  - error `<Error>` | `null`
 
 Unsubscribe client to the list of topics.
 
