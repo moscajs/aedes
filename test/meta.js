@@ -153,6 +153,28 @@ test('emit subscribe event', function (t) {
   })
 })
 
+test('emit subscribe event if unrecognized params in subscribe packet structure', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const s = noError(connect(setup(broker)))
+  const subs = [{ topic: 'hello', qos: 0 }]
+
+  broker.on('subscribe', function (subscriptions, client) {
+    t.equal(subscriptions, subs)
+    t.deepEqual(client, s.client)
+  })
+
+  s.client.subscribe({
+    subscriptions: subs,
+    restore: true
+  }, function (err) {
+    t.error(err)
+  })
+})
+
 test('emit unsubscribe event', function (t) {
   t.plan(6)
 
