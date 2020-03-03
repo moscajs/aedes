@@ -154,7 +154,7 @@ test('emit subscribe event', function (t) {
 })
 
 test('emit subscribe event if unrecognized params in subscribe packet structure', function (t) {
-  t.plan(2)
+  t.plan(3)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -170,7 +170,9 @@ test('emit subscribe event if unrecognized params in subscribe packet structure'
   s.client.subscribe({
     subscriptions: subs,
     restore: true
-  }, function () {})
+  }, function (err) {
+    t.error(err)
+  })
 })
 
 test('emit unsubscribe event', function (t) {
