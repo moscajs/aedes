@@ -62,13 +62,25 @@ a read-only flag indicates if client is closed or not.
 
 - `<string>` __Default__: `aedes_${shortid()}`
 
-Client unique identifier, specified by CONNECT packet. It is `null` in [`aedes.preConnect`](./Aedes.md#handler-preconnect-client-callback) unless the handler passes.
+Client unique identifier, specified by CONNECT packet.
+
+It is available only after `CONNACK (rc=0)`, otherwise it is `null` in cases:
+
+- in [`aedes.preConnect`](./Aedes.md#handler-preconnect-client-callback) stage
+- after `CONNACK (rc!=0)` response
+- `connectionError` raised by aedes
 
 ## client.clean
 
 - `<boolean>` __Default__: `true`
 
-Client clean flag, specified by CONNECT packet.
+Client clean flag, set by clean flag in `CONNECT` packet.
+
+## client.version
+
+- `<number>` __Default__: `null`
+
+Client version, set by protocol version in `CONNECT` packet when `CONNACK (rc=0)` returns.
 
 ## Event: connected
 

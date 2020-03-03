@@ -19,7 +19,7 @@ const broker = Server({
     }
   },
   authenticate: (client: Client, username: string, password: Buffer, callback) => {
-    if (username === 'test' && password === Buffer.from('test')) {
+    if (username === 'test' && password === Buffer.from('test') && client.version === 4) {
       callback(null, true)
     } else {
       const error = new Error() as AuthenticateError
