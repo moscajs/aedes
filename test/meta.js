@@ -182,7 +182,7 @@ test('emit unsubscribe event', function (t) {
 })
 
 test('emit unsubscribe event if unrecognized params in unsubscribe packet structure', function (t) {
-  t.plan(2)
+  t.plan(3)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -198,7 +198,9 @@ test('emit unsubscribe event if unrecognized params in unsubscribe packet struct
   s.client.unsubscribe({
     unsubscriptions: unsubs,
     close: true
-  }, function () {})
+  }, function (err) {
+    t.error(err)
+  })
 })
 
 test('dont emit unsubscribe event on client close', function (t) {
