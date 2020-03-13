@@ -74,6 +74,7 @@ declare namespace aedes {
   interface Client extends EventEmitter {
     id: string
     clean: boolean
+    version: number
     conn: Connection
     req?: IncomingMessage
     connecting: boolean

@@ -13,7 +13,7 @@ const aedes = require('../')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
-    t.plan(1)
+    t.plan(2)
 
     const s = setup()
     t.tearDown(s.broker.close.bind(s.broker))
@@ -39,6 +39,7 @@ const aedes = require('../')
         payload: null,
         sessionPresent: false
       }, 'successful connack')
+      t.equal(s.client.version, ele.ver)
     })
   })
 })
@@ -75,7 +76,7 @@ test('reject client requested for unacceptable protocol version', function (t) {
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet
 test('reject client requested for unsupported protocol version', function (t) {
-  t.plan(2)
+  t.plan(3)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -94,6 +95,7 @@ test('reject client requested for unsupported protocol version', function (t) {
     t.fail('no data sent')
   })
   broker.on('connectionError', function (client, err) {
+    t.equal(client.version, null)
     t.equal(err.message, 'Invalid protocol version')
     t.equal(broker.connectedClients, 0)
   })
@@ -101,7 +103,7 @@ test('reject client requested for unsupported protocol version', function (t) {
 
 // Guarded in mqtt-packet
 test('reject clients with no clientId running on MQTT 3.1.0', function (t) {
-  t.plan(2)
+  t.plan(3)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -119,6 +121,7 @@ test('reject clients with no clientId running on MQTT 3.1.0', function (t) {
     t.fail('no data sent')
   })
   broker.on('connectionError', function (client, err) {
+    t.equal(client.version, null)
     t.equal(err.message, 'clientId must be supplied before 3.1.1')
     t.equal(broker.connectedClients, 0)
   })
@@ -151,7 +154,7 @@ test('reject clients without clientid and clean=false on MQTT 3.1.1', function (
 })
 
 test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {
-  t.plan(4)
+  t.plan(5)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -169,6 +172,7 @@ test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated
     t.equal(packet.cmd, 'connack')
     t.equal(packet.returnCode, 0)
     t.equal(broker.connectedClients, 1)
+    t.equal(s.client.version, 4)
   })
   broker.on('connectionError', function (client, err) {
     t.error(err, 'no error')
@@ -179,7 +183,7 @@ test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated
 })
 
 test('client connect error while fetching subscriptions', function (t) {
-  t.plan(1)
+  t.plan(2)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -200,6 +204,7 @@ test('client connect error while fetching subscriptions', function (t) {
   })
 
   broker.on('clientError', function (client, err) {
+    t.equal(client.version, 4)
     t.pass('throws error')
   })
 })
@@ -247,7 +252,7 @@ test('client connect clear outgoing', function (t) {
 })
 
 test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {
-  t.plan(4)
+  t.plan(5)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -266,6 +271,7 @@ test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a ge
     t.equal(packet.cmd, 'connack')
     t.equal(packet.returnCode, 0)
     t.equal(broker.connectedClients, 1)
+    t.equal(s.client.version, 4)
   })
   broker.on('connectionError', function (client, err) {
     t.error(err, 'no error')
@@ -277,7 +283,7 @@ test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a ge
 
 // [MQTT-3.1.3-7]
 test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
-  t.plan(4)
+  t.plan(5)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -296,6 +302,7 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
     t.equal(packet.cmd, 'connack')
     t.equal(packet.returnCode, 2, 'identifier rejected')
     t.equal(broker.connectedClients, 0)
+    t.equal(s.client.version, null)
   })
   broker.on('connectionError', function (client, err) {
     t.equal(err.message, 'identifier rejected')
@@ -303,7 +310,7 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
 })
 
 test('connect clients with > 23 clientId length using aedes maxClientsIdLength option in MQTT 3.1.0', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   const broker = aedes({ maxClientsIdLength: 26 })
   t.tearDown(broker.close.bind(broker))
@@ -322,6 +329,7 @@ test('connect clients with > 23 clientId length using aedes maxClientsIdLength o
     t.equal(packet.cmd, 'connack')
     t.equal(packet.returnCode, 0)
     t.equal(broker.connectedClients, 1)
+    t.equal(s.client.version, 3)
   })
   broker.on('connectionError', function (client, err) {
     t.error(err, 'no error')
@@ -329,7 +337,7 @@ test('connect clients with > 23 clientId length using aedes maxClientsIdLength o
 })
 
 test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
-  t.plan(3)
+  t.plan(4)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -348,6 +356,7 @@ test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
     t.equal(packet.cmd, 'connack')
     t.equal(packet.returnCode, 0)
     t.equal(broker.connectedClients, 1)
+    t.equal(s.client.version, 4)
   })
   broker.on('connectionError', function (client, err) {
     t.error(err, 'no error')
@@ -570,7 +579,7 @@ test('Test queue limit', function (t) {
   })
 })
 
-;[['fail with no error msg', 2, null, false], ['succeed with no error msg', 8, null, true], ['fail with error msg', 5, new Error('connection banned'), false], ['succeed with error msg', 5, new Error('connection banned'), true]].forEach(function (ele, idx) {
+;[['fail with no error msg', 3, null, false], ['succeed with no error msg', 9, null, true], ['fail with error msg', 6, new Error('connection banned'), false], ['succeed with error msg', 6, new Error('connection banned'), true]].forEach(function (ele, idx) {
   const title = ele[0]
   const plan = ele[1]
   const err = ele[2]
@@ -582,6 +591,7 @@ test('Test queue limit', function (t) {
       preConnect: function (client, done) {
         t.ok(client.connecting)
         t.notOk(client.connected)
+        t.equal(client.version, null)
         return done(err, ok)
       }
     })
