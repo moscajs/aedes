@@ -70,9 +70,9 @@
   "license": "MIT",
   "devDependencies": {
     "@sinonjs/fake-timers": "^6.0.0",
-    "@types/node": "^12.12.28",
-    "@typescript-eslint/eslint-plugin": "^2.21.0",
-    "@typescript-eslint/parser": "^2.21.0",
+    "@types/node": "^12.12.30",
+    "@typescript-eslint/eslint-plugin": "^2.24.0",
+    "@typescript-eslint/parser": "^2.24.0",
     "concat-stream": "^2.0.0",
     "duplexify": "^4.1.1",
     "license-checker": "^25.0.1",
@@ -81,28 +81,28 @@
     "mqtt-connection": "^4.0.0",
     "pre-commit": "^1.2.2",
     "snazzy": "^8.0.0",
-    "standard": "^14.3.1",
+    "standard": "^14.3.3",
     "tap": "^14.10.6",
-    "typescript": "^3.8.2",
-    "websocket-stream": "^5.5.0"
+    "typescript": "^3.8.3",
+    "websocket-stream": "^5.5.2"
   },
   "dependencies": {
     "aedes-packet": "^2.3.1",
-    "aedes-persistence": "^7.2.1",
+    "aedes-persistence": "^8.1.1",
     "aedes-protocol-decoder": "^1.0.0",
     "bulk-write-stream": "^2.0.1",
     "end-of-stream": "^1.4.4",
     "fastfall": "^1.5.1",
     "fastparallel": "^2.3.0",
-    "fastseries": "^1.7.2",
-    "mqemitter": "^4.1.1",
-    "mqtt-packet": "^6.3.1",
+    "fastseries": "^2.0.0",
+    "mqemitter": "^4.1.2",
+    "mqtt-packet": "^6.3.2",
     "proxy-protocol-js": "^4.0.4",
     "readable-stream": "^3.6.0",
     "retimer": "^2.0.0",
     "reusify": "^1.0.4",
     "shortid": "^2.2.15",
     "through2": "^3.0.1",
-    "uuid": "^7.0.0"
+    "uuid": "^7.0.2"
   }
 }
