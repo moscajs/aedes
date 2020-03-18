@@ -51,7 +51,7 @@ npm install aedes
 
 ## Features
 
-- Full compatible with MQTT 3.1 and 3.1.1
+- Full compatible with [MQTT 3.1 and 3.1.1][ISO20922]
 - Standard TCP Support
 - SSL / TLS
 - WebSocket Support
@@ -66,7 +66,7 @@ npm install aedes
 - Pluggable middlewares
 - [Dynamic Topics][dynamic_topics] Support
 - MQTT Bridge Support between aedes
-- MQTT 5.0 _(not support yet)_
+- [MQTT 5.0][mqttv5] _(not support yet)_
 - [Bridge Protocol][bridge_protocol] _(not support yet)_
 
 ## Examples
@@ -184,6 +184,8 @@ Become a sponsor to get your logo on our README on Github
 
 Licensed under [MIT](./LICENSE).
 
+[ISO20922]: https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html
+[mqttv5]: https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
 [bridge_protocol]: https://github.com/mqtt/mqtt.github.io/wiki/bridge_protocol
 [dynamic_topics]: https://github.com/mqtt/mqtt.github.io/wiki/are_topics_dynamic
 [mqtt-benchmark]: https://github.com/krylovsk/mqtt-benchmark
