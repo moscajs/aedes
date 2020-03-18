@@ -95,7 +95,7 @@ test('publish empty topic throws error', function (t) {
 })
 
 ;[{ qos: 0, clean: false }, { qos: 0, clean: true }, { qos: 1, clean: false }, { qos: 1, clean: true }].forEach(function (ele) {
-  test('subscribe QoS ' + ele.qos + ' [clean=' + ele.clean + ']', function (t) {
+  test('subscribe a single topic in QoS ' + ele.qos + ' [clean=' + ele.clean + ']', function (t) {
     t.plan(5)
 
     const s = connect(setup(), { clean: ele.clean })
@@ -130,36 +130,39 @@ test('publish empty topic throws error', function (t) {
   })
 })
 
-test('subscribe QoS 1 multipe topics [clean=false]', function (t) {
-  t.plan(5)
+;[{ qos: 0, clean: false }, { qos: 0, clean: true }, { qos: 1, clean: false }, { qos: 1, clean: true }].forEach(function (ele) {
+  test('subscribe multipe topics in QoS ' + ele.qos + ' [clean=' + ele.clean + ']', function (t) {
+    t.plan(5)
 
-  const s = connect(setup(), { clean: false })
-  t.tearDown(s.broker.close.bind(s.broker))
+    const s = connect(setup(), { clean: ele.clean })
+    t.tearDown(s.broker.close.bind(s.broker))
 
-  const expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    dup: false,
-    length: 12,
-    qos: 0,
-    retain: false
-  }
-  const subs = [{ topic: 'hello', qos: 1 }, { topic: 'world', qos: 1 }]
-
-  subscribeMultiple(t, s, subs, [1, 1], function () {
-    s.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet matches')
-    })
-
-    s.broker.persistence.subscriptionsByClient(s.client, function (_, saveSubs) {
-      t.deepEqual(saveSubs, subs)
-    })
-
-    s.broker.publish({
+    const expected = {
       cmd: 'publish',
       topic: 'hello',
-      payload: 'world'
+      payload: Buffer.from('world'),
+      dup: false,
+      length: 12,
+      qos: 0,
+      retain: false
+    }
+    const subs = [{ topic: 'hello', qos: ele.qos }, { topic: 'world', qos: ele.qos }]
+    const expectedSubs = ele.clean ? null : subs
+
+    subscribeMultiple(t, s, subs, [ele.qos, ele.qos], function () {
+      s.outStream.on('data', function (packet) {
+        t.deepEqual(packet, expected, 'packet matches')
+      })
+
+      s.broker.persistence.subscriptionsByClient(s.client, function (_, saveSubs) {
+        t.deepEqual(saveSubs, expectedSubs)
+      })
+
+      s.broker.publish({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'world'
+      })
     })
   })
 })
