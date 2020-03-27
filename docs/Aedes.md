@@ -70,7 +70,7 @@ a read-only flag indicates if server is closed or not.
 
 - `client` [`<Client>`](./Client.md)
 
-Emitted when the `client` registers itself to server. The `client` in not ready yet. Its [`connecting`](./Client.md##clientconnecting) state equals to `true`.
+Emitted when the `client` registers itself to server. The `client` is not ready yet. Its [`connecting`](./Client.md##clientconnecting) state equals to `true`.
 
 Server publishes a SYS topic `$SYS/<aedes.id>/new/clients` to inform it registers the client into its registration pool. `client.id` is the payload.
 
