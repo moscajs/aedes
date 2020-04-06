@@ -27,6 +27,7 @@ const defaultOptions = {
   authorizeForward: defaultAuthorizeForward,
   published: defaultPublished,
   trustProxy: false,
+  sharedTopics: false,
   trustedProxies: [],
   queueLimit: 42,
   maxClientsIdLength: 23
@@ -74,6 +75,8 @@ function Aedes (opts) {
   this.decodeProtocol = opts.decodeProtocol
   this.trustProxy = opts.trustProxy
   this.trustedProxies = opts.trustedProxies
+
+  this.sharedTopics = opts.sharedTopics
 
   this.clients = {}
   this.brokers = {}
