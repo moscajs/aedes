@@ -369,6 +369,8 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
 }
 ```
 
+__ATTENTION__: When a subscription is negated, your client will receive back a SubAck with `qos: 128` that means `Failure` and your client will never receive packets published to that topic.
+
 ## Handler: authorizeForward (client, packet)
 
 - client: [`<Client>`](./Client.md)
