@@ -138,7 +138,7 @@ Emitted when `client` sends a `PINGREQ`.
 
 Emitted when `client` successfully subscribe the `subscriptions` in server.
 
-`subscriptions` are an array of `{ topic: topic, qos: qos }`
+`subscriptions` is an array of `{ topic: topic, qos: qos }`. The array excludes duplicated topics and includes negated subscriptions where `qos` equals to `128`. See more on [authorizeSubscribe](#handler-authorizesubscribe-client-subscription-callback)
 
 ## Event: unsubscribe
 
@@ -360,7 +360,7 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
 }
 ```
 
-To negate a subscription, set the subscription to `null`:
+To negate a subscription, set the subscription to `null`. Aedes ignores the negated subscription and the `qos` in `SubAck` is set to `128` based on [MQTT 3.11 spec](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html#_Toc385349323):
 
 ```js
 aedes.authorizeSubscribe = function (client, sub, callback) {

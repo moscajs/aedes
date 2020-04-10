@@ -714,7 +714,7 @@ test('get message when client disconnects', function (t) {
 })
 
 test('should not receive a message on negated subscription', function (t) {
-  t.plan(2)
+  t.plan(4)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -731,13 +731,22 @@ test('should not receive a message on negated subscription', function (t) {
       retain: true
     }, function (err) {
       t.error(err, 'no error')
-      client.subscribe({
+      client.subscribe([{
         topic: 'hello',
         qos: 0
-      }, function (err) {
+      },
+      {
+        topic: 'hello',
+        qos: 0
+      }], function (err) {
         t.error(err, 'no error')
       })
     })
+  })
+
+  broker.on('subscribe', function (subs) {
+    t.pass(subs.length, 1, 'Should dedupe subs')
+    t.pass(subs[0].qos, 128, 'Qos should be 128 (Fail)')
   })
 
   const s = connect(setup(broker))
