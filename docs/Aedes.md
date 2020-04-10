@@ -138,7 +138,7 @@ Emitted when `client` sends a `PINGREQ`.
 
 Emitted when `client` successfully subscribe the `subscriptions` in server.
 
-`subscriptions` is an array of `{ topic: topic, qos: qos }`. The array excludes deduplicated topics and includes negated subscriptions where `qos` eqausl to `128`. See more on [authorizeSubscribe](#handler-authorizesubscribe-client-subscription-callback)
+`subscriptions` is an array of `{ topic: topic, qos: qos }`. The array excludes duplicated topics and includes negated subscriptions where `qos` eqausl to `128`. See more on [authorizeSubscribe](#handler-authorizesubscribe-client-subscription-callback)
 
 ## Event: unsubscribe
 
