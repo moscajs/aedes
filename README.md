@@ -63,7 +63,7 @@ npm install aedes
 - Backpress-support API
 - High Availability
 - Clusterable
-- Authenticaion and Authorization
+- Authentication and Authorization
 - `$SYS` support
 - Pluggable middlewares
 - [Dynamic Topics][dynamic_topics] Support
