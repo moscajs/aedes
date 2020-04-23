@@ -2,7 +2,7 @@
 
 const duplexify = require('duplexify')
 const mqtt = require('mqtt-connection')
-const through = require('through2')
+const { through } = require('../lib/utils')
 const util = require('util')
 const aedes = require('../')
 
@@ -28,7 +28,7 @@ function setup (broker) {
 
 function connect (s, opts, connected) {
   s = Object.create(s)
-  s.outStream = s.outStream.pipe(through.obj(filter))
+  s.outStream = s.outStream.pipe(through(filter))
 
   opts = opts || {}
 

@@ -1,7 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
-const through = require('through2')
+const { through } = require('../lib/utils')
 const Faketimers = require('@sinonjs/fake-timers')
 const { setup, connect, subscribe, noError } = require('./helper')
 const aedes = require('../')
@@ -302,7 +302,7 @@ test('broker not store zero-byte retained messages', function (t) {
       return
     }
     const stream = s.broker.persistence.createRetainedStream(packet.topic)
-    stream.pipe(through.obj(function sendRetained (packet, enc, cb) {
+    stream.pipe(through(function sendRetained (packet, enc, cb) {
       t.fail('not store zero-byte retained messages')
     }))
   })
