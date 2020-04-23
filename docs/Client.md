@@ -10,12 +10,14 @@
   - [client.closed](#clientclosed)
   - [client.id](#clientid)
   - [client.clean](#clientclean)
+  - [client.version](#clientversion)
   - [Event: connected](#event-connected)
   - [Event: error](#event-error)
   - [client.publish (packet, [callback])](#clientpublish-packet-callback)
   - [client.subscribe (subscriptions, [callback])](#clientsubscribe-subscriptions-callback)
   - [client.unsubscribe (unsubscriptions, [callback])](#clientunsubscribe-unsubscriptions-callback)
   - [client.close ([callback])](#clientclose-callback)
+  - [client.emptyOutgoingQueue ([callback])](#clientemptyoutgoingqueue-callback)
 
 ## new Client(aedes, stream, request)
 
@@ -139,6 +141,12 @@ Unsubscribe client to the list of topics.
 Disconnect client
 
 `callback` will be invoked when client is closed.
+
+## client.emptyOutgoingQueue ([callback])
+
+Clear all outgoing messages (QoS > 1) related to this client from persistence
+
+`callback` will be invoked when the operation ends.
 
 [PUBLISH]: https://github.com/mqttjs/mqtt-packet#publish
 [SUBSCRIBE]: https://github.com/mqttjs/mqtt-packet#subscribe
