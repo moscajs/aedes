@@ -91,6 +91,7 @@ declare namespace aedes {
     ): void
     unsubscribe (topicObjects: Subscriptions | Subscription | Subscription[] | UnsubscribePacket, callback?: (error?: Error) => void): void
     close (callback?: () => void): void
+    emptyOutgoingQueue (callback?: () => void): void
   }
 
   interface Aedes extends EventEmitter {

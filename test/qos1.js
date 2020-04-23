@@ -128,6 +128,72 @@ test('publish QoS 1 and check offline queue', function (t) {
   })
 })
 
+test('publish QoS 1 and empty offline queue', function (t) {
+  t.plan(13)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const publisher = connect(setup(broker), { clean: false })
+  const subscriberClient = {
+    id: 'abcde'
+  }
+  const subscriber = connect(setup(broker), { clean: false, clientId: subscriberClient.id })
+  var expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    qos: 1,
+    dup: false,
+    retain: false
+  }
+  const expectedAck = {
+    cmd: 'puback',
+    retain: false,
+    qos: 0,
+    dup: false,
+    length: 2,
+    messageId: 10
+  }
+  var sent = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 1,
+    messageId: 10,
+    retain: false,
+    dup: false
+  }
+  var queue = []
+  subscribe(t, subscriber, 'hello', 1, function () {
+    publisher.outStream.on('data', function (packet) {
+      t.deepEqual(packet, expectedAck, 'ack packet must patch')
+    })
+    subscriber.outStream.on('data', function (packet) {
+      queue.push(packet)
+      delete packet.payload
+      delete packet.length
+      t.notEqual(packet.messageId, undefined, 'messageId is assigned a value')
+      t.notEqual(packet.messageId, 10, 'messageId should be unique')
+      expected.messageId = packet.messageId
+      t.deepEqual(packet, expected, 'publish packet must patch')
+      if (queue.length === 2) {
+        setImmediate(() => {
+          broker.clients[subscriberClient.id].emptyOutgoingQueue(function () {
+            for (var i = 0; i < queue.length; i++) {
+              broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
+                t.equal(!!origPacket, false, 'Packet has been removed')
+              })
+            }
+          })
+        })
+      }
+    })
+    publisher.inStream.write(sent)
+    sent.payload = 'world2world'
+    publisher.inStream.write(sent)
+  })
+})
+
 test('subscribe QoS 1', function (t) {
   t.plan(5)
 
