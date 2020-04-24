@@ -35,9 +35,9 @@
 ## new Aedes([options]) / new Aedes.Server([options])
 
 - options `<object>`
-  - `mq` [`<MQEmitter>`](../README.md#mqemitter) a middleware helps to deliver messages to subscribed clients. __Default__: `mqemitter`
+  - `mq` [`<MQEmitter>`](../README.md#mqemitter) middleware used to deliver messages to subscribed clients. In a cluster environment it is used also to share messages between brokers instances. __Default__: `mqemitter`
   - `concurrency` `<number>` maximum number of concurrent messages delivered by `mq`. __Default__: `100`
-  - `persistence` [`<Persistence>`](../README.md#persistence) a middleware stores _QoS > 0, retained, will_ packets and subscriptions. __Default__: `aedes-persistence`
+  - `persistence` [`<Persistence>`](../README.md#persistence) middleware that stores _QoS > 0, retained, will_ packets and _subscriptions_. __Default__: `aedes-persistence` (_in memory_)
   - `queueLimit` `<number>` maximum number of queued messages before client session is established. If number of queued items exceeds, `connectionError` throws an error `Client queue limit reached`. __Default__: `42`
   - `maxClientsIdLength` option to override MQTT 3.1.0 clients Id length limit. __Default__: `23`
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
