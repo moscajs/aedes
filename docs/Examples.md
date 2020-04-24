@@ -57,7 +57,7 @@ In order to use Aedes in clusters you have to choose a persistence and an mqemit
 - [aedes-persistence-mongodb]
 - [aedes-persistence-redis]
 
-[This](https://github.com/moscajs/aedes/blob/master/examples/clusters/index.js) is an example using [mqemitter-child-process] and [aedes-persistence-mongodb]
+[This](https://github.com/moscajs/aedes/blob/master/examples/clusters/index.js) is an example using [mqemitter-mongodb] and [aedes-persistence-mongodb]
 
 [aedes-persistence-mongodb]: https://www.npmjs.com/aedes-persistence-mongodb
 [aedes-persistence-redis]: https://www.npmjs.com/aedes-persistence-redis
