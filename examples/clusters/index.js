@@ -1,15 +1,19 @@
 const cluster = require('cluster')
-const mqemitter = require('mqemitter-child-process')
+const mqemitter = require('mqemitter-mongodb')
 const mongoPersistence = require('aedes-persistence-mongodb')
 
+const MONGO_URL = 'mongodb://127.0.0.1/aedes-clusters'
+
 function startAedes () {
-  const client = mqemitter.child()
   const port = 1883
 
   const aedes = require('aedes')({
-    mq: client,
+    id: 'BROKER_' + cluster.worker.id,
+    mq: mqemitter({
+      url: MONGO_URL
+    }),
     persistence: mongoPersistence({
-      url: 'mongodb://127.0.0.1/aedes-test',
+      url: MONGO_URL,
       // Optional ttl settings
       ttl: {
         packets: 300, // Number of seconds
@@ -52,14 +56,10 @@ function startAedes () {
 }
 
 if (cluster.isMaster) {
-  mqemitter.start((err) => {
-    if (err) throw err
-
-    const numWorkers = require('os').cpus().length
-    for (let i = 0; i < numWorkers; i++) {
-      cluster.fork()
-    }
-  })
+  const numWorkers = require('os').cpus().length
+  for (let i = 0; i < numWorkers; i++) {
+    cluster.fork()
+  }
 
   cluster.on('online', function (worker) {
     console.log('Worker ' + worker.process.pid + ' is online')
