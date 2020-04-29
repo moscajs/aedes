@@ -97,8 +97,10 @@ test('do not block after a subscription', function (t) {
         port: port,
         keepalive: 0
       }).on('error', function (err) {
-        clock.clearTimeout(clockId)
-        t.fail(err)
+        if (err.code !== 'ECONNRESET') {
+          clock.clearTimeout(clockId)
+          t.fail(err)
+        }
       })
 
       subscriber.subscribe('test', publish)
@@ -172,8 +174,10 @@ test('do not block with overlapping subscription', function (t) {
         port: port,
         keepalive: 0
       }).on('error', function (err) {
-        clock.clearTimeout(clockId)
-        t.fail(err)
+        if (err.code !== 'ECONNRESET') {
+          clock.clearTimeout(clockId)
+          t.fail(err)
+        }
       })
 
       subscriber.subscribe('#', function () {
