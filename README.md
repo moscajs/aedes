@@ -30,6 +30,10 @@ Barebone MQTT server that can run on any stream servers
   - [Acknowledgements](#acknowledgements)
   - [Mosca vs Aedes](#mosca-vs-aedes)
     - [Benchmark: Aedes](#benchmark-aedes)
+      - [In memory - No clusters](#in-memory---no-clusters)
+      - [Redis - With Clusters](#redis---with-clusters)
+      - [Mongo Persistence and Redis Emitter - With Clusters](#mongo-persistence-and-redis-emitter---with-clusters)
+    - [Redis Persistence with Mongodb Emitter - With Clusters](#redis-persistence-with-mongodb-emitter---with-clusters)
     - [Benchmark: Mosca](#benchmark-mosca)
   - [Made with Aedes](#made-with-aedes)
   - [Collaborators](#collaborators)
@@ -118,7 +122,37 @@ Example benchmark test with 1000 clients sending 5000 QoS 1 messsages. Used
 mqtt-benchmark --broker tcp://localhost:1883 --clients 1000 --qos 1 --count 5000
 ```
 
+CPU INFO:
+
+```sh
+Architecture:        x86_64
+CPU op-mode(s):      32-bit, 64-bit
+Byte Order:          Little Endian
+CPU(s):              8
+On-line CPU(s) list: 0-7
+Thread(s) per core:  2
+Core(s) per socket:  4
+Socket(s):           1
+NUMA node(s):        1
+Vendor ID:           GenuineIntel
+CPU family:          6
+Model:               94
+Model name:          Intel(R) Core(TM) i7-6700HQ CPU @ 2.60GHz
+Stepping:            3
+CPU MHz:             800.014
+CPU max MHz:         3500,0000
+CPU min MHz:         800,0000
+BogoMIPS:            5199.98
+Virtualization:      VT-x
+L1d cache:           32K
+L1i cache:           32K
+L2 cache:            256K
+L3 cache:            6144K
+```
+
 ### Benchmark: Aedes
+
+#### In memory - No clusters
 
 ```sh
 ========= TOTAL (1000) =========
@@ -131,6 +165,51 @@ Msg time mean mean (ms):     35.403
 Msg time mean std (ms):      0.042
 Average Bandwidth (msg/sec): 28.115
 Total Bandwidth (msg/sec):   28114.678
+```
+
+#### Redis - With Clusters
+
+```sh
+========= TOTAL (1000) =========
+Total Ratio:                 1.000 (5000000/5000000)
+Total Runtime (sec):         114.404
+Average Runtime (sec):       109.022
+Msg time min (ms):           0.065
+Msg time max (ms):           393.214
+Msg time mean mean (ms):     21.520
+Msg time mean std (ms):      0.595
+Average Bandwidth (msg/sec): 45.896
+Total Bandwidth (msg/sec):   45896.306
+```
+
+#### Mongo Persistence and Redis Emitter - With Clusters
+
+```sh
+========= TOTAL (1000) =========
+Total Ratio:                 1.000 (5000000/5000000)
+Total Runtime (sec):         112.769
+Average Runtime (sec):       105.524
+Msg time min (ms):           0.062
+Msg time max (ms):           329.062
+Msg time mean mean (ms):     20.750
+Msg time mean std (ms):      0.878
+Average Bandwidth (msg/sec): 47.464
+Total Bandwidth (msg/sec):   47464.271
+```
+
+### Redis Persistence with Mongodb Emitter - With Clusters
+
+```sh
+========= TOTAL (1000) =========
+Total Ratio:                 1.000 (5000000/5000000)
+Total Runtime (sec):         118.587
+Average Runtime (sec):       114.190
+Msg time min (ms):           0.080
+Msg time max (ms):           324.028
+Msg time mean mean (ms):     22.558
+Msg time mean std (ms):      0.730
+Average Bandwidth (msg/sec): 43.832
+Total Bandwidth (msg/sec):   43831.927
 ```
 
 ### Benchmark: [Mosca](http://www.npmjs.com/mosca)
