@@ -31,9 +31,9 @@ Barebone MQTT server that can run on any stream servers
   - [Mosca vs Aedes](#mosca-vs-aedes)
     - [Benchmark: Aedes](#benchmark-aedes)
       - [In memory - No clusters](#in-memory---no-clusters)
-      - [Redis - With Clusters](#redis---with-clusters)
+      - [Redis Persistence and Redis Emitter - With Clusters](#redis-persistence-and-redis-emitter---with-clusters)
       - [Mongo Persistence and Redis Emitter - With Clusters](#mongo-persistence-and-redis-emitter---with-clusters)
-    - [Redis Persistence with Mongodb Emitter - With Clusters](#redis-persistence-with-mongodb-emitter---with-clusters)
+    - [Redis Persistence and Mongodb Emitter - With Clusters](#redis-persistence-and-mongodb-emitter---with-clusters)
     - [Benchmark: Mosca](#benchmark-mosca)
   - [Made with Aedes](#made-with-aedes)
   - [Collaborators](#collaborators)
@@ -167,7 +167,7 @@ Average Bandwidth (msg/sec): 28.115
 Total Bandwidth (msg/sec):   28114.678
 ```
 
-#### Redis - With Clusters
+#### Redis Persistence and Redis Emitter - With Clusters
 
 ```sh
 ========= TOTAL (1000) =========
@@ -197,7 +197,7 @@ Average Bandwidth (msg/sec): 47.464
 Total Bandwidth (msg/sec):   47464.271
 ```
 
-### Redis Persistence with Mongodb Emitter - With Clusters
+### Redis Persistence and Mongodb Emitter - With Clusters
 
 ```sh
 ========= TOTAL (1000) =========
