@@ -514,6 +514,36 @@ test('unsubscribe a client', function (t) {
   connect(setup(broker))
 })
 
+test('unsubscribe should not call removeSubscriptions when [clean=true]', function (t) {
+  t.plan(2)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.persistence.removeSubscriptions = function (client, subs, cb) {
+    cb(Error('remove subscription is called'))
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+      client.unsubscribe({
+        unsubscriptions: [{
+          topic: 'hello',
+          qos: 1
+        }],
+        messageId: 42
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+  connect(setup(broker), { clean: true })
+})
+
 test('unsubscribe throws error', function (t) {
   t.plan(2)
 
