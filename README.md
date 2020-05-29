@@ -5,7 +5,8 @@
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/moscajs/aedes/graphs/commit-activity)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/moscajs/aedes/pulls)\
-![LGTM Grade](https://img.shields.io/lgtm/grade/javascript/github/moscajs/aedes)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/moscajs/aedes.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/moscajs/aedes/alerts/)
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/moscajs/aedes.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/moscajs/aedes/context:javascript)
 [![Coverage Status](https://coveralls.io/repos/moscajs/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/moscajs/aedes?branch=master)
 [![Known Vulnerabilities](https://snyk.io/test/github/moscajs/aedes/badge.svg)](https://snyk.io/test/github/moscajs/aedes)\
 [![Dependencies Status](https://david-dm.org/moscajs/aedes/status.svg)](https://david-dm.org/moscajs/aedes)
