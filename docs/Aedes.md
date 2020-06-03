@@ -313,7 +313,7 @@ Invoked when
 1. publish LWT to all online clients
 2. incoming client publish
 
-If invoked `callback` with no errors, server authorizes the packet otherwise emits `clientError` with `error`.
+If invoked `callback` with no errors, server authorizes the packet otherwise emits `clientError` with `error`. If an `error` occurs the client connection will be closed, but no error is returned to the client (MQTT-3.3.5-2)
 
 ```js
 aedes.authorizePublish = function (client, packet, callback) {

@@ -4,6 +4,7 @@ const { test } = require('tap')
 const eos = require('end-of-stream')
 const { setup, connect, subscribe, subscribeMultiple, noError } = require('./helper')
 const aedes = require('../')
+const proxyquire = require('proxyquire')
 
 test('test aedes.Server', function (t) {
   t.plan(1)
@@ -128,6 +129,31 @@ test('publish empty topic throws error', function (t) {
       })
     })
   })
+})
+
+// Catch invalid packet writeToStream errors
+test('catch write errors', function (t) {
+  t.plan(1)
+
+  const write = proxyquire('../lib/write.js', {
+    'mqtt-packet': {
+      writeToStream: () => {
+        throw Error('error')
+      }
+    }
+  })
+
+  var client = {
+    conn: {
+      writable: true
+    },
+    connecting: true,
+    _onError: (err) => {
+      t.equal(err.message, 'packet received not valid', 'should catch the error')
+    }
+  }
+
+  write(client, {})
 })
 
 ;[{ qos: 0, clean: false }, { qos: 0, clean: true }, { qos: 1, clean: false }, { qos: 1, clean: true }].forEach(function (ele) {
