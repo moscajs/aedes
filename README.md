@@ -234,6 +234,7 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 
 - [node-red-contrib-aedes](https://github.com/martin-doyle/node-red-contrib-aedes): MQTT broker for Node-Red based on Aedes
 - [Mqtt2Mqtt](https://github.com/robertsLando/Mqtt2Mqtt): Mqtt Bridge between two brokers with UI
+- [Kuzzle](https://github.com/kuzzleio/kuzzle): High performance and full featured IoT backend using MQTT alongside WebSocket and Http protocols
 
 ## Collaborators
 
