@@ -84,6 +84,7 @@ npm install aedes
 
 - [aedes-logging]: Logging module for Aedes, based on Pino
 - [aedes-stats]: Stats for Aedes
+- [aedes-cli]: Run Aedes MQTT Broker from the CLI
 - [aedes-protocol-decoder]: Protocol decoder for Aedes MQTT Broker
 
 ## Middleware Plugins
@@ -275,6 +276,7 @@ Licensed under [MIT](./LICENSE).
 
 [aedes-logging]: https://www.npmjs.com/aedes-logging
 [aedes-stats]: https://www.npmjs.com/aedes-stats
+[aedes-cli]: https://www.npmjs.com/aedes-cli
 [aedes-protocol-decoder]: https://www.npmjs.com/aedes-protocol-decoder
 [aedes-persistence]: https://www.npmjs.com/aedes-persistence
 [aedes-persistence-mongodb]: https://www.npmjs.com/aedes-persistence-mongodb
