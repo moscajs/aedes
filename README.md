@@ -21,6 +21,7 @@ Barebone MQTT server that can run on any stream servers
 
 - [Aedes](#aedes)
   - [Install](#install)
+  - [Docker](#docker)
   - [API](#api)
   - [Features](#features)
   - [Examples](#examples)
@@ -50,6 +51,10 @@ To install aedes, simply use npm:
 ```sh
 npm install aedes
 ```
+
+## Docker
+
+Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
 
 ## API
 
