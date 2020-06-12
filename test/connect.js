@@ -290,6 +290,13 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
 
   const s = setup(broker)
 
+  var end = s.client.conn.end
+
+  s.client.conn.end = function () {
+    t.fail('should not call `conn.end()`')
+    end()
+  }
+
   s.inStream.write({
     cmd: 'connect',
     protocolId: 'MQIsdp',
