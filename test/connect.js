@@ -290,9 +290,10 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
 
   const s = setup(broker)
 
-  var end = s.client.conn.end
+  var conn = s.client.conn
+  var end = conn.end
 
-  s.client.conn.end = function () {
+  conn.end = function () {
     t.fail('should not call `conn.end()`')
     end()
   }
@@ -301,7 +302,7 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
     t.pass('should empty connection request queue')
   }
 
-  s.client.conn._writableState.getBuffer = () => [{ callback: drain }, { callback: drain }]
+  conn._writableState.getBuffer = () => [{ callback: drain }, { callback: drain }]
 
   s.inStream.write({
     cmd: 'connect',
