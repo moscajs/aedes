@@ -283,12 +283,26 @@ test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a ge
 
 // [MQTT-3.1.3-7]
 test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
-  t.plan(5)
+  t.plan(7)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
   const s = setup(broker)
+
+  var conn = s.client.conn
+  var end = conn.end
+
+  conn.end = function () {
+    t.fail('should not call `conn.end()`')
+    end()
+  }
+
+  function drain () {
+    t.pass('should empty connection request queue')
+  }
+
+  conn._writableState.getBuffer = () => [{ callback: drain }, { callback: drain }]
 
   s.inStream.write({
     cmd: 'connect',
