@@ -147,13 +147,12 @@ test('catch write errors', function (t) {
     conn: {
       writable: true
     },
-    connecting: true,
-    _onError: (err) => {
-      t.equal(err.message, 'packet received not valid', 'should catch the error')
-    }
+    connecting: true
   }
 
-  write(client, {})
+  write(client, {}, function (err) {
+    t.equal(err.message, 'packet received not valid', 'should catch the error')
+  })
 })
 
 ;[{ qos: 0, clean: false }, { qos: 0, clean: true }, { qos: 1, clean: false }, { qos: 1, clean: true }].forEach(function (ele) {
