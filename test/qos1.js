@@ -56,6 +56,30 @@ test('publish QoS 1 throws error', function (t) {
   })
 })
 
+test('publish QoS 1 throws error on write', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.on('client', function (client) {
+    client.connected = false
+    client.connecting = false
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42
+    })
+  })
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'connection closed', 'throws error')
+  })
+})
+
 test('publish QoS 1 and check offline queue', function (t) {
   t.plan(13)
 

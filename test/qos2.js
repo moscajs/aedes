@@ -119,6 +119,30 @@ test('subscribe QoS 2', function (t) {
   })
 })
 
+test('publish QoS 2 throws error on write', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.on('client', function (client) {
+    client.connected = false
+    client.connecting = false
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 2,
+      messageId: 42
+    })
+  })
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'connection closed', 'throws error')
+  })
+})
+
 test('client.publish with clean=true subscribption QoS 2', function (t) {
   t.plan(8)
 
