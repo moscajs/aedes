@@ -132,7 +132,7 @@ test('publish empty topic throws error', function (t) {
 })
 
 // Catch invalid packet writeToStream errors
-test('catch write errors', function (t) {
+test('return write errors to callback', function (t) {
   t.plan(1)
 
   const write = proxyquire('../lib/write.js', {
@@ -151,7 +151,7 @@ test('catch write errors', function (t) {
   }
 
   write(client, {}, function (err) {
-    t.equal(err.message, 'packet received not valid', 'should catch the error')
+    t.equal(err.message, 'packet received not valid', 'should return the error to callback')
   })
 })
 
