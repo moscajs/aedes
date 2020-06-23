@@ -41,6 +41,7 @@
   - `queueLimit` `<number>` maximum number of queued messages before client session is established. If number of queued items exceeds, `connectionError` throws an error `Client queue limit reached`. __Default__: `42`
   - `maxClientsIdLength` option to override MQTT 3.1.0 clients Id length limit. __Default__: `23`
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
+  - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
 - Returns `<Aedes>`
 

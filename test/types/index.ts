@@ -8,6 +8,7 @@ const broker = Server({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
+  id: 'aedes',
   preConnect: (client: Client, callback) => {
     if (client.req) {
       callback(new Error('not websocket stream'), false)
