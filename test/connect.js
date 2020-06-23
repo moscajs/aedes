@@ -433,6 +433,26 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
   })
 })
 
+test('connect handler calls done when preConnect throws error', function (t) {
+  t.plan(1)
+
+  const broker = aedes({
+    preConnect: function (client, done) {
+      done(Error('error in preconnect'))
+    }
+  })
+
+  t.tearDown(broker.close.bind(broker))
+
+  const s = setup(broker)
+
+  var handleConnect = require('../lib/handlers/connect')
+
+  handleConnect(s.client, {}, function done (err) {
+    t.equal(err.message, 'error in preconnect', 'calls done with error')
+  })
+})
+
 test('reject second CONNECT Packet sent while first CONNECT still in preConnect stage', function (t) {
   t.plan(2)
 
