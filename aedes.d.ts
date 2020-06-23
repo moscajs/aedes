@@ -58,6 +58,7 @@ declare namespace aedes {
 
   interface AedesOptions {
     mq?: any
+    id?: string
     persistence?: any
     concurrency?: number
     heartbeatInterval?: number
