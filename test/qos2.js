@@ -618,3 +618,37 @@ test('multiple publish and store one', function (t) {
     })
   })
 })
+
+test('packet is written to stream after being stored', function (t) {
+  const s = connect(setup())
+
+  var broker = s.broker
+
+  t.tearDown(broker.close.bind(s.broker))
+
+  var packetStored = false
+
+  var fn = broker.persistence.incomingStorePacket.bind(broker.persistence)
+
+  s.broker.persistence.incomingStorePacket = function (client, packet, done) {
+    packetStored = true
+    t.pass('packet stored')
+    fn(client, packet, done)
+  }
+
+  const packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 2,
+    messageId: 42
+  }
+
+  publish(t, s, packet)
+
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'pubrec', 'pubrec received')
+    t.equal(packetStored, true, 'after packet store')
+    t.end()
+  })
+})
