@@ -648,7 +648,7 @@ test('packet is written to stream after being stored', function (t) {
 
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'pubrec', 'pubrec received')
-    t.equal(packetStored, true, 'after being stored stored')
+    t.equal(packetStored, true, 'after packet store')
     t.end()
   })
 })
