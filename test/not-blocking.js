@@ -88,9 +88,7 @@ test('do not block after a subscription', function (t) {
     }
 
     function publish () {
-      if (sent === total) {
-        publisher.end()
-      } else {
+      if (sent !== total) {
         sent++
         publisher.publish('test', 'payload', immediatePublish)
       }
@@ -168,9 +166,7 @@ test('do not block with overlapping subscription', function (t) {
     }
 
     function publish () {
-      if (sent === total) {
-        publisher.end()
-      } else {
+      if (sent !== total) {
         sent++
         publisher.publish('test', 'payload', immediatePublish)
       }
