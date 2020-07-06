@@ -137,9 +137,6 @@ test('multiple clients subscribe same topic, and all clients still receive messa
   const server = require('net').createServer(broker.handle)
   const port = 1883
   server.listen(port)
-  broker.on('clientError', function (client, err) {
-    t.error(err)
-  })
 
   var client1, client2
   const _sameTopic = 'hello'
