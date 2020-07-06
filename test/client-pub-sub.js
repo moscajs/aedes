@@ -457,7 +457,7 @@ test('subscribe throws error when QoS > 0', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  broker.on('client', function (client) {
+  broker.on('clientReady', function (client) {
     client.subscribe({
       topic: 'hello',
       qos: 1
@@ -478,7 +478,7 @@ test('subscribe throws error when QoS > 0', function (t) {
     })
   })
 
-  broker.once('clientError', function (client, error) {
+  broker.on('clientError', function (client, error) {
     t.equal(error.message, 'connection closed', 'should throw clientError')
   })
 
