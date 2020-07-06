@@ -451,6 +451,40 @@ test('subscribe a client programmatically', function (t) {
   })
 })
 
+test('subscribe throws error when QoS > 0', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+
+      // makes writeQos throw error
+      client.connected = false
+      client.connecting = false
+
+      broker.publish({
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 1
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  broker.once('clientError', function (client, error) {
+    t.equal(error.message, 'connection closed', 'should throw clientError')
+  })
+
+  connect(setup(broker))
+})
+
 test('subscribe a client programmatically - wildcard', function (t) {
   t.plan(3)
 
@@ -902,7 +936,7 @@ test('custom function in broker.unsubscribe', function (t) {
     }
   })
   function deliver (packet, cb) {
-    t.fail('shoudl not be called')
+    t.fail('should not be called')
     cb()
   }
 })
