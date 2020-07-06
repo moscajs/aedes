@@ -152,7 +152,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
 
   client1.subscribe(_sameTopic, { qos: 0, retain: false }, () => {
     t.pass('client1 sub callback')
-    // stimulate closed socket by users
+    // simulate closed socket by users
     client1.stream.destroy()
 
     // client 2
@@ -166,6 +166,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
 
       // pubClient
       const pubClient = mqtt.connect('mqtt://localhost', { clientId: 'pubClient' })
+
       pubClient.publish(_sameTopic, 'world', { qos: 0, retain: false }, () => {
         t.pass('pubClient publish event')
         pubClient.end()
