@@ -7,6 +7,58 @@ const mqtt = require('mqtt')
 const { setup, connect, delay, noError } = require('./helper')
 const aedes = require('../')
 
+test('reject second CONNECT Packet sent while first CONNECT still in preConnect stage', function (t) {
+  t.plan(2)
+
+  const packet1 = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-1',
+    keepalive: 0
+  }
+  const packet2 = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-2',
+    keepalive: 0
+  }
+
+  var i = 0
+  const broker = aedes({
+    preConnect: function (client, done) {
+      var ms = i++ === 0 ? 2000 : 500
+      setTimeout(function () {
+        done(null, true)
+      }, ms)
+    }
+  })
+  t.tearDown(broker.close.bind(broker))
+
+  const s = setup(broker)
+
+  broker.on('clientError', function (client, err) {
+    t.equal(err.info.clientId, 'my-client-2')
+    t.equal(err.message, 'Invalid protocol')
+  })
+
+  const msg = async (s, ms, msg) => {
+    await delay(ms)
+    s.inStream.write(msg)
+  }
+
+  ;(async () => {
+    await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
+  })().catch(
+    (error) => {
+      t.fail(error)
+    }
+  )
+})
+
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
     t.plan(2)
@@ -467,58 +519,6 @@ test('handler calls done when disconnect or unknown packet cmd is received', fun
   handle(s.client, { cmd: 'fsfadgragae' }, function done () {
     t.pass('calls done when unknown cmd is received')
   })
-})
-
-test('reject second CONNECT Packet sent while first CONNECT still in preConnect stage', function (t) {
-  t.plan(2)
-
-  const packet1 = {
-    cmd: 'connect',
-    protocolId: 'MQTT',
-    protocolVersion: 4,
-    clean: true,
-    clientId: 'my-client-1',
-    keepalive: 0
-  }
-  const packet2 = {
-    cmd: 'connect',
-    protocolId: 'MQTT',
-    protocolVersion: 4,
-    clean: true,
-    clientId: 'my-client-2',
-    keepalive: 0
-  }
-
-  var i = 0
-  const broker = aedes({
-    preConnect: function (client, done) {
-      var ms = i++ === 0 ? 2000 : 500
-      setTimeout(function () {
-        done(null, true)
-      }, ms)
-    }
-  })
-  t.tearDown(broker.close.bind(broker))
-
-  const s = setup(broker)
-
-  broker.on('connectionError', function (client, err) {
-    t.equal(err.info.clientId, 'my-client-2')
-    t.equal(err.message, 'Invalid protocol')
-  })
-
-  const msg = async (s, ms, msg) => {
-    await delay(ms)
-    s.inStream.write(msg)
-  }
-
-  ;(async () => {
-    await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
-  })().catch(
-    (error) => {
-      t.fail(error)
-    }
-  )
 })
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet

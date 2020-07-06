@@ -5,6 +5,7 @@ const mqtt = require('mqtt')
 const net = require('net')
 const Faketimers = require('@sinonjs/fake-timers')
 const aedes = require('../')
+const { noError } = require('./helper')
 
 test('connect 200 concurrent clients', function (t) {
   t.plan(3)
@@ -59,6 +60,8 @@ test('do not block after a subscription', function (t) {
   var sent = 0
   var received = 0
 
+  noError({ broker })
+
   server.listen(0, function (err) {
     t.error(err, 'no error')
 
@@ -71,7 +74,8 @@ test('do not block after a subscription', function (t) {
 
     const publisher = mqtt.connect({
       port: port,
-      keepalive: 0
+      keepalive: 0,
+      clientId: 'publisher'
     }).on('error', function (err) {
       clock.clearTimeout(clockId)
       t.fail(err)
@@ -95,7 +99,8 @@ test('do not block after a subscription', function (t) {
     function startSubscriber () {
       subscriber = mqtt.connect({
         port: port,
-        keepalive: 0
+        keepalive: 0,
+        clientId: 'subscriber'
       }).on('error', function (err) {
         if (err.code !== 'ECONNRESET') {
           clock.clearTimeout(clockId)
@@ -135,6 +140,8 @@ test('do not block with overlapping subscription', function (t) {
   const total = 10000
   var sent = 0
   var received = 0
+
+  noError({ broker })
 
   server.listen(0, function (err) {
     t.error(err, 'no error')
