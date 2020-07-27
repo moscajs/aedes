@@ -115,11 +115,11 @@ broker.on('ack', (packet, client) => {
 })
 
 broker.on('subscribe', (subscriptions, client) => {
-  console.log(`client: ${client.id} subsribe`)
+  console.log(`client: ${client.id} subscribe`)
 })
 
 broker.on('unsubscribe', (subscriptions, client) => {
-  console.log(`client: ${client.id} subsribe`)
+  console.log(`client: ${client.id} subscribe`)
 })
 
 broker.subscribe('aaaa', (packet: AedesPublishPacket, cb) => {
