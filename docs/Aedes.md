@@ -259,13 +259,13 @@ Some Use Cases:
 
 ```js
 aedes.preConnect = function(client, callback) {
-  callback(null, client.conn.remoteAddress === '::1') {
+  callback(null, client.conn.remoteAddress === '::1') 
 }
 ```
 
 ```js
 aedes.preConnect = function(client, callback) {
-  callback(new Error('connection error'), client.conn.remoteAddress !== '::1') {
+  callback(new Error('connection error'), client.conn.remoteAddress !== '::1') 
 }
 ```
 
