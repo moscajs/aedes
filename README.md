@@ -95,13 +95,6 @@ Other info:
 
 - [aedes-persistence-redis] could have some leaks (still investigating). Check [this issue](https://github.com/moscajs/aedes-persistence-redis/issues/73#issuecomment-686306508)
 - [mqemitter-mongodb] could have leaks when used in clusters. Check [this issue](https://github.com/mcollina/mqemitter-mongodb/issues/24)
-- You should assign a __FIXED BROKER ID__ to your Aedes instances:
-
-  ```js
-  var broker = aedes({ id: 'broker' + clusterId })
-  ```
-
-  When a cluster instance dies the new one should take the same id, this is needed because some documents stored in dbs use `brokerId` to identify packets/clients.
 - The repo [aedes-tests](https://github.com/moscajs/aedes-tests) is used to test aedes with clusters and different emitters/persistences. Check its source code to have a starting point on how to work with clusters
 
 ## Exensions
