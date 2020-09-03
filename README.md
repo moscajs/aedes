@@ -25,7 +25,7 @@ Barebone MQTT server that can run on any stream servers
   - [API](#api)
   - [Features](#features)
   - [Examples](#examples)
-  - [Clusters - Best practice](#clusters---best-practice)
+  - [Clusters](#clusters)
   - [Exensions](#exensions)
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
@@ -86,7 +86,7 @@ Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
 
 - [Examples](./docs/Examples.md)
 
-## Clusters - Best practice
+## Clusters
 
 Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. Based on our tests and users reports the best performances/stability are reached when using [aedes-persistence-mongodb] paired with [mqemitter-redis].
 
