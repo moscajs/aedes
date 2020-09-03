@@ -25,6 +25,7 @@ Barebone MQTT server that can run on any stream servers
   - [API](#api)
   - [Features](#features)
   - [Examples](#examples)
+  - [Clusters - Best practice](#clusters---best-practice)
   - [Exensions](#exensions)
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
@@ -84,6 +85,22 @@ Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
 ## Examples
 
 - [Examples](./docs/Examples.md)
+
+## Clusters - Best practice
+
+Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. Based on our tests and users reports the best performances/stability are reached when using [aedes-persistence-mongodb] paired with [mqemitter-redis].
+
+Other info:
+
+- [mqemitter-mongodb] could have leaks when used in clusters. Check [this issue](https://github.com/mcollina/mqemitter-mongodb/issues/24)
+- You should assign a __FIXED BROKER ID__ to your Aedes instances:
+
+  ```js
+  var broker = aedes({ id: 'broker' + clusterId })
+  ```
+
+  When a cluster instance dies the new one should take the same id, this is needed because some documents stored in dbs use `brokerId` to identify packets/clients.
+- The repo [aedes-tests](https://github.com/moscajs/aedes-tests) is used to test aedes with clusters and different emitters/persistences. Check its source code to have a starting point on how to work with clusters
 
 ## Exensions
 
