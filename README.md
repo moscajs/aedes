@@ -92,6 +92,7 @@ Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. B
 
 Other info:
 
+- [aedes-persistence-redis] have some memory leak. Check [this issue](https://github.com/moscajs/aedes-persistence-redis/issues/73#issuecomment-686306508)
 - [mqemitter-mongodb] could have leaks when used in clusters. Check [this issue](https://github.com/mcollina/mqemitter-mongodb/issues/24)
 - You should assign a __FIXED BROKER ID__ to your Aedes instances:
 
