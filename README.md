@@ -94,7 +94,6 @@ Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. B
 Other info:
 
 - [aedes-persistence-redis] could have some leaks (still investigating). Check [this issue](https://github.com/moscajs/aedes-persistence-redis/issues/73#issuecomment-686306508)
-- [mqemitter-mongodb] could have leaks when used in clusters. Check [this issue](https://github.com/mcollina/mqemitter-mongodb/issues/24)
 - The repo [aedes-tests](https://github.com/moscajs/aedes-tests) is used to test aedes with clusters and different emitters/persistences. Check its source code to have a starting point on how to work with clusters
 
 ## Exensions
