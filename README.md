@@ -41,6 +41,7 @@ Barebone MQTT server that can run on any stream servers
   - [Made with Aedes](#made-with-aedes)
   - [Collaborators](#collaborators)
   - [Contribution](#contribution)
+  - [Support](#support)
     - [Backers](#backers)
     - [Sponsors](#sponsors)
   - [License](#license)
@@ -92,7 +93,7 @@ Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. B
 
 Other info:
 
-- [aedes-persistence-redis] have some memory leak. Check [this issue](https://github.com/moscajs/aedes-persistence-redis/issues/73#issuecomment-686306508)
+- [aedes-persistence-redis] could have some leaks (still investigating). Check [this issue](https://github.com/moscajs/aedes-persistence-redis/issues/73#issuecomment-686306508)
 - [mqemitter-mongodb] could have leaks when used in clusters. Check [this issue](https://github.com/mcollina/mqemitter-mongodb/issues/24)
 - You should assign a __FIXED BROKER ID__ to your Aedes instances:
 
@@ -274,6 +275,10 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 
 Want to contribute? Check our list of
 [features/bugs](https://github.com/moscajs/aedes/projects/1)
+
+## Support
+
+If there are bugs/leaks in production scenarios, we encourage people to send Pull Request and/or reach out maintainers for some paid support.
 
 ### Backers
 
