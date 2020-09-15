@@ -551,7 +551,6 @@ test('publish to $SYS/broker/new/clients', function (t) {
 })
 
 test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubsribers', function (t) {
-
   t.plan(7)
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
