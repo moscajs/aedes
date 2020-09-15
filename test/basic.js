@@ -570,7 +570,6 @@ test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubsribers', f
   broker.mq.on('$SYS/' + broker.id + '/new/unsubscribes', function (packet, done) {
     var payload = JSON.parse(packet.payload.toString())
     t.equal(payload.clientId, 'abcde', 'clientId matches')
-    console.log(payload)
     t.deepEqual(payload.subs, [sub.topic], 'unsubscriptions matches')
     done()
   })
