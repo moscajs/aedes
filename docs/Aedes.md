@@ -141,6 +141,8 @@ Emitted when `client` successfully subscribe the `subscriptions` in server.
 
 `subscriptions` is an array of `{ topic: topic, qos: qos }`. The array excludes duplicated topics and includes negated subscriptions where `qos` equals to `128`. See more on [authorizeSubscribe](#handler-authorizesubscribe-client-subscription-callback)
 
+Server publishes a SYS topic `$SYS/<aedes.id>/new/subscribers` to inform a client successfully subscribed to one or more topics. The payload is a JSON that has `clientId` and `subs` props, `subs` equals to `subscriptions` array.
+
 ## Event: unsubscribe
 
 - `unsubscriptions` `Array<string>`
@@ -149,6 +151,8 @@ Emitted when `client` successfully subscribe the `subscriptions` in server.
 Emitted when `client` successfully unsubscribe the `subscriptions` in server.
 
 `unsubscriptions` are an array of unsubscribed topics.
+
+Server publishes a SYS topic `$SYS/<aedes.id>/new/unsubscribers` to inform a client successfully unsubscribed to one or more topics. The payload is a JSON that has `clientId` and `subs` props, `subs` equals to `unsubscriptions` array.
 
 ## Event: connackSent
 
