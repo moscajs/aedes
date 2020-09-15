@@ -550,6 +550,45 @@ test('publish to $SYS/broker/new/clients', function (t) {
   })
 })
 
+test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubsribers', function (t) {
+
+  t.plan(7)
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const sub = {
+    topic: 'hello',
+    qos: 0
+  }
+
+  broker.mq.on('$SYS/' + broker.id + '/new/subscribes', function (packet, done) {
+    var payload = JSON.parse(packet.payload.toString())
+    t.equal(payload.clientId, 'abcde', 'clientId matches')
+    t.deepEqual(payload.subs, [sub], 'subscriptions matches')
+    done()
+  })
+
+  broker.mq.on('$SYS/' + broker.id + '/new/unsubscribes', function (packet, done) {
+    var payload = JSON.parse(packet.payload.toString())
+    t.equal(payload.clientId, 'abcde', 'clientId matches')
+    console.log(payload)
+    t.deepEqual(payload.subs, [sub.topic], 'unsubscriptions matches')
+    done()
+  })
+
+  var subscriber = connect(setup(broker), {
+    clean: false, clientId: 'abcde'
+  }, function () {
+    subscribe(t, subscriber, sub.topic, sub.qos, function () {
+      subscriber.inStream.write({
+        cmd: 'unsubscribe',
+        messageId: 43,
+        unsubscriptions: ['hello']
+      })
+    })
+  })
+})
+
 test('restore QoS 0 subscriptions not clean', function (t) {
   t.plan(5)
 
