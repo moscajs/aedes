@@ -124,7 +124,7 @@ function startAedes () {
       concurrency: 100
     }),
     persistence: persistence(),
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       console.log('Aedes preConnect check client ip:', client.connDetails)
       if (client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress

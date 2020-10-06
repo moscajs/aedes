@@ -437,7 +437,7 @@ test('connect handler calls done when preConnect throws error', function (t) {
   t.plan(1)
 
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       done(Error('error in preconnect'))
     }
   })
@@ -495,7 +495,7 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
 
   var i = 0
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       var ms = i++ === 0 ? 2000 : 500
       setTimeout(function () {
         done(null, true)
@@ -642,7 +642,7 @@ test('Test queue limit', function (t) {
     t.plan(plan)
 
     const broker = aedes({
-      preConnect: function (client, done) {
+      preConnect: function (client, packet, done) {
         t.ok(client.connecting)
         t.notOk(client.connected)
         t.equal(client.version, null)
@@ -737,7 +737,7 @@ test('tcp clients have access to the ipAddress from the socket', function (t) {
 
   const port = 4883
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       if (client && client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress
         t.equal('::ffff:127.0.0.1', client.ip)
@@ -794,7 +794,7 @@ test('tcp proxied (protocol v1) clients have access to the ipAddress(v4)', funct
   ).build()
 
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       if (client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress
         t.equal(clientIp, client.ip)
@@ -852,7 +852,7 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v4)', funct
   ).build()
 
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       if (client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress
         t.equal(clientIp, client.ip)
@@ -913,7 +913,7 @@ test('tcp proxied (protocol v2) clients have access to the ipAddress(v6)', funct
   ).build()
 
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       if (client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress
         t.equal(clientIp, client.ip)
@@ -953,7 +953,7 @@ test('websocket clients have access to the ipAddress from the socket (if no ip h
   const clientIp = '::ffff:127.0.0.1'
   const port = 4883
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       if (client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress
         t.equal(clientIp, client.ip)
@@ -990,7 +990,7 @@ test('websocket proxied clients have access to the ipAddress from x-real-ip head
   const clientIp = '192.168.0.140'
   const port = 4883
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       if (client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress
         t.equal(clientIp, client.ip)
@@ -1033,7 +1033,7 @@ test('websocket proxied clients have access to the ipAddress from x-forwarded-fo
   const clientIp = '192.168.0.140'
   const port = 4883
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       if (client.connDetails && client.connDetails.ipAddress) {
         client.ip = client.connDetails.ipAddress
         t.equal(clientIp, client.ip)

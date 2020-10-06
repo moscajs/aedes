@@ -25,7 +25,7 @@
   - [aedes.publish (packet, callback)](#aedespublish-packet-callback)
   - [aedes.close ([callback])](#aedesclose-callback)
   - [Handler: decodeProtocol (client, buffer)](#handler-decodeprotocol-client-buffer)
-  - [Handler: preConnect (client, callback)](#handler-preconnect-client-callback)
+  - [Handler: preConnect (client, packet, callback)](#handler-preconnect-client-packet-callback)
   - [Handler: authenticate (client, username, password, callback)](#handler-authenticate-client-username-password-callback)
   - [Handler: authorizePublish (client, packet, callback)](#handler-authorizepublish-client-packet-callback)
   - [Handler: authorizeSubscribe (client, subscription, callback)](#handler-authorizesubscribe-client-subscription-callback)
@@ -242,14 +242,15 @@ aedes.decodeProtocol = function(client, buffer) {
 }
 ```
 
-## Handler: preConnect (client, callback)
+## Handler: preConnect (client, packet, callback)
 
 - client: [`<Client>`](./Client.md)
+- packet: `<object>` [`CONNECT`][CONNECT]
 - callback: `<Function>` `(error, successful) => void`
   - error `<Error>` | `null`
   - successful `<boolean>`
 
-Invoked when server receives a valid [`CONNECT`][CONNECT] packet.
+Invoked when server receives a valid [`CONNECT`][CONNECT] packet. The packet can be modified.
 
 `client` object is in default state. If invoked `callback` with no errors and `successful` be `true`, server will continue to establish a session.
 
@@ -262,7 +263,7 @@ Some Use Cases:
 3. IP blacklisting
 
 ```js
-aedes.preConnect = function(client, callback) {
+aedes.preConnect = function(client, packet, callback) {
   callback(null, client.conn.remoteAddress === '::1') {
 }
 ```
