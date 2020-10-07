@@ -269,7 +269,7 @@ aedes.preConnect = function(client, packet, callback) {
 ```
 
 ```js
-aedes.preConnect = function(client, callback) {
+aedes.preConnect = function(client, packet, callback) {
   callback(new Error('connection error'), client.conn.remoteAddress !== '::1') {
 }
 ```
