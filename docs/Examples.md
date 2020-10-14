@@ -47,6 +47,20 @@ httpServer.listen(port, function () {
 })
 ```
 
+## MQTT server over WebSocket using server-factory
+
+```js
+const aedes = require('aedes')()
+const { createServer } = require('aedes-server-factory')
+const port = 8888
+
+const httpServer = createServer({ ws: true }, aedes.handle)
+
+httpServer.listen(port, function () {
+  console.log('websocket server listening on port ', port)
+})
+```
+
 ## Clusters
 
 In order to use Aedes in clusters you have to choose a persistence and an mqemitter that supports clusters. Tested persistence/mqemitters that works with clusters are:
