@@ -4,7 +4,7 @@
 
 /// <reference types="node" />
 
-import { IConnackPacket, IPingreqPacket, IPublishPacket, IPubrelPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
+import { IConnackPacket, IConnectPacket, IPingreqPacket, IPublishPacket, IPubrelPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { AedesPacket } from 'aedes-packet'
 import { Duplex } from 'stream'
 import { Socket } from 'net'
@@ -33,11 +33,12 @@ declare namespace aedes {
   type PublishPacket = IPublishPacket & { cmd: 'publish' }
   type AedesPublishPacket = PublishPacket & AedesPacket
 
+  type ConnectPacket = IConnectPacket & { cmd: 'connect' }
   type ConnackPacket = IConnackPacket & { cmd: 'connack' }
   type PubrelPacket = IPubrelPacket & { cmd: 'pubrel' }
   type PingreqPacket = IPingreqPacket & { cmd: 'pingreq' }
 
-  type PreConnectHandler = (client: Client, callback: (error: Error | null, success: boolean) => void) => void
+  type PreConnectHandler = (client: Client, packet: IConnectPacket, callback: (error: Error | null, success: boolean) => void) => void
 
   type AuthenticateError = Error & { returnCode: AuthErrorCode }
 

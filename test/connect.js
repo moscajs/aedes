@@ -485,7 +485,7 @@ test('connect handler calls done when preConnect throws error', function (t) {
   t.plan(1)
 
   const broker = aedes({
-    preConnect: function (client, done) {
+    preConnect: function (client, packet, done) {
       done(Error('error in preconnect'))
     }
   })
@@ -519,6 +519,59 @@ test('handler calls done when disconnect or unknown packet cmd is received', fun
   handle(s.client, { cmd: 'fsfadgragae' }, function done () {
     t.pass('calls done when unknown cmd is received')
   })
+})
+
+
+test('reject second CONNECT Packet sent while first CONNECT still in preConnect stage', function (t) {
+  t.plan(2)
+
+  const packet1 = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-1',
+    keepalive: 0
+  }
+  const packet2 = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-2',
+    keepalive: 0
+  }
+
+  var i = 0
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      var ms = i++ === 0 ? 2000 : 500
+      setTimeout(function () {
+        done(null, true)
+      }, ms)
+    }
+  })
+  t.tearDown(broker.close.bind(broker))
+
+  const s = setup(broker)
+
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.info.clientId, 'my-client-2')
+    t.equal(err.message, 'Invalid protocol')
+  })
+
+  const msg = async (s, ms, msg) => {
+    await delay(ms)
+    s.inStream.write(msg)
+  }
+
+  ;(async () => {
+    await Promise.all([msg(s, 100, packet1), msg(s, 200, packet2)])
+  })().catch(
+    (error) => {
+      t.fail(error)
+    }
+  )
 })
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet
@@ -630,7 +683,7 @@ test('Any queued messages after first CONNECT will be dropped once when authenti
     t.plan(plan)
 
     const broker = aedes({
-      preConnect: function (client, done) {
+      preConnect: function (client, packet, done) {
         t.ok(client.connecting)
         t.notOk(client.connected)
         t.equal(client.version, null)
@@ -708,6 +761,345 @@ test('websocket clients have access to the request object', function (t) {
     wsOptions: {
       headers: {
         'X-Test-Protocol': 'sample'
+      }
+    }
+  })
+
+  t.tearDown(() => {
+    client.end(true)
+    broker.close()
+    server.close()
+  })
+})
+
+// test ipAddress property presence when trustProxy is enabled
+test('tcp clients have access to the ipAddress from the socket', function (t) {
+  t.plan(2)
+
+  const port = 4883
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      if (client && client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal('::ffff:127.0.0.1', client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+    },
+    decodeProtocol: protocolDecoder,
+    trustProxy: true
+  })
+
+  const server = net.createServer(broker.handle)
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  const client = mqtt.connect({
+    port,
+    keepalive: 0,
+    clientId: 'mqtt-client',
+    clean: false
+  })
+
+  t.tearDown(() => {
+    client.end(true)
+    broker.close()
+    server.close()
+  })
+})
+
+test('tcp proxied (protocol v1) clients have access to the ipAddress(v4)', function (t) {
+  t.plan(2)
+
+  const port = 4883
+  const clientIp = '192.168.0.140'
+  const packet = {
+    cmd: 'connect',
+    protocolId: 'MQIsdp',
+    protocolVersion: 3,
+    clean: true,
+    clientId: 'my-client-proxyV1',
+    keepalive: 0
+  }
+
+  const buf = mqttPacket.generate(packet)
+  const src = new proxyProtocol.Peer(clientIp, 12345)
+  const dst = new proxyProtocol.Peer('127.0.0.1', port)
+  const protocol = new proxyProtocol.V1BinaryProxyProtocol(
+    proxyProtocol.INETProtocol.TCP4,
+    src,
+    dst,
+    buf
+  ).build()
+
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+    },
+    decodeProtocol: protocolDecoder,
+    trustProxy: true
+  })
+
+  const server = net.createServer(broker.handle)
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  const client = net.connect({
+    port,
+    timeout: 0
+  }, function () {
+    client.write(protocol)
+  })
+
+  t.tearDown(() => {
+    client.end()
+    broker.close()
+    server.close()
+  })
+})
+
+test('tcp proxied (protocol v2) clients have access to the ipAddress(v4)', function (t) {
+  t.plan(2)
+
+  const port = 4883
+  const clientIp = '192.168.0.140'
+  const packet = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-proxyV2'
+  }
+
+  const protocol = new proxyProtocol.V2ProxyProtocol(
+    proxyProtocol.Command.LOCAL,
+    proxyProtocol.TransportProtocol.DGRAM,
+    new proxyProtocol.IPv4ProxyAddress(
+      proxyProtocol.IPv4Address.createFrom(clientIp.split('.')),
+      12345,
+      proxyProtocol.IPv4Address.createFrom([127, 0, 0, 1]),
+      port
+    ),
+    mqttPacket.generate(packet)
+  ).build()
+
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+    },
+    decodeProtocol: protocolDecoder,
+    trustProxy: true
+  })
+
+  const server = net.createServer(broker.handle)
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  const client = net.createConnection(
+    {
+      port,
+      timeout: 0
+    }, function () {
+      client.write(Buffer.from(protocol))
+    }
+  )
+
+  t.tearDown(() => {
+    client.end()
+    broker.close()
+    server.close()
+  })
+})
+
+test('tcp proxied (protocol v2) clients have access to the ipAddress(v6)', function (t) {
+  t.plan(2)
+
+  const port = 4883
+  const clientIpArray = [0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 192, 168, 1, 128]
+  const clientIp = '::ffff:c0a8:180:'
+  const packet = {
+    cmd: 'connect',
+    protocolId: 'MQTT',
+    protocolVersion: 4,
+    clean: true,
+    clientId: 'my-client-proxyV2'
+  }
+
+  const protocol = new proxyProtocol.V2ProxyProtocol(
+    proxyProtocol.Command.PROXY,
+    proxyProtocol.TransportProtocol.STREAM,
+    new proxyProtocol.IPv6ProxyAddress(
+      proxyProtocol.IPv6Address.createFrom(clientIpArray),
+      12345,
+      proxyProtocol.IPv6Address.createWithEmptyAddress(),
+      port
+    ),
+    mqttPacket.generate(packet)
+  ).build()
+
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+    },
+    decodeProtocol: protocolDecoder,
+    trustProxy: true
+  })
+
+  const server = net.createServer(broker.handle)
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  const client = net.createConnection(
+    {
+      port,
+      timeout: 0
+    }, function () {
+      client.write(Buffer.from(protocol))
+    }
+  )
+
+  t.tearDown(() => {
+    client.end()
+    broker.close()
+    server.close()
+  })
+})
+
+test('websocket clients have access to the ipAddress from the socket (if no ip header)', function (t) {
+  t.plan(2)
+
+  const clientIp = '::ffff:127.0.0.1'
+  const port = 4883
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+    },
+    decodeProtocol: protocolDecoder,
+    trustProxy: true
+  })
+
+  const server = http.createServer()
+  ws.createServer({
+    server: server
+  }, broker.handle)
+
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  const client = mqtt.connect(`ws://localhost:${port}`)
+
+  t.tearDown(() => {
+    client.end(true)
+    broker.close()
+    server.close()
+  })
+})
+
+test('websocket proxied clients have access to the ipAddress from x-real-ip header', function (t) {
+  t.plan(2)
+
+  const clientIp = '192.168.0.140'
+  const port = 4883
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+    },
+    decodeProtocol: protocolDecoder,
+    trustProxy: true
+  })
+
+  const server = http.createServer()
+  ws.createServer({
+    server: server
+  }, broker.handle)
+
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  const client = mqtt.connect(`ws://localhost:${port}`, {
+    wsOptions: {
+      headers: {
+        'X-Real-Ip': clientIp
+      }
+    }
+  })
+
+  t.tearDown(() => {
+    client.end(true)
+    broker.close()
+    server.close()
+  })
+})
+
+test('websocket proxied clients have access to the ipAddress from x-forwarded-for header', function (t) {
+  t.plan(2)
+
+  const clientIp = '192.168.0.140'
+  const port = 4883
+  const broker = aedes({
+    preConnect: function (client, packet, done) {
+      if (client.connDetails && client.connDetails.ipAddress) {
+        client.ip = client.connDetails.ipAddress
+        t.equal(clientIp, client.ip)
+      } else {
+        t.fail('no ip address present')
+      }
+      done(null, true)
+    },
+    decodeProtocol: protocolDecoder,
+    trustProxy: true
+  })
+
+  const server = http.createServer()
+  ws.createServer({
+    server: server
+  }, broker.handle)
+
+  server.listen(port, function (err) {
+    t.error(err, 'no error')
+  })
+
+  const client = mqtt.connect(`ws://localhost:${port}`, {
+    wsOptions: {
+      headers: {
+        'X-Forwarded-For': clientIp
       }
     }
   })

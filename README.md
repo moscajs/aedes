@@ -25,6 +25,7 @@ Barebone MQTT server that can run on any stream servers
   - [API](#api)
   - [Features](#features)
   - [Examples](#examples)
+  - [Clusters](#clusters)
   - [Exensions](#exensions)
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
@@ -40,6 +41,7 @@ Barebone MQTT server that can run on any stream servers
   - [Made with Aedes](#made-with-aedes)
   - [Collaborators](#collaborators)
   - [Contribution](#contribution)
+  - [Support](#support)
     - [Backers](#backers)
     - [Sponsors](#sponsors)
   - [License](#license)
@@ -84,6 +86,14 @@ Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
 ## Examples
 
 - [Examples](./docs/Examples.md)
+
+## Clusters
+
+Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. Based on our tests and users reports the best performances/stability are reached when using [aedes-persistence-mongodb] paired with [mqemitter-redis].
+
+Other info:
+
+- The repo [aedes-tests](https://github.com/moscajs/aedes-tests) is used to test aedes with clusters and different emitters/persistences. Check its source code to have a starting point on how to work with clusters
 
 ## Exensions
 
@@ -256,6 +266,10 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 
 Want to contribute? Check our list of
 [features/bugs](https://github.com/moscajs/aedes/projects/1)
+
+## Support
+
+If there are bugs/leaks in production scenarios, we encourage people to send Pull Request and/or reach out maintainers for some paid support.
 
 ### Backers
 

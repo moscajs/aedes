@@ -208,7 +208,7 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
   })
 
   clock.setTimeout(() => {
-    t.equal(broker.counter, 6)
+    t.equal(broker.counter, 8)
   }, 200)
 })
 
@@ -248,7 +248,7 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
     })
   })
   broker.on('closed', function () {
-    t.equal(broker.counter, 6)
+    t.equal(broker.counter, 7)
   })
 })
 

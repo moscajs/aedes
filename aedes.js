@@ -316,7 +316,7 @@ Aedes.prototype.close = function (cb = noop) {
 
 Aedes.prototype.version = require('./package.json').version
 
-function defaultPreConnect (client, callback) {
+function defaultPreConnect (client, packet, callback) {
   callback(null, true)
 }
 

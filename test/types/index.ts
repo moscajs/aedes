@@ -3,13 +3,14 @@
 
 import { Server, Client, AuthenticateError, AedesPublishPacket, PublishPacket, Subscription } from '../../aedes'
 import { createServer, Socket } from 'net'
+import { Packet } from 'mqtt-packet'
 
 const broker = Server({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
   id: 'aedes',
-  preConnect: (client: Client, callback) => {
+  preConnect: (client: Client, packet: Packet, callback) => {
     if (client.req) {
       callback(new Error('not websocket stream'), false)
     }
@@ -115,11 +116,11 @@ broker.on('ack', (packet, client) => {
 })
 
 broker.on('subscribe', (subscriptions, client) => {
-  console.log(`client: ${client.id} subsribe`)
+  console.log(`client: ${client.id} subscribe`)
 })
 
 broker.on('unsubscribe', (subscriptions, client) => {
-  console.log(`client: ${client.id} subsribe`)
+  console.log(`client: ${client.id} subscribe`)
 })
 
 broker.subscribe('aaaa', (packet: AedesPublishPacket, cb) => {
