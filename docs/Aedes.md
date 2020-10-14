@@ -24,7 +24,6 @@
   - [aedes.unsubscribe (topic, deliverfunc, callback)](#aedesunsubscribe-topic-deliverfunc-callback)
   - [aedes.publish (packet, callback)](#aedespublish-packet-callback)
   - [aedes.close ([callback])](#aedesclose-callback)
-  - [Handler: decodeProtocol (client, buffer)](#handler-decodeprotocol-client-buffer)
   - [Handler: preConnect (client, packet, callback)](#handler-preconnect-client-packet-callback)
   - [Handler: authenticate (client, username, password, callback)](#handler-authenticate-client-username-password-callback)
   - [Handler: authorizePublish (client, packet, callback)](#handler-authorizepublish-client-packet-callback)
@@ -224,23 +223,6 @@ Directly deliver `packet` on behalf of server to subscribed clients. Bypass [`au
 Close aedes server and disconnects all clients.
 
 `callback` will be invoked when server is closed.
-
-## Handler: decodeProtocol (client, buffer)
-
-- client: [`<Client>`](./Client.md)
-- buffer: `<Buffer>`
-
-Invoked when aedes instance `trustProxy` is `true`
-
-It targets to decode wrapped protocols (e.g. websocket and PROXY) into plain raw mqtt stream.
-
-`aedes-protocol-decoder` is an example to parse https headers (x-real-ip | x-forwarded-for) and proxy protocol v1 and v2 to retrieve information in `client.connDetails`.
-
-```js
-aedes.decodeProtocol = function(client, buffer) {
-  return yourDecoder(client, buffer)
-}
-```
 
 ## Handler: preConnect (client, packet, callback)
 
