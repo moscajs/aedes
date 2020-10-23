@@ -519,10 +519,6 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
       cmd: 'disconnect'
     })
 
-    subscriber.outStream.on('data', function (packet) {
-      console.log('original', packet)
-    })
-
     const publisher = noError(connect(setup(broker)), t)
 
     publisher.inStream.write({
@@ -576,10 +572,6 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.write({
       cmd: 'disconnect'
-    })
-
-    subscriber.outStream.on('data', function (packet) {
-      console.log('original', packet)
     })
 
     const publisher = noError(connect(setup(broker)), t)

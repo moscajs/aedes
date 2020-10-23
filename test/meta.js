@@ -259,9 +259,7 @@ test('emit clientDisconnect event', function (t) {
 
   const s = noError(connect(setup(broker), { clientId: 'abcde' }), t)
 
-  s.inStream.end({
-    cmd: 'disconnect'
-  })
+  s.inStream.end()
   s.outStream.resume()
 })
 

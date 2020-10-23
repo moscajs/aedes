@@ -28,7 +28,6 @@ const defaultOptions = {
   published: defaultPublished,
   trustProxy: false,
   trustedProxies: [],
-  queueLimit: 42,
   maxClientsIdLength: 23
 }
 
@@ -45,7 +44,6 @@ function Aedes (opts) {
   // +1 when construct a new aedes-packet
   // internal track for last brokerCounter
   this.counter = 0
-  this.queueLimit = opts.queueLimit
   this.connectTimeout = opts.connectTimeout
   this.maxClientsIdLength = opts.maxClientsIdLength
   this.mq = opts.mq || mqemitter({

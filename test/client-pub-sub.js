@@ -139,13 +139,13 @@ test('publish QoS 2 throws error in pubrel', function (t) {
 
   s.outStream.on('data', function (packet) {
     if (packet.cmd === 'publish') {
+      s.broker.persistence.outgoingUpdate = function (client, pubrel, cb) {
+        cb(new Error('error'))
+      }
       s.inStream.write({
         cmd: 'pubrec',
         messageId: packet.messageId
       })
-      s.broker.persistence.outgoingUpdate = function (client, pubrel, cb) {
-        cb(new Error('error'))
-      }
     }
   })
 

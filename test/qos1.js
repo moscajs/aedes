@@ -771,7 +771,7 @@ test('downgrade QoS 0 publish on QoS 1 subsciption', function (t) {
   })
 })
 
-test('subscribe and publish QoS 1 in parallel', function (t) {
+test('subscribe and publish QoS 1 in a row', function (t) {
   t.plan(5)
 
   const broker = aedes()
@@ -789,17 +789,16 @@ test('subscribe and publish QoS 1 in parallel', function (t) {
   }
 
   broker.on('clientError', function (client, err) {
-    console.log(err.stack)
-    // t.fail('no client error')
+    t.fail('no client error')
   })
 
   s.outStream.once('data', function (packet) {
-    t.equal(packet.cmd, 'puback')
-    t.equal(packet.messageId, 42, 'messageId must match')
+    t.equal(packet.cmd, 'suback')
+    t.deepEqual(packet.granted, [1])
+    t.equal(packet.messageId, 24)
     s.outStream.on('data', function (packet) {
-      if (packet.cmd === 'suback') {
-        t.deepEqual(packet.granted, [1])
-        t.equal(packet.messageId, 24)
+      if (packet.cmd === 'puback') {
+        t.equal(packet.messageId, 42, 'messageId must match')
       }
       if (packet.cmd === 'publish') {
         s.inStream.write({
