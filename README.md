@@ -259,6 +259,7 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 - [__Behrad Zari__](https://github.com/behrad)
 - [__Gnought__](https://github.com/gnought)
 - [__Daniel Lando__](https://github.com/robertsLando)
+- [__Getlarge__](https://github.com/getlarge)
 
 ## Contribution
 
