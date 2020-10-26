@@ -101,6 +101,7 @@ Other info:
 - [aedes-stats]: Stats for Aedes
 - [aedes-cli]: Run Aedes MQTT Broker from the CLI
 - [aedes-protocol-decoder]: Protocol decoder for Aedes MQTT Broker
+- [aedes-server-factory]: Create a server instance such as TCP, HTTP, TLS...
 
 ## Middleware Plugins
 
@@ -258,6 +259,7 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 - [__Behrad Zari__](https://github.com/behrad)
 - [__Gnought__](https://github.com/gnought)
 - [__Daniel Lando__](https://github.com/robertsLando)
+- [__Getlarge__](https://github.com/getlarge)
 
 ## Contribution
 
@@ -297,6 +299,7 @@ Licensed under [MIT](./LICENSE).
 [aedes-stats]: https://www.npmjs.com/aedes-stats
 [aedes-cli]: https://www.npmjs.com/aedes-cli
 [aedes-protocol-decoder]: https://www.npmjs.com/aedes-protocol-decoder
+[aedes-server-factory]: https://www.npmjs.com/aedes-server-factory
 [aedes-persistence]: https://www.npmjs.com/aedes-persistence
 [aedes-persistence-mongodb]: https://www.npmjs.com/aedes-persistence-mongodb
 [aedes-persistence-redis]: https://www.npmjs.com/aedes-persistence-redis
