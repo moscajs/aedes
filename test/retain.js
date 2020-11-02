@@ -128,7 +128,7 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
   t.tearDown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
-  var subscriber = connect(setup(broker), { clean: true })
+  let subscriber = connect(setup(broker), { clean: true })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -503,7 +503,7 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
+  let subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -563,7 +563,7 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
+  let subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
     cmd: 'publish',
     topic: 'hello',

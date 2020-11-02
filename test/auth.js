@@ -159,7 +159,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
-    var error = new Error('Auth error')
+    const error = new Error('Auth error')
     error.returnCode = 1
     cb(error, null)
   }
@@ -213,7 +213,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
-    var error = new Error('Auth error')
+    const error = new Error('Auth error')
     error.returnCode = 2
     cb(error, null)
   }
@@ -267,7 +267,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
-    var error = new Error('Auth error')
+    const error = new Error('Auth error')
     error.returnCode = 3
     cb(error, null)
   }
@@ -321,7 +321,7 @@ test('authentication error when return code 4 (bad user or password) is passed',
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
-    var error = new Error('Auth error')
+    const error = new Error('Auth error')
     error.returnCode = 4
     cb(error, null)
   }
@@ -375,7 +375,7 @@ test('authentication error when non numeric return code is passed', function (t)
     t.ok(client instanceof Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
-    var error = new Error('Non numeric error codes')
+    const error = new Error('Non numeric error codes')
     error.returnCode = 'return Code'
     cb(error, null)
   }
@@ -425,7 +425,7 @@ test('authorize publish', function (t) {
   const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -478,7 +478,7 @@ test('authorize waits for authenticate', function (t) {
     cb()
   }
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -527,7 +527,7 @@ test('authorize publish from configOptions', function (t) {
   })))
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
