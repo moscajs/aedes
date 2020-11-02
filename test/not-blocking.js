@@ -21,19 +21,19 @@ test('connect 200 concurrent clients', function (t) {
 
     const port = server.address().port
 
-    var connected = 0
-    var clients = []
+    let connected = 0
+    const clients = []
     clock.setTimeout(function () {
       t.equal(clients.length, total)
       t.equal(connected, total)
-      for (var i = 0; i < clients.length; i++) {
+      for (let i = 0; i < clients.length; i++) {
         clients[i].end()
       }
       broker.close()
       server.close()
     }, total)
 
-    for (var i = 0; i < total; i++) {
+    for (let i = 0; i < total; i++) {
       clients[i] = mqtt.connect({
         port: port,
         keepalive: 0
@@ -56,8 +56,8 @@ test('do not block after a subscription', function (t) {
   const broker = aedes()
   const server = net.createServer(broker.handle)
   const total = 10000
-  var sent = 0
-  var received = 0
+  let sent = 0
+  let received = 0
 
   server.listen(0, function (err) {
     t.error(err, 'no error')
@@ -77,7 +77,7 @@ test('do not block after a subscription', function (t) {
       t.fail(err)
     })
 
-    var subscriber
+    let subscriber
 
     function immediatePublish () {
       setImmediate(publish)
@@ -133,8 +133,8 @@ test('do not block with overlapping subscription', function (t) {
   const broker = aedes({ concurrency: 15 })
   const server = net.createServer(broker.handle)
   const total = 10000
-  var sent = 0
-  var received = 0
+  let sent = 0
+  let received = 0
 
   server.listen(0, function (err) {
     t.error(err, 'no error')
@@ -154,7 +154,7 @@ test('do not block with overlapping subscription', function (t) {
       t.fail(err)
     })
 
-    var subscriber
+    let subscriber
 
     function immediatePublish (e) {
       setImmediate(publish)

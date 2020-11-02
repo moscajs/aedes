@@ -4,7 +4,7 @@ const mqtt = require('mqtt')
 const client = mqtt.connect({ port: 1883, host: 'localhost', clean: true, keepalive: 0 })
 const interval = 5000
 
-var sent = 0
+let sent = 0
 
 function count () {
   console.log('sent/s', sent / interval * 1000)

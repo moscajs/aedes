@@ -70,7 +70,7 @@ test('does not store $SYS topics to QoS 1 # subscription', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
-  var s = connect(setup(broker), opts)
+  let s = connect(setup(broker), opts)
 
   subscribe(t, s, '#', 1, function () {
     s.inStream.end()
@@ -140,8 +140,8 @@ test('Emit closed event one only when double broker.close()', function (t) {
 test('Test backpressure aedes published function', function (t) {
   t.plan(2)
 
-  var publishCount = 10
-  var count = 0
+  let publishCount = 10
+  let count = 0
 
   const broker = aedes({
     published: function (packet, client, done) {
@@ -157,7 +157,7 @@ test('Test backpressure aedes published function', function (t) {
 
   const mqtt = require('mqtt')
   const server = require('net').createServer(broker.handle)
-  var publisher
+  let publisher
 
   server.listen(0, function () {
     const port = server.address().port

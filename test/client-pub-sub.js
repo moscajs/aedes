@@ -166,8 +166,8 @@ test('publish direct to a single client QoS 2', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publishCount = 0
-  var nonPublishCount = 0
+  let publishCount = 0
+  let nonPublishCount = 0
 
   broker.on('clientReady', function (client) {
     client.publish({
@@ -213,7 +213,7 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -287,8 +287,8 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var messageId
-  var clientId
+  let messageId
+  let clientId
 
   broker.on('clientReady', function (client) {
     clientId = client.id
@@ -394,7 +394,7 @@ test('offline message support for direct publish', function (t) {
     })
   })
 
-  var s = connect(setup(broker), opts)
+  let s = connect(setup(broker), opts)
 
   s.outStream.once('data', function (packet) {
     s = connect(setup(broker), opts)
@@ -835,7 +835,7 @@ test('programmatically add custom subscribe', function (t) {
     length: 12,
     dup: false
   }
-  var deliverP = {
+  const deliverP = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -873,7 +873,7 @@ test('custom function in broker.subscribe', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const s = setup(broker)
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
