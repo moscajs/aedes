@@ -128,10 +128,11 @@ function Aedes (opts) {
           return done(err)
         }
 
-        that.persistence.delWill({
-          id: will.clientId,
-          brokerId: will.brokerId
-        }, done)
+        done();
+        // that.persistence.delWill({
+        //   id: will.clientId,
+        //   brokerId: will.brokerId
+        // }, done)
       })
     } else {
       done()
