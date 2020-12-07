@@ -62,7 +62,7 @@ a read-only flag indicates if client is closed or not.
 
 ## client.id
 
-- `<string>` __Default__: `aedes_${shortid()}`
+- `<string>` __Default__: `aedes_${hyperid()}`
 
 Client unique identifier, specified by CONNECT packet.
 
