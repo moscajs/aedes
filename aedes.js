@@ -171,7 +171,12 @@ function storeRetained (packet, done) {
 
 function emitPacket (packet, done) {
   packet.retain = false
-  this.broker.mq.emit(packet, done)
+  if (this.broker.mq) {
+    this.broker.mq.emit(packet, done)
+  } else {
+    console.log("mq not found on broker: ", this.broker);
+    console.log("brokers: ", this.brokers);
+  }
 }
 
 function enqueueOffline (packet, done) {
