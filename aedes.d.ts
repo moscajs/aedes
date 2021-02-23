@@ -25,7 +25,7 @@ declare namespace aedes {
 
   type Connection = Duplex | Socket
 
-  type Subscription = ISubscription
+  type Subscription = ISubscription & { clientId?: string }
   type Subscriptions = { subscriptions: Subscription[] }
   type SubscribePacket = ISubscribePacket & { cmd: 'subscribe' }
   type UnsubscribePacket = IUnsubscribePacket & { cmd: 'unsubscribe' }
@@ -56,6 +56,12 @@ declare namespace aedes {
   type AuthorizeForwardHandler = (client: Client, packet: AedesPublishPacket) => AedesPublishPacket | null | void
 
   type PublishedHandler = (packet: AedesPublishPacket, client: Client, callback: (error?: Error | null) => void) => void
+
+  type LastHearthbeatTimestamp = Date;
+
+  interface Brokers {
+    [brokerId: string]: LastHearthbeatTimestamp;
+  }
 
   interface AedesOptions {
     mq?: any
@@ -100,6 +106,7 @@ declare namespace aedes {
     id: string
     connectedClients: number
     closed: boolean
+    brokers: Brokers
 
     handle: (stream: Connection) => Client
 
