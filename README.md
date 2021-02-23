@@ -81,7 +81,7 @@ Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
 - [Dynamic Topics][dynamic_topics] Support
 - MQTT Bridge Support between aedes
 - [MQTT 5.0][mqttv5] _(not support yet)_
-- [Bridge Protocol][bridge_protocol]
+- [Bridge Protocol][bridge_protocol] _(incoming connections only)_
 
 ## Examples
 
