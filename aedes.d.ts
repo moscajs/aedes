@@ -25,7 +25,7 @@ declare namespace aedes {
 
   type Connection = Duplex | Socket
 
-  type Subscription = ISubscription & { clientId?: string }
+  type Subscription = ISubscription
   type Subscriptions = { subscriptions: Subscription[] }
   type SubscribePacket = ISubscribePacket & { cmd: 'subscribe' }
   type UnsubscribePacket = IUnsubscribePacket & { cmd: 'unsubscribe' }
