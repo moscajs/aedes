@@ -451,6 +451,89 @@ test('subscribe a client programmatically', function (t) {
   })
 })
 
+test('subscribe a client programmatically clears retain', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    dup: false,
+    length: 12,
+    qos: 0,
+    retain: false
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 0,
+        retain: true
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  const s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
+
+test('subscribe a bridge programmatically keeps retain', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    dup: false,
+    length: 12,
+    qos: 0,
+    retain: true
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0,
+      rap: true
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 0,
+        retain: true
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  const s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
+
 test('subscribe throws error when QoS > 0', function (t) {
   t.plan(3)
 

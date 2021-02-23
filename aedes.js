@@ -170,7 +170,6 @@ function storeRetained (packet, done) {
 }
 
 function emitPacket (packet, done) {
-  packet.retain = false
   this.broker.mq.emit(packet, done)
 }
 
