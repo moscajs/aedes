@@ -38,6 +38,29 @@ declare namespace aedes {
   type PubrelPacket = IPubrelPacket & { cmd: 'pubrel' }
   type PingreqPacket = IPingreqPacket & { cmd: 'pingreq' }
 
+  interface Client extends EventEmitter {
+    id: string
+    clean: boolean
+    version: number
+    conn: Connection
+    req?: IncomingMessage
+    connecting: boolean
+    connected: boolean
+    closed: boolean
+
+    on (event: 'connected', listener: () => void): this
+    on (event: 'error', listener: (error: Error) => void): this
+
+    publish (message: PublishPacket, callback?: (error?: Error) => void): void
+    subscribe (
+      subscriptions: Subscriptions | Subscription | Subscription[] | SubscribePacket,
+      callback?: (error?: Error) => void
+    ): void
+    unsubscribe (topicObjects: Subscriptions | Subscription | Subscription[] | UnsubscribePacket, callback?: (error?: Error) => void): void
+    close (callback?: () => void): void
+    emptyOutgoingQueue (callback?: () => void): void
+  }
+
   type PreConnectHandler = (client: Client, packet: IConnectPacket, callback: (error: Error | null, success: boolean) => void) => void
 
   type AuthenticateError = Error & { returnCode: AuthErrorCode }
@@ -78,28 +101,6 @@ declare namespace aedes {
     published?: PublishedHandler
     queueLimit?: number
     maxClientsIdLength?: number
-  }
-  interface Client extends EventEmitter {
-    id: string
-    clean: boolean
-    version: number
-    conn: Connection
-    req?: IncomingMessage
-    connecting: boolean
-    connected: boolean
-    closed: boolean
-
-    on (event: 'connected', listener: () => void): this
-    on (event: 'error', listener: (error: Error) => void): this
-
-    publish (message: PublishPacket, callback?: (error?: Error) => void): void
-    subscribe (
-      subscriptions: Subscriptions | Subscription | Subscription[] | SubscribePacket,
-      callback?: (error?: Error) => void
-    ): void
-    unsubscribe (topicObjects: Subscriptions | Subscription | Subscription[] | UnsubscribePacket, callback?: (error?: Error) => void): void
-    close (callback?: () => void): void
-    emptyOutgoingQueue (callback?: () => void): void
   }
 
   interface Aedes extends EventEmitter {

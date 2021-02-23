@@ -328,7 +328,7 @@ Invoked when
 1. restore subscriptions in non-clean session.
 2. incoming client `SUBSCRIBE`
 
-`subscrption` is a dictionary object like `{ topic: hello, qos: 0 }`.
+`subscription` is a dictionary object like `{ topic: hello, qos: 0 }`.
 
 If invoked `callback` with no errors, server authorizes the packet otherwise emits `clientError` with `error`.
 

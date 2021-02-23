@@ -8,7 +8,7 @@ const aedes = require('../')
 test('Single-level wildcard should match empty level', function (t) {
   t.plan(4)
 
-  var s = connect(setup())
+  const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'a/+/b', 0, function () {
