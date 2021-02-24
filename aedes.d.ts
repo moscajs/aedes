@@ -80,6 +80,12 @@ declare namespace aedes {
 
   type PublishedHandler = (packet: AedesPublishPacket, client: Client, callback: (error?: Error | null) => void) => void
 
+  type LastHearthbeatTimestamp = Date;
+
+  interface Brokers {
+    [brokerId: string]: LastHearthbeatTimestamp;
+  }
+
   interface AedesOptions {
     mq?: any
     id?: string
@@ -101,6 +107,7 @@ declare namespace aedes {
     id: string
     connectedClients: number
     closed: boolean
+    brokers: Brokers
 
     handle: (stream: Connection) => Client
 
