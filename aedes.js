@@ -175,7 +175,7 @@ function emitPacket (packet, done) {
 }
 
 function enqueueOffline (packet, done) {
-  var enqueuer = this.broker._enqueuers.get()
+  const enqueuer = this.broker._enqueuers.get()
 
   enqueuer.complete = done
   enqueuer.packet = packet
@@ -251,7 +251,7 @@ Aedes.prototype.publish = function (packet, client, done) {
     done = client
     client = null
   }
-  var p = new Packet(packet, this)
+  const p = new Packet(packet, this)
   const publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
 
   this._series(new PublishState(this, client, packet), publishFuncs, p, done)

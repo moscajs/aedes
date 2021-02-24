@@ -149,7 +149,7 @@ test('pubrec handler calls done when outgoingUpdate fails (clean=false)', functi
   const s = connect(setup(), { clean: false })
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var handle = require('../lib/handlers/pubrec.js')
+  const handle = require('../lib/handlers/pubrec.js')
 
   s.broker.persistence.outgoingUpdate = function (client, pubrel, done) {
     done(Error('throws error'))
@@ -176,7 +176,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
     length: 14,
     retain: false
   }
-  var brokerClient = null
+  let brokerClient = null
 
   broker.on('client', function (client) {
     brokerClient = client
@@ -411,7 +411,7 @@ test('restore QoS 2 subscriptions not clean', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -444,7 +444,7 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
-  var subscriber = connect(setup(broker), opts)
+  let subscriber = connect(setup(broker), opts)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -476,7 +476,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
-  var subscriber = connect(setup(broker), opts)
+  let subscriber = connect(setup(broker), opts)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -601,11 +601,11 @@ test('multiple publish and store one', function (t) {
     messageId: 42
   }
 
-  var count = 5
+  let count = 5
   while (count--) {
     s.inStream.write(toPublish)
   }
-  var recvcnt = 0
+  let recvcnt = 0
   s.outStream.on('data', function (packet) {
     if (++recvcnt < 5) return
     broker.close(function () {
@@ -622,13 +622,13 @@ test('multiple publish and store one', function (t) {
 test('packet is written to stream after being stored', function (t) {
   const s = connect(setup())
 
-  var broker = s.broker
+  const broker = s.broker
 
   t.tearDown(broker.close.bind(s.broker))
 
-  var packetStored = false
+  let packetStored = false
 
-  var fn = broker.persistence.incomingStorePacket.bind(broker.persistence)
+  const fn = broker.persistence.incomingStorePacket.bind(broker.persistence)
 
   s.broker.persistence.incomingStorePacket = function (client, packet, done) {
     packetStored = true

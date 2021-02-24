@@ -8,7 +8,7 @@ const aedes = require('../')
 
 const parseStream = mqtt.parseStream
 const generateStream = mqtt.generateStream
-var clients = 0
+let clients = 0
 
 function setup (broker) {
   const inStream = generateStream()

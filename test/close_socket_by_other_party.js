@@ -128,6 +128,9 @@ test('multiple clients subscribe same topic, and all clients still receive messa
 
   const mqtt = require('mqtt')
   const broker = aedes()
+
+  let client2
+
   t.tearDown(() => {
     client2.end()
     broker.close()
@@ -141,11 +144,10 @@ test('multiple clients subscribe same topic, and all clients still receive messa
     t.error(err)
   })
 
-  var client1, client2
   const _sameTopic = 'hello'
 
   // client 1
-  client1 = mqtt.connect('mqtt://localhost', { clientId: 'client1', resubscribe: false, reconnectPeriod: -1 })
+  const client1 = mqtt.connect('mqtt://localhost', { clientId: 'client1', resubscribe: false, reconnectPeriod: -1 })
   client1.on('message', () => {
     t.fail('client1 receives message')
   })

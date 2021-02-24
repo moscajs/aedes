@@ -286,8 +286,8 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
 
   const s = setup(broker)
 
-  var conn = s.client.conn
-  var end = conn.end
+  const conn = s.client.conn
+  const end = conn.end
 
   conn.end = function () {
     t.fail('should not call `conn.end()`')
@@ -442,7 +442,7 @@ test('connect handler calls done when preConnect throws error', function (t) {
 
   const s = setup(broker)
 
-  var handleConnect = require('../lib/handlers/connect')
+  const handleConnect = require('../lib/handlers/connect')
 
   handleConnect(s.client, {}, function done (err) {
     t.equal(err.message, 'error in preconnect', 'calls done with error')
@@ -458,7 +458,7 @@ test('handler calls done when disconnect or unknown packet cmd is received', fun
 
   const s = setup(broker)
 
-  var handle = require('../lib/handlers/index')
+  const handle = require('../lib/handlers/index')
 
   handle(s.client, { cmd: 'disconnect' }, function done () {
     t.pass('calls done when disconnect cmd is received')
@@ -489,10 +489,10 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
     keepalive: 0
   }
 
-  var i = 0
+  let i = 0
   const broker = aedes({
     preConnect: function (client, packet, done) {
-      var ms = i++ === 0 ? 2000 : 500
+      const ms = i++ === 0 ? 2000 : 500
       setTimeout(function () {
         done(null, true)
       }, ms)

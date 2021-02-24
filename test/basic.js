@@ -23,7 +23,7 @@ test('publish QoS 0', function (t) {
   const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -60,7 +60,7 @@ test('messageId shoud reset to 1 if it reached 65535', function (t) {
     qos: 1,
     messageId: 42
   }
-  var count = 0
+  let count = 0
   s.broker.on('clientReady', function (client) {
     subscribe(t, s, 'hello', 1, function () {
       client._nextId = 65535
@@ -143,7 +143,7 @@ test('return write errors to callback', function (t) {
     }
   })
 
-  var client = {
+  const client = {
     conn: {
       writable: true
     },
@@ -561,20 +561,20 @@ test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubsribers', f
   }
 
   broker.mq.on('$SYS/' + broker.id + '/new/subscribes', function (packet, done) {
-    var payload = JSON.parse(packet.payload.toString())
+    const payload = JSON.parse(packet.payload.toString())
     t.equal(payload.clientId, 'abcde', 'clientId matches')
     t.deepEqual(payload.subs, [sub], 'subscriptions matches')
     done()
   })
 
   broker.mq.on('$SYS/' + broker.id + '/new/unsubscribes', function (packet, done) {
-    var payload = JSON.parse(packet.payload.toString())
+    const payload = JSON.parse(packet.payload.toString())
     t.equal(payload.clientId, 'abcde', 'clientId matches')
     t.deepEqual(payload.subs, [sub.topic], 'unsubscriptions matches')
     done()
   })
 
-  var subscriber = connect(setup(broker), {
+  const subscriber = connect(setup(broker), {
     clean: false, clientId: 'abcde'
   }, function () {
     subscribe(t, subscriber, sub.topic, sub.qos, function () {
@@ -603,7 +603,7 @@ test('restore QoS 0 subscriptions not clean', function (t) {
     retain: false
   }
 
-  var subscriber = connect(setup(broker), {
+  let subscriber = connect(setup(broker), {
     clean: false, clientId: 'abcde'
   }, function () {
     subscribe(t, subscriber, 'hello', 0, function () {
@@ -634,7 +634,7 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), {
+  let subscriber = connect(setup(broker), {
     clean: true, clientId: 'abcde'
   }, function () {
     subscribe(t, subscriber, 'hello', 0, function () {
