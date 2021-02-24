@@ -95,6 +95,15 @@ Other info:
 
 - The repo [aedes-tests](https://github.com/moscajs/aedes-tests) is used to test aedes with clusters and different emitters/persistences. Check its source code to have a starting point on how to work with clusters
 
+## Bridge connections
+
+Normally, when publishing a message, the `retain` flag is consumed by Aedes and
+then set to `false` so that recipients of the message do not retain it as well.
+
+Brokers that support the [Bridge Protocol][bridge_protocol] can connect to
+Aedes.  When connecting with this special protocol, subscriptions work as usual
+excecpt that the `retain` flag in the packet is propagated as-is.
+
 ## Exensions
 
 - [aedes-logging]: Logging module for Aedes, based on Pino
