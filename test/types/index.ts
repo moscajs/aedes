@@ -69,6 +69,8 @@ const broker = Server({
   }
 })
 
+const { brokers } = broker
+
 const server = createServer(broker.handle)
 
 broker.on('closed', () => {
