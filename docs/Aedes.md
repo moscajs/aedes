@@ -20,7 +20,7 @@
   - [Event: connackSent](#event-connacksent)
   - [Event: closed](#event-closed)
   - [aedes.handle (stream)](#aedeshandle-stream)
-  - [aedes.subscribe (topic, deliverfunc, callback)](#aedessubscribe-topic-deliverfunc-callback)
+  - [aedes.subscribe (topic, deliverfunc\[, retainAsPublised\], callback)](#aedessubscribe-topic-deliverfunc-callback)
   - [aedes.unsubscribe (topic, deliverfunc, callback)](#aedesunsubscribe-topic-deliverfunc-callback)
   - [aedes.publish (packet, callback)](#aedespublish-packet-callback)
   - [aedes.close ([callback])](#aedesclose-callback)
@@ -176,15 +176,18 @@ const aedes = require('./aedes')()
 const server = require('net').createServer(aedes.handle)
 ```
 
-## aedes.subscribe (topic, deliverfunc, callback)
+## aedes.subscribe (topic, deliverfunc\[, retainAsPublised\], callback)
 
 - topic: `<string>`
+- retainAsPublished: `<boolean>`
 - deliverfunc: `<Function>` `(packet, cb) => void`
   - packet: `<aedes-packet>` & [`PUBLISH`][PUBLISH]
   - cb: `<Function>`
 - callback: `<Function>`
 
 Directly subscribe a `topic` in server side. Bypass [`authorizeSubscribe`](#handler-authorizesubscribe-client-subscription-callback)
+
+If `retainAsPublished` is `true` (default `false`), the retain flag in the packet is passed to `deliverFunc` as it was published.  Otherwise, it is set to `false` before being passed to `deliverFunc`.
 
 The `topic` and `deliverfunc` is a compound key to differentiate the uniqueness of its subscription pool. `topic` could be the one that is existed, in this case `deliverfunc` will be invoked as well as `SUBSCRIBE` does.
 

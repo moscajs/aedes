@@ -98,11 +98,16 @@ Other info:
 ## Bridge connections
 
 Normally, when publishing a message, the `retain` flag is consumed by Aedes and
-then set to `false` so that recipients of the message do not retain it as well.
+then set to `false`.  This is done for two reasons:
+
+- MQTT-3.3.1-9 states that it MUST set the RETAIN flag to 0 when a PUBLISH
+  Packet is sent to a Client because it matches an established subscription
+  regardless of how the flag was set in the message it received.
+- When operating as a cluster, only one Aedes node may store the packet
 
 Brokers that support the [Bridge Protocol][bridge_protocol] can connect to
 Aedes.  When connecting with this special protocol, subscriptions work as usual
-excecpt that the `retain` flag in the packet is propagated as-is.
+except that the `retain` flag in the packet is propagated as-is.
 
 ## Exensions
 

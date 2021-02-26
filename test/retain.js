@@ -76,6 +76,38 @@ test('retain messages', function (t) {
   publisher.inStream.write(expected)
 })
 
+test('retain messages only once in cluster setup', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    dup: false,
+    length: 12,
+    retain: true
+  }
+
+  const subscriberFunc = function (packet, cb) {
+    cb()
+    setImmediate(function () {
+      t.equal(packet.retain, false, 'packet must not have retain')
+      broker.unsubscribe('hello', subscriberFunc, function () {
+        t.notOk(subscriberFunc._retainToFalseWrappers, 'wrapper function must be freed')
+      })
+    })
+  }
+
+  broker.subscribe('hello', subscriberFunc, function () {
+    t.ok(((subscriberFunc._retainToFalseWrappers || {}).hello || {})[broker], 'wrapper function must be created')
+    broker.publish(expected)
+  })
+})
+
 test('avoid wrong deduping of retain messages', function (t) {
   t.plan(7)
 
