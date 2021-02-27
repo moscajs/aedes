@@ -76,8 +76,8 @@ test('retain messages', function (t) {
   publisher.inStream.write(expected)
 })
 
-test('retain messages only once in cluster setup', function (t) {
-  t.plan(3)
+test('retain messages propagates through broker subscriptions', function (t) {
+  t.plan(1)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
@@ -88,22 +88,20 @@ test('retain messages only once in cluster setup', function (t) {
     payload: Buffer.from('world'),
     qos: 0,
     dup: false,
-    length: 12,
     retain: true
   }
 
   const subscriberFunc = function (packet, cb) {
+    packet = Object.assign({}, packet)
+    delete packet.brokerId
+    delete packet.brokerCounter
     cb()
     setImmediate(function () {
-      t.equal(packet.retain, false, 'packet must not have retain')
-      broker.unsubscribe('hello', subscriberFunc, function () {
-        t.notOk(subscriberFunc._retainToFalseWrappers, 'wrapper function must be freed')
-      })
+      t.deepEqual(packet, expected, 'packet must not have been modified')
     })
   }
 
   broker.subscribe('hello', subscriberFunc, function () {
-    t.ok(((subscriberFunc._retainToFalseWrappers || {}).hello || {})[broker], 'wrapper function must be created')
     broker.publish(expected)
   })
 })

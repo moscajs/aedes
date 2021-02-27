@@ -256,46 +256,11 @@ Aedes.prototype.publish = function (packet, client, done) {
   this._series(new PublishState(this, client, packet), publishFuncs, p, done)
 }
 
-function createRetainToFalseWrapper (broker, topic, func) {
-  func._retainToFalseWrappers = func._wrappers || {}
-  func._retainToFalseWrappers[topic] = func._retainToFalseWrappers[topic] || {}
-  func._retainToFalseWrappers[topic][broker] = function handlePacketSubscription (_packet, cb) {
-    _packet = new Packet(_packet, broker)
-    _packet.retain = false
-    func(_packet, cb)
-  }
-  func._retainToFalseWrappers[topic][broker]._freeWrapper = function freeWrapper () {
-    delete ((func._retainToFalseWrappers || {})[topic] || {})[broker]
-    if (Object.keys((func._retainToFalseWrappers || {})[topic] || {}).length === 0) {
-      delete func._retainToFalseWrappers[topic]
-    }
-    if (Object.keys(func._retainToFalseWrappers).length === 0) {
-      delete func._retainToFalseWrappers
-    }
-  }
-  return func._retainToFalseWrappers[topic][broker]
-}
-
-Aedes.prototype.subscribe = function (topic, func, rap, done) {
-  if (done === undefined && typeof rap === 'function') {
-    done = rap
-    rap = false
-  }
-  if (!rap) {
-    func = createRetainToFalseWrapper(this, topic, func)
-  }
+Aedes.prototype.subscribe = function (topic, func, done) {
   this.mq.on(topic, func, done)
 }
 
 Aedes.prototype.unsubscribe = function (topic, func, done) {
-  if (func) {
-    func = ((func._retainToFalseWrappers || {})[topic] || {})[this] || func
-  }
-
-  if (func && func._freeWrapper) {
-    func._freeWrapper()
-  }
-
   this.mq.removeListener(topic, func, done)
 }
 
