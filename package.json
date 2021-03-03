@@ -123,7 +123,7 @@
     "mqemitter": "^4.4.0",
     "mqtt-packet": "^6.7.0",
     "readable-stream": "^3.6.0",
-    "retimer": "^2.0.0",
+    "retimer": "^3.0.0",
     "reusify": "^1.0.4",
     "uuid": "^8.3.1"
   }
