@@ -76,6 +76,36 @@ test('retain messages', function (t) {
   publisher.inStream.write(expected)
 })
 
+test('retain messages propagates through broker subscriptions', function (t) {
+  t.plan(1)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    dup: false,
+    retain: true
+  }
+
+  const subscriberFunc = function (packet, cb) {
+    packet = Object.assign({}, packet)
+    delete packet.brokerId
+    delete packet.brokerCounter
+    cb()
+    setImmediate(function () {
+      t.deepEqual(packet, expected, 'packet must not have been modified')
+    })
+  }
+
+  broker.subscribe('hello', subscriberFunc, function () {
+    broker.publish(expected)
+  })
+})
+
 test('avoid wrong deduping of retain messages', function (t) {
   t.plan(7)
 

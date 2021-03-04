@@ -81,7 +81,7 @@ Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
 - [Dynamic Topics][dynamic_topics] Support
 - MQTT Bridge Support between aedes
 - [MQTT 5.0][mqttv5] _(not support yet)_
-- [Bridge Protocol][bridge_protocol] _(not support yet)_
+- [Bridge Protocol][bridge_protocol] _(incoming connections only)_
 
 ## Examples
 
@@ -94,6 +94,20 @@ Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. B
 Other info:
 
 - The repo [aedes-tests](https://github.com/moscajs/aedes-tests) is used to test aedes with clusters and different emitters/persistences. Check its source code to have a starting point on how to work with clusters
+
+## Bridge connections
+
+Normally, when publishing a message, the `retain` flag is consumed by Aedes and
+then set to `false`.  This is done for two reasons:
+
+- MQTT-3.3.1-9 states that it MUST set the RETAIN flag to 0 when a PUBLISH
+  Packet is sent to a Client because it matches an established subscription
+  regardless of how the flag was set in the message it received.
+- When operating as a cluster, only one Aedes node may store the packet
+
+Brokers that support the [Bridge Protocol][bridge_protocol] can connect to
+Aedes.  When connecting with this special protocol, subscriptions work as usual
+except that the `retain` flag in the packet is propagated as-is.
 
 ## Exensions
 
