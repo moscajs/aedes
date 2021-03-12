@@ -56,6 +56,30 @@ test('publish QoS 1 throws error', function (t) {
   })
 })
 
+test('publish QoS 1 throws error on write', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.on('client', function (client) {
+    client.connected = false
+    client.connecting = false
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 1,
+      messageId: 42
+    })
+  })
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'connection closed', 'throws error')
+  })
+})
+
 test('publish QoS 1 and check offline queue', function (t) {
   t.plan(13)
 
@@ -67,7 +91,7 @@ test('publish QoS 1 and check offline queue', function (t) {
     id: 'abcde'
   }
   const subscriber = connect(setup(broker), { clean: false, clientId: subscriberClient.id })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     qos: 1,
@@ -82,7 +106,7 @@ test('publish QoS 1 and check offline queue', function (t) {
     length: 2,
     messageId: 10
   }
-  var sent = {
+  const sent = {
     cmd: 'publish',
     topic: 'hello',
     payload: 'world',
@@ -91,7 +115,7 @@ test('publish QoS 1 and check offline queue', function (t) {
     retain: false,
     dup: false
   }
-  var queue = []
+  const queue = []
   subscribe(t, subscriber, 'hello', 1, function () {
     publisher.outStream.on('data', function (packet) {
       t.deepEqual(packet, expectedAck, 'ack packet must patch')
@@ -106,7 +130,7 @@ test('publish QoS 1 and check offline queue', function (t) {
       t.deepEqual(packet, expected, 'publish packet must patch')
       if (queue.length === 2) {
         setImmediate(() => {
-          for (var i = 0; i < queue.length; i++) {
+          for (let i = 0; i < queue.length; i++) {
             broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
               if (origPacket) {
                 delete origPacket.brokerId
@@ -139,7 +163,7 @@ test('publish QoS 1 and empty offline queue', function (t) {
     id: 'abcde'
   }
   const subscriber = connect(setup(broker), { clean: false, clientId: subscriberClient.id })
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     qos: 1,
@@ -154,7 +178,7 @@ test('publish QoS 1 and empty offline queue', function (t) {
     length: 2,
     messageId: 10
   }
-  var sent = {
+  const sent = {
     cmd: 'publish',
     topic: 'hello',
     payload: 'world',
@@ -163,7 +187,7 @@ test('publish QoS 1 and empty offline queue', function (t) {
     retain: false,
     dup: false
   }
-  var queue = []
+  const queue = []
   subscribe(t, subscriber, 'hello', 1, function () {
     publisher.outStream.on('data', function (packet) {
       t.deepEqual(packet, expectedAck, 'ack packet must patch')
@@ -179,7 +203,7 @@ test('publish QoS 1 and empty offline queue', function (t) {
       if (queue.length === 2) {
         setImmediate(() => {
           broker.clients[subscriberClient.id].emptyOutgoingQueue(function () {
-            for (var i = 0; i < queue.length; i++) {
+            for (let i = 0; i < queue.length; i++) {
               broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
                 t.equal(!!origPacket, false, 'Packet has been removed')
               })
@@ -272,7 +296,7 @@ test('restore QoS 1 subscriptions not clean', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -321,7 +345,7 @@ test('restore multiple QoS 1 subscriptions not clean w/ authorizeSubscribe', fun
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   const expected = {
     cmd: 'publish',
     topic: 'foo',
@@ -379,7 +403,7 @@ test('remove stored subscriptions if connected with clean=true', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
@@ -427,7 +451,7 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
-  var subscriber = connect(setup(broker), opts)
+  let subscriber = connect(setup(broker), opts)
   const subscriberClient = {
     id: opts.clientId
   }
@@ -485,13 +509,78 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
   })
 })
 
+test('resend many publish on non-clean reconnect QoS 1', function (t) {
+  t.plan(38)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const opts = { clean: false, clientId: 'abcde' }
+  let subscriber = connect(setup(broker), opts)
+
+  subscribe(t, subscriber, 'hello', 1, function () {
+    subscriber.inStream.end()
+
+    const publisher = connect(setup(broker))
+
+    let count = 0
+    while (++count <= 17) {
+      publisher.inStream.write({
+        cmd: 'publish',
+        topic: 'hello',
+        payload: 'message-' + count,
+        qos: 1,
+        messageId: 42 + count
+      })
+    }
+    publisher.outStream.once('data', function (packet) {
+      t.equal(packet.cmd, 'puback')
+
+      subscriber = connect(setup(broker), opts)
+
+      const expected = [
+        [43, 'message-1'],
+        [44, 'message-2'],
+        [45, 'message-3'],
+        [46, 'message-4'],
+        [47, 'message-5'],
+        [48, 'message-6'],
+        [49, 'message-7'],
+        [50, 'message-8'],
+        [51, 'message-9'],
+        [52, 'message-10'],
+        [53, 'message-11'],
+        [54, 'message-12'],
+        [55, 'message-13'],
+        [56, 'message-14'],
+        [57, 'message-15'],
+        [58, 'message-16'],
+        [59, 'message-17']
+      ]
+
+      let recievedCount = 0
+      subscriber.outStream.on('data', function (packet) {
+        subscriber.inStream.write({
+          cmd: 'puback',
+          messageId: packet.messageId
+        })
+
+        const [messageId, payload] = expected[recievedCount++]
+
+        t.notEqual(packet.messageId, messageId, 'messageId should not match')
+        t.deepEqual(packet.payload, Buffer.from(payload), 'payload should match')
+      })
+    })
+  })
+})
+
 test('do not resend QoS 1 packets at each reconnect', function (t) {
   t.plan(6)
 
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -546,7 +635,7 @@ test('do not resend QoS 1 packets if reconnect is clean', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
@@ -579,7 +668,7 @@ test('do not resend QoS 1 packets at reconnect if puback was received', function
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -629,7 +718,7 @@ test('remove stored subscriptions after unsubscribe', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.write({

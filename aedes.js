@@ -170,12 +170,11 @@ function storeRetained (packet, done) {
 }
 
 function emitPacket (packet, done) {
-  packet.retain = false
   this.broker.mq.emit(packet, done)
 }
 
 function enqueueOffline (packet, done) {
-  var enqueuer = this.broker._enqueuers.get()
+  const enqueuer = this.broker._enqueuers.get()
 
   enqueuer.complete = done
   enqueuer.packet = packet
@@ -251,7 +250,7 @@ Aedes.prototype.publish = function (packet, client, done) {
     done = client
     client = null
   }
-  var p = new Packet(packet, this)
+  const p = new Packet(packet, this)
   const publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
 
   this._series(new PublishState(this, client, packet), publishFuncs, p, done)
@@ -318,7 +317,7 @@ Aedes.prototype.close = function (cb = noop) {
 
 Aedes.prototype.version = require('./package.json').version
 
-function defaultPreConnect (client, callback) {
+function defaultPreConnect (client, packet, callback) {
   callback(null, true)
 }
 

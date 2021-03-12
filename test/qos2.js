@@ -119,6 +119,47 @@ test('subscribe QoS 2', function (t) {
   })
 })
 
+test('publish QoS 2 throws error on write', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  s.broker.on('client', function (client) {
+    client.connected = false
+    client.connecting = false
+
+    s.inStream.write({
+      cmd: 'publish',
+      topic: 'hello',
+      payload: 'world',
+      qos: 2,
+      messageId: 42
+    })
+  })
+
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'connection closed', 'throws error')
+  })
+})
+
+test('pubrec handler calls done when outgoingUpdate fails (clean=false)', function (t) {
+  t.plan(1)
+
+  const s = connect(setup(), { clean: false })
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  const handle = require('../lib/handlers/pubrec.js')
+
+  s.broker.persistence.outgoingUpdate = function (client, pubrel, done) {
+    done(Error('throws error'))
+  }
+
+  handle(s.client, { messageId: 42 }, function done () {
+    t.pass('calls done on error')
+  })
+})
+
 test('client.publish with clean=true subscribption QoS 2', function (t) {
   t.plan(8)
 
@@ -135,7 +176,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
     length: 14,
     retain: false
   }
-  var brokerClient = null
+  let brokerClient = null
 
   broker.on('client', function (client) {
     brokerClient = client
@@ -370,7 +411,7 @@ test('restore QoS 2 subscriptions not clean', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
+  let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -403,7 +444,7 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
-  var subscriber = connect(setup(broker), opts)
+  let subscriber = connect(setup(broker), opts)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -435,7 +476,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
-  var subscriber = connect(setup(broker), opts)
+  let subscriber = connect(setup(broker), opts)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -560,11 +601,11 @@ test('multiple publish and store one', function (t) {
     messageId: 42
   }
 
-  var count = 5
+  let count = 5
   while (count--) {
     s.inStream.write(toPublish)
   }
-  var recvcnt = 0
+  let recvcnt = 0
   s.outStream.on('data', function (packet) {
     if (++recvcnt < 5) return
     broker.close(function () {
@@ -575,5 +616,39 @@ test('multiple publish and store one', function (t) {
         t.error(err)
       })
     })
+  })
+})
+
+test('packet is written to stream after being stored', function (t) {
+  const s = connect(setup())
+
+  const broker = s.broker
+
+  t.tearDown(broker.close.bind(s.broker))
+
+  let packetStored = false
+
+  const fn = broker.persistence.incomingStorePacket.bind(broker.persistence)
+
+  s.broker.persistence.incomingStorePacket = function (client, packet, done) {
+    packetStored = true
+    t.pass('packet stored')
+    fn(client, packet, done)
+  }
+
+  const packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 2,
+    messageId: 42
+  }
+
+  publish(t, s, packet)
+
+  s.outStream.once('data', function (packet) {
+    t.equal(packet.cmd, 'pubrec', 'pubrec received')
+    t.equal(packetStored, true, 'after packet store')
+    t.end()
   })
 })

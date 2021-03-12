@@ -376,7 +376,7 @@ test('does not store multiple will with same clientid', function (t) {
 
   const broker = aedes()
 
-  var s = noError(willConnect(setup(broker), opts, function () {
+  let s = noError(willConnect(setup(broker), opts, function () {
     // gracefully close client so no will is sent
     s.inStream.end({
       cmd: 'disconnect'
@@ -409,7 +409,7 @@ test('don\'t delivers a will if broker alive', function (t) {
     retain: false
   }
 
-  var oldBroker = 'broker1'
+  const oldBroker = 'broker1'
 
   persistence.broker = {
     id: oldBroker
@@ -425,12 +425,12 @@ test('don\'t delivers a will if broker alive', function (t) {
       heartbeatInterval: 10
     }
 
-    var count = 0
+    let count = 0
 
     const broker = aedes(opts)
     t.tearDown(broker.close.bind(broker))
 
-    var streamWill = persistence.streamWill
+    const streamWill = persistence.streamWill
     persistence.streamWill = function () {
       // don't pass broker.brokers to streamWill
       return streamWill.call(persistence)

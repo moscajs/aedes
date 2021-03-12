@@ -13,6 +13,20 @@ server.listen(port, function () {
 })
 ```
 
+## Simple plain MQTT server using server-factory
+
+```js
+const aedes = require('aedes')()
+const { createServer } = require('aedes-server-factory')
+const port = 1883
+
+const server = createServer(aedes)
+
+server.listen(port, function () {
+  console.log('server started and listening on port ', port)
+})
+```
+
 ## MQTT over TLS / MQTTS
 
 ```js
@@ -35,12 +49,26 @@ server.listen(port, function () {
 ## MQTT server over WebSocket
 
 ```js
-const aedes = require('./aedes')()
+const aedes = require('aedes')()
 const httpServer = require('http').createServer()
 const ws = require('websocket-stream')
 const port = 8888
 
 ws.createServer({ server: httpServer }, aedes.handle)
+
+httpServer.listen(port, function () {
+  console.log('websocket server listening on port ', port)
+})
+```
+
+## MQTT server over WebSocket using server-factory
+
+```js
+const aedes = require('aedes')()
+const { createServer } = require('aedes-server-factory')
+const port = 8888
+
+const httpServer = createServer(aedes, { ws: true })
 
 httpServer.listen(port, function () {
   console.log('websocket server listening on port ', port)

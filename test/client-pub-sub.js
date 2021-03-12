@@ -166,8 +166,8 @@ test('publish direct to a single client QoS 2', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var publishCount = 0
-  var nonPublishCount = 0
+  let publishCount = 0
+  let nonPublishCount = 0
 
   broker.on('clientReady', function (client) {
     client.publish({
@@ -213,7 +213,7 @@ test('emit a `ack` event on PUBACK for QoS 1 [clean=false]', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -287,8 +287,8 @@ test('emit a `ack` event on PUBCOMP for QoS 2 [clean=false]', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var messageId
-  var clientId
+  let messageId
+  let clientId
 
   broker.on('clientReady', function (client) {
     clientId = client.id
@@ -394,7 +394,7 @@ test('offline message support for direct publish', function (t) {
     })
   })
 
-  var s = connect(setup(broker), opts)
+  let s = connect(setup(broker), opts)
 
   s.outStream.once('data', function (packet) {
     s = connect(setup(broker), opts)
@@ -449,6 +449,123 @@ test('subscribe a client programmatically', function (t) {
   s.outStream.once('data', function (packet) {
     t.deepEqual(packet, expected, 'packet matches')
   })
+})
+
+test('subscribe a client programmatically clears retain', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    dup: false,
+    length: 12,
+    qos: 0,
+    retain: false
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 0,
+        retain: true
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  const s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
+
+test('subscribe a bridge programmatically keeps retain', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    dup: false,
+    length: 12,
+    qos: 0,
+    retain: true
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 0,
+      rap: true
+    }, function (err) {
+      t.error(err, 'no error')
+
+      broker.publish({
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 0,
+        retain: true
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  const s = connect(setup(broker))
+
+  s.outStream.once('data', function (packet) {
+    t.deepEqual(packet, expected, 'packet matches')
+  })
+})
+
+test('subscribe throws error when QoS > 0', function (t) {
+  t.plan(3)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.on('clientReady', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+
+      // makes writeQos throw error
+      client.connected = false
+      client.connecting = false
+
+      broker.publish({
+        topic: 'hello',
+        payload: Buffer.from('world'),
+        qos: 1
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+
+  broker.on('clientError', function (client, error) {
+    t.equal(error.message, 'connection closed', 'should throw clientError')
+  })
+
+  connect(setup(broker))
 })
 
 test('subscribe a client programmatically - wildcard', function (t) {
@@ -512,6 +629,36 @@ test('unsubscribe a client', function (t) {
     })
   })
   connect(setup(broker))
+})
+
+test('unsubscribe should not call removeSubscriptions when [clean=true]', function (t) {
+  t.plan(2)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  broker.persistence.removeSubscriptions = function (client, subs, cb) {
+    cb(Error('remove subscription is called'))
+  }
+
+  broker.on('client', function (client) {
+    client.subscribe({
+      topic: 'hello',
+      qos: 1
+    }, function (err) {
+      t.error(err, 'no error')
+      client.unsubscribe({
+        unsubscriptions: [{
+          topic: 'hello',
+          qos: 1
+        }],
+        messageId: 42
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    })
+  })
+  connect(setup(broker), { clean: true })
 })
 
 test('unsubscribe throws error', function (t) {
@@ -771,7 +918,7 @@ test('programmatically add custom subscribe', function (t) {
     length: 12,
     dup: false
   }
-  var deliverP = {
+  const deliverP = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -809,7 +956,7 @@ test('custom function in broker.subscribe', function (t) {
   t.tearDown(broker.close.bind(broker))
 
   const s = setup(broker)
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -872,7 +1019,7 @@ test('custom function in broker.unsubscribe', function (t) {
     }
   })
   function deliver (packet, cb) {
-    t.fail('shoudl not be called')
+    t.fail('should not be called')
     cb()
   }
 })

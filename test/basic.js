@@ -4,6 +4,7 @@ const { test } = require('tap')
 const eos = require('end-of-stream')
 const { setup, connect, subscribe, subscribeMultiple, noError } = require('./helper')
 const aedes = require('../')
+const proxyquire = require('proxyquire')
 
 test('test aedes.Server', function (t) {
   t.plan(1)
@@ -22,7 +23,7 @@ test('publish QoS 0', function (t) {
   const s = connect(setup())
   t.tearDown(s.broker.close.bind(s.broker))
 
-  var expected = {
+  const expected = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
@@ -59,7 +60,7 @@ test('messageId shoud reset to 1 if it reached 65535', function (t) {
     qos: 1,
     messageId: 42
   }
-  var count = 0
+  let count = 0
   s.broker.on('clientReady', function (client) {
     subscribe(t, s, 'hello', 1, function () {
       client._nextId = 65535
@@ -127,6 +128,30 @@ test('publish empty topic throws error', function (t) {
         payload: 'world'
       })
     })
+  })
+})
+
+// Catch invalid packet writeToStream errors
+test('return write errors to callback', function (t) {
+  t.plan(1)
+
+  const write = proxyquire('../lib/write.js', {
+    'mqtt-packet': {
+      writeToStream: () => {
+        throw Error('error')
+      }
+    }
+  })
+
+  const client = {
+    conn: {
+      writable: true
+    },
+    connecting: true
+  }
+
+  write(client, {}, function (err) {
+    t.equal(err.message, 'packet received not valid', 'should return the error to callback')
   })
 })
 
@@ -525,6 +550,43 @@ test('publish to $SYS/broker/new/clients', function (t) {
   })
 })
 
+test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubsribers', function (t) {
+  t.plan(7)
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const sub = {
+    topic: 'hello',
+    qos: 0
+  }
+
+  broker.mq.on('$SYS/' + broker.id + '/new/subscribes', function (packet, done) {
+    const payload = JSON.parse(packet.payload.toString())
+    t.equal(payload.clientId, 'abcde', 'clientId matches')
+    t.deepEqual(payload.subs, [sub], 'subscriptions matches')
+    done()
+  })
+
+  broker.mq.on('$SYS/' + broker.id + '/new/unsubscribes', function (packet, done) {
+    const payload = JSON.parse(packet.payload.toString())
+    t.equal(payload.clientId, 'abcde', 'clientId matches')
+    t.deepEqual(payload.subs, [sub.topic], 'unsubscriptions matches')
+    done()
+  })
+
+  const subscriber = connect(setup(broker), {
+    clean: false, clientId: 'abcde'
+  }, function () {
+    subscribe(t, subscriber, sub.topic, sub.qos, function () {
+      subscriber.inStream.write({
+        cmd: 'unsubscribe',
+        messageId: 43,
+        unsubscriptions: ['hello']
+      })
+    })
+  })
+})
+
 test('restore QoS 0 subscriptions not clean', function (t) {
   t.plan(5)
 
@@ -541,7 +603,7 @@ test('restore QoS 0 subscriptions not clean', function (t) {
     retain: false
   }
 
-  var subscriber = connect(setup(broker), {
+  let subscriber = connect(setup(broker), {
     clean: false, clientId: 'abcde'
   }, function () {
     subscribe(t, subscriber, 'hello', 0, function () {
@@ -572,7 +634,7 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = connect(setup(broker), {
+  let subscriber = connect(setup(broker), {
     clean: true, clientId: 'abcde'
   }, function () {
     subscribe(t, subscriber, 'hello', 0, function () {

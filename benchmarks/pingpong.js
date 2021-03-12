@@ -6,8 +6,8 @@ const mode = require('compute-mode')
 const client = mqtt.connect({ port: 1883, host: 'localhost', clean: true, keepalive: 0 })
 const interval = 5000
 
-var sent = 0
-var latencies = []
+let sent = 0
+const latencies = []
 
 function count () {
   console.log('sent/s', sent / interval * 1000)
@@ -28,8 +28,8 @@ function subscribe () {
 client.on('connect', subscribe)
 client.on('message', publish)
 client.on('message', function (topic, payload) {
-  var sentAt = JSON.parse(payload)
-  var diff = process.hrtime(sentAt)
+  const sentAt = JSON.parse(payload)
+  const diff = process.hrtime(sentAt)
   latencies.push(convertHrtime(diff).ms)
 })
 
@@ -43,7 +43,7 @@ client.on('error', function () {
 })
 
 process.on('SIGINT', function () {
-  var total = latencies.reduce(function (acc, num) {
+  const total = latencies.reduce(function (acc, num) {
     return acc + num
   })
   console.log('total', total)

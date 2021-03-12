@@ -5,7 +5,8 @@
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/moscajs/aedes/graphs/commit-activity)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/moscajs/aedes/pulls)\
-![LGTM Grade](https://img.shields.io/lgtm/grade/javascript/github/moscajs/aedes)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/moscajs/aedes.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/moscajs/aedes/alerts/)
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/moscajs/aedes.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/moscajs/aedes/context:javascript)
 [![Coverage Status](https://coveralls.io/repos/moscajs/aedes/badge.svg?branch=master&service=github)](https://coveralls.io/github/moscajs/aedes?branch=master)
 [![Known Vulnerabilities](https://snyk.io/test/github/moscajs/aedes/badge.svg)](https://snyk.io/test/github/moscajs/aedes)\
 [![Dependencies Status](https://david-dm.org/moscajs/aedes/status.svg)](https://david-dm.org/moscajs/aedes)
@@ -20,9 +21,11 @@ Barebone MQTT server that can run on any stream servers
 
 - [Aedes](#aedes)
   - [Install](#install)
+  - [Docker](#docker)
   - [API](#api)
   - [Features](#features)
   - [Examples](#examples)
+  - [Clusters](#clusters)
   - [Exensions](#exensions)
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
@@ -38,6 +41,7 @@ Barebone MQTT server that can run on any stream servers
   - [Made with Aedes](#made-with-aedes)
   - [Collaborators](#collaborators)
   - [Contribution](#contribution)
+  - [Support](#support)
     - [Backers](#backers)
     - [Sponsors](#sponsors)
   - [License](#license)
@@ -49,6 +53,10 @@ To install aedes, simply use npm:
 ```sh
 npm install aedes
 ```
+
+## Docker
+
+Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
 
 ## API
 
@@ -73,17 +81,41 @@ npm install aedes
 - [Dynamic Topics][dynamic_topics] Support
 - MQTT Bridge Support between aedes
 - [MQTT 5.0][mqttv5] _(not support yet)_
-- [Bridge Protocol][bridge_protocol] _(not support yet)_
+- [Bridge Protocol][bridge_protocol] _(incoming connections only)_
 
 ## Examples
 
 - [Examples](./docs/Examples.md)
 
+## Clusters
+
+Aedes needs on disk dbs like MongoDB and Redis in order to work with clusters. Based on our tests and users reports the best performances/stability are reached when using [aedes-persistence-mongodb] paired with [mqemitter-redis].
+
+Other info:
+
+- The repo [aedes-tests](https://github.com/moscajs/aedes-tests) is used to test aedes with clusters and different emitters/persistences. Check its source code to have a starting point on how to work with clusters
+
+## Bridge connections
+
+Normally, when publishing a message, the `retain` flag is consumed by Aedes and
+then set to `false`.  This is done for two reasons:
+
+- MQTT-3.3.1-9 states that it MUST set the RETAIN flag to 0 when a PUBLISH
+  Packet is sent to a Client because it matches an established subscription
+  regardless of how the flag was set in the message it received.
+- When operating as a cluster, only one Aedes node may store the packet
+
+Brokers that support the [Bridge Protocol][bridge_protocol] can connect to
+Aedes.  When connecting with this special protocol, subscriptions work as usual
+except that the `retain` flag in the packet is propagated as-is.
+
 ## Exensions
 
 - [aedes-logging]: Logging module for Aedes, based on Pino
 - [aedes-stats]: Stats for Aedes
+- [aedes-cli]: Run Aedes MQTT Broker from the CLI
 - [aedes-protocol-decoder]: Protocol decoder for Aedes MQTT Broker
+- [aedes-server-factory]: Create a server instance such as TCP, HTTP, TLS...
 
 ## Middleware Plugins
 
@@ -233,6 +265,7 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 
 - [node-red-contrib-aedes](https://github.com/martin-doyle/node-red-contrib-aedes): MQTT broker for Node-Red based on Aedes
 - [Mqtt2Mqtt](https://github.com/robertsLando/Mqtt2Mqtt): Mqtt Bridge between two brokers with UI
+- [Kuzzle](https://github.com/kuzzleio/kuzzle): High performance and full featured IoT backend using MQTT alongside WebSocket and Http protocols
 
 ## Collaborators
 
@@ -240,6 +273,7 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 - [__Behrad Zari__](https://github.com/behrad)
 - [__Gnought__](https://github.com/gnought)
 - [__Daniel Lando__](https://github.com/robertsLando)
+- [__Getlarge__](https://github.com/getlarge)
 
 ## Contribution
 
@@ -248,6 +282,10 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 
 Want to contribute? Check our list of
 [features/bugs](https://github.com/moscajs/aedes/projects/1)
+
+## Support
+
+If there are bugs/leaks in production scenarios, we encourage people to send Pull Request and/or reach out maintainers for some paid support.
 
 ### Backers
 
@@ -273,7 +311,9 @@ Licensed under [MIT](./LICENSE).
 
 [aedes-logging]: https://www.npmjs.com/aedes-logging
 [aedes-stats]: https://www.npmjs.com/aedes-stats
+[aedes-cli]: https://www.npmjs.com/aedes-cli
 [aedes-protocol-decoder]: https://www.npmjs.com/aedes-protocol-decoder
+[aedes-server-factory]: https://www.npmjs.com/aedes-server-factory
 [aedes-persistence]: https://www.npmjs.com/aedes-persistence
 [aedes-persistence-mongodb]: https://www.npmjs.com/aedes-persistence-mongodb
 [aedes-persistence-redis]: https://www.npmjs.com/aedes-persistence-redis

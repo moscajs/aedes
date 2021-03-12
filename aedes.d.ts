@@ -4,7 +4,7 @@
 
 /// <reference types="node" />
 
-import { IConnackPacket, IPingreqPacket, IPublishPacket, IPubrelPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
+import { IConnackPacket, IConnectPacket, IPingreqPacket, IPublishPacket, IPubrelPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
 import { AedesPacket } from 'aedes-packet'
 import { Duplex } from 'stream'
 import { Socket } from 'net'
@@ -33,44 +33,11 @@ declare namespace aedes {
   type PublishPacket = IPublishPacket & { cmd: 'publish' }
   type AedesPublishPacket = PublishPacket & AedesPacket
 
+  type ConnectPacket = IConnectPacket & { cmd: 'connect' }
   type ConnackPacket = IConnackPacket & { cmd: 'connack' }
   type PubrelPacket = IPubrelPacket & { cmd: 'pubrel' }
   type PingreqPacket = IPingreqPacket & { cmd: 'pingreq' }
 
-  type PreConnectHandler = (client: Client, callback: (error: Error | null, success: boolean) => void) => void
-
-  type AuthenticateError = Error & { returnCode: AuthErrorCode }
-
-  type AuthenticateHandler = (
-    client: Client,
-    username: string,
-    password: Buffer,
-    done: (error: AuthenticateError | null, success: boolean | null) => void
-  ) => void
-
-  type AuthorizePublishHandler = (client: Client, packet: PublishPacket, callback: (error?: Error | null) => void) => void
-
-  type AuthorizeSubscribeHandler = (client: Client, subscription: Subscription, callback: (error: Error | null, subscription?: Subscription | null) => void) => void
-
-  type AuthorizeForwardHandler = (client: Client, packet: AedesPublishPacket) => AedesPublishPacket | null | void
-
-  type PublishedHandler = (packet: AedesPublishPacket, client: Client, callback: (error?: Error | null) => void) => void
-
-  interface AedesOptions {
-    mq?: any
-    persistence?: any
-    concurrency?: number
-    heartbeatInterval?: number
-    connectTimeout?: number
-    preConnect?: PreConnectHandler
-    authenticate?: AuthenticateHandler
-    authorizePublish?: AuthorizePublishHandler
-    authorizeSubscribe?: AuthorizeSubscribeHandler
-    authorizeForward?: AuthorizeForwardHandler
-    published?: PublishedHandler
-    queueLimit?: number
-    maxClientsIdLength?: number
-  }
   interface Client extends EventEmitter {
     id: string
     clean: boolean
@@ -94,10 +61,53 @@ declare namespace aedes {
     emptyOutgoingQueue (callback?: () => void): void
   }
 
+  type PreConnectHandler = (client: Client, packet: IConnectPacket, callback: (error: Error | null, success: boolean) => void) => void
+
+  type AuthenticateError = Error & { returnCode: AuthErrorCode }
+
+  type AuthenticateHandler = (
+    client: Client,
+    username: string,
+    password: Buffer,
+    done: (error: AuthenticateError | null, success: boolean | null) => void
+  ) => void
+
+  type AuthorizePublishHandler = (client: Client, packet: PublishPacket, callback: (error?: Error | null) => void) => void
+
+  type AuthorizeSubscribeHandler = (client: Client, subscription: Subscription, callback: (error: Error | null, subscription?: Subscription | null) => void) => void
+
+  type AuthorizeForwardHandler = (client: Client, packet: AedesPublishPacket) => AedesPublishPacket | null | void
+
+  type PublishedHandler = (packet: AedesPublishPacket, client: Client, callback: (error?: Error | null) => void) => void
+
+  type LastHearthbeatTimestamp = Date;
+
+  interface Brokers {
+    [brokerId: string]: LastHearthbeatTimestamp;
+  }
+
+  interface AedesOptions {
+    mq?: any
+    id?: string
+    persistence?: any
+    concurrency?: number
+    heartbeatInterval?: number
+    connectTimeout?: number
+    preConnect?: PreConnectHandler
+    authenticate?: AuthenticateHandler
+    authorizePublish?: AuthorizePublishHandler
+    authorizeSubscribe?: AuthorizeSubscribeHandler
+    authorizeForward?: AuthorizeForwardHandler
+    published?: PublishedHandler
+    queueLimit?: number
+    maxClientsIdLength?: number
+  }
+
   interface Aedes extends EventEmitter {
     id: string
     connectedClients: number
     closed: boolean
+    brokers: Brokers
 
     handle: (stream: Connection) => Client
 

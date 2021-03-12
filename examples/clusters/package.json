@@ -9,7 +9,7 @@
   "author": "robertsLando",
   "license": "MIT",
   "dependencies": {
-    "aedes": "^0.41.0",
+    "aedes": "^0.44.0",
     "aedes-persistence-mongodb": "^7.0.1",
     "mqemitter-mongodb": "^7.0.1"
   }

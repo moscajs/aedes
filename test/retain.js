@@ -76,6 +76,36 @@ test('retain messages', function (t) {
   publisher.inStream.write(expected)
 })
 
+test('retain messages propagates through broker subscriptions', function (t) {
+  t.plan(1)
+
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: Buffer.from('world'),
+    qos: 0,
+    dup: false,
+    retain: true
+  }
+
+  const subscriberFunc = function (packet, cb) {
+    packet = Object.assign({}, packet)
+    delete packet.brokerId
+    delete packet.brokerCounter
+    cb()
+    setImmediate(function () {
+      t.deepEqual(packet, expected, 'packet must not have been modified')
+    })
+  }
+
+  broker.subscribe('hello', subscriberFunc, function () {
+    broker.publish(expected)
+  })
+})
+
 test('avoid wrong deduping of retain messages', function (t) {
   t.plan(7)
 
@@ -128,7 +158,7 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
   t.tearDown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
-  var subscriber = connect(setup(broker), { clean: true })
+  let subscriber = connect(setup(broker), { clean: true })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -208,7 +238,7 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
   })
 
   clock.setTimeout(() => {
-    t.equal(broker.counter, 6)
+    t.equal(broker.counter, 8)
   }, 200)
 })
 
@@ -248,7 +278,7 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
     })
   })
   broker.on('closed', function () {
-    t.equal(broker.counter, 6)
+    t.equal(broker.counter, 7)
   })
 })
 
@@ -503,7 +533,7 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
+  let subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -563,7 +593,7 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
   const broker = aedes()
   t.tearDown(broker.close.bind(broker))
 
-  var subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
+  let subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
     cmd: 'publish',
     topic: 'hello',
