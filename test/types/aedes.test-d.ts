@@ -1,31 +1,23 @@
-/* eslint no-unused-vars: 0 */
-/* eslint no-undef: 0 */
-
 import { expectType } from 'tsd'
+import { Socket } from 'net'
 import type {
   Aedes,
   Brokers,
-  Client,
-  Connection,
-  ConnackPacket,
   AuthenticateError,
-  AedesPublishPacket,
-  PublishPacket,
-  Subscription,
-  SubscribePacket,
-  UnsubscribePacket
+  Client,
+  Connection
 } from '../../aedes'
 import { Server } from '../../aedes'
-import type { Packet } from 'mqtt-packet'
-import { Socket } from 'net'
+import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet'
 
 // Aedes server
 const broker = Server({
+  id: 'aedes',
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
-  id: 'aedes',
-  preConnect: (client: Client, packet: Packet, callback) => {
+  maxClientsIdLength: 23,
+  preConnect: (client: Client, packet: ConnectPacket, callback) => {
     if (client.req) {
       callback(new Error('not websocket stream'), false)
     }
@@ -35,7 +27,7 @@ const broker = Server({
       callback(new Error('connection error'), false)
     }
   },
-  authenticate: (client: Client, username: string, password: Buffer, callback) => {
+  authenticate: (client: Client, username: Readonly<string>, password: Readonly<Buffer>, callback) => {
     if (username === 'test' && password === Buffer.from('test') && client.version === 4) {
       callback(null, true)
     } else {
@@ -81,6 +73,10 @@ const broker = Server({
     }
 
     return packet
+  },
+  published: (packet: AedesPublishPacket, client: Client, callback) => {
+    callback(null)
+    callback(new Error())
   }
 })
 
@@ -90,8 +86,17 @@ expectType<Brokers>(broker.brokers)
 
 expectType<Aedes>(broker.on('closed', () => {}))
 expectType<Aedes>(broker.on('client', (client: Client) => {}))
+expectType<Aedes>(broker.on('clientReady', (client: Client) => {}))
+expectType<Aedes>(broker.on('clientDisconnect', (client: Client) => {}))
+expectType<Aedes>(broker.on('keepaliveTimeout', (client: Client) => {}))
 expectType<Aedes>(broker.on('clientError', (client: Client, error: Error) => {}))
+expectType<Aedes>(broker.on('connectionError', (client: Client, error: Error) => {}))
 expectType<Aedes>(broker.on('connackSent', (packet: ConnackPacket, client: Client) => {}))
+expectType<Aedes>(broker.on('ping', (packet: PingreqPacket, client: Client) => {}))
+expectType<Aedes>(broker.on('publish', (packet: AedesPublishPacket, client: Client) => {}))
+expectType<Aedes>(broker.on('ack', (packet: PublishPacket | PubrelPacket, client: Client) => {}))
+expectType<Aedes>(broker.on('subscribe', (subscriptions: Subscription[], client: Client) => {}))
+expectType<Aedes>(broker.on('unsubscribe', (unsubscriptions: string[], client: Client) => {}))
 
 expectType<void>(broker.publish(
   {} as PublishPacket,
