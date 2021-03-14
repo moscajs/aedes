@@ -82,7 +82,7 @@ const broker = Server({
 
 expectType<Aedes>(broker)
 
-expectType<Brokers>(broker.brokers)
+expectType<Readonly<Brokers>>(broker.brokers)
 
 expectType<Aedes>(broker.on('closed', () => {}))
 expectType<Aedes>(broker.on('client', (client: Client) => {}))
