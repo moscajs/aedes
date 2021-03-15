@@ -5,7 +5,9 @@
     "noEmit": true,
     "strict": true
   },
-  "files": [
-    "./index.ts"
+  "include": [
+    "/test/types/*.test-d.ts",
+    "/types/*.d.ts",
+    "aedes.d.ts"
   ]
 }
