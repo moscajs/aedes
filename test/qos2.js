@@ -653,6 +653,7 @@ test('packet is written to stream after being stored', function (t) {
   })
 })
 
+// [MQTT-3.3.1-1]
 test('re-delivery for client with the same id has dup=true', function (t) {
   t.plan(9)
 
@@ -686,6 +687,7 @@ test('re-delivery for client with the same id has dup=true', function (t) {
   })
 })
 
+// [MQTT-3.3.1-1]
 test('setting dup for one subscriber doesn\'t affect another', function (t) {
   t.plan(12)
 
@@ -725,6 +727,7 @@ test('setting dup for one subscriber doesn\'t affect another', function (t) {
   })
 })
 
+// [MQTT-3.3.1-1]
 test('dup is also set if the message is not acked upon connecting', function (t) {
   t.plan(9)
 
