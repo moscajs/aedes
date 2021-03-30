@@ -652,3 +652,112 @@ test('packet is written to stream after being stored', function (t) {
     t.end()
   })
 })
+
+test('re-delivery for client with the same id has dup=true', function (t) {
+  t.plan(9)
+
+  const topic = 'topic'
+  const qos = 2
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const subscriber = connect(setup(broker), { clean: false, clientId: 'subscriber' })
+  const expected = {
+    cmd: 'publish',
+    topic: topic,
+    payload: Buffer.from('world'),
+    qos: 2,
+    dup: false,
+    length: 14,
+    messageId: 42,
+    retain: false
+  }
+
+  subscribe(t, subscriber, topic, qos, function () {
+    const publisher = connect(setup(broker))
+    publish(t, publisher, expected)
+    subscriber.outStream.once('data', function (packet) {
+      // Here we deliberately disconnect without acking the message to trigger re-delivery
+      subscriber.inStream.end()
+      t.deepEqual(packet, { ...expected, messageId: packet.messageId }, 'packet must match')
+      const reconnectedSubscriber = connect(setup(broker), { clean: false, clientId: 'subscriber' })
+      receive(t, reconnectedSubscriber, { ...expected, dup: true })
+    })
+  })
+})
+
+test('setting dup for one subscriber doesn\'t affect another', function (t) {
+  t.plan(12)
+
+  const topic = 'topic'
+  const qos = 2
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const clientA = connect(setup(broker), { clean: false, clientId: 'clientA' })
+
+  const clientB = connect(setup(broker), { clean: false, clientId: 'clientB' })
+  subscribe(t, clientB, topic, qos, function () {
+    clientB.inStream.end()
+    const expected = {
+      cmd: 'publish',
+      topic: topic,
+      payload: Buffer.from('world'),
+      qos: 2,
+      dup: false,
+      length: 14,
+      messageId: 42,
+      retain: false
+    }
+
+    subscribe(t, clientA, topic, qos, function () {
+      const publisher = connect(setup(broker))
+      publish(t, publisher, expected)
+      clientA.outStream.once('data', function (packetForClientA) {
+        // Here we deliberately disconnect clientA without acking the message to set dup for him
+        clientA.inStream.end()
+        t.deepEqual(packetForClientA, { ...expected, messageId: packetForClientA.messageId },
+          'packet for clientA must match')
+        const reconnectedClientB = connect(setup(broker), { clean: false, clientId: 'clientB' })
+        receive(t, reconnectedClientB, { ...expected })
+      })
+    })
+  })
+})
+
+test('dup is also set if the message is not acked upon connecting', function (t) {
+  t.plan(9)
+
+  const topic = 'topic'
+  const qos = 2
+  const broker = aedes()
+  t.tearDown(broker.close.bind(broker))
+
+  const client1stAttempt = connect(setup(broker), { clean: false, clientId: 'clientA' })
+  subscribe(t, client1stAttempt, topic, qos, function () {
+    client1stAttempt.inStream.end()
+
+    const expected = {
+      cmd: 'publish',
+      topic: topic,
+      payload: Buffer.from('world'),
+      qos: 2,
+      dup: false,
+      length: 14,
+      messageId: 42,
+      retain: false
+    }
+
+    const publisher = connect(setup(broker))
+    publish(t, publisher, expected, function () {
+      const client2ndAttempt = connect(setup(broker), { clean: false, clientId: 'clientA' })
+      client2ndAttempt.outStream.once('data', function (packet) {
+        client2ndAttempt.inStream.end()
+        t.deepEqual(packet, { ...expected, messageId: packet.messageId }, 'packet must match')
+        const client3rdAttempt = connect(setup(broker), { clean: false, clientId: 'clientA' })
+
+        receive(t, client3rdAttempt, { ...expected, dup: true })
+      })
+    })
+  })
+})
