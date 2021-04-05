@@ -14,7 +14,7 @@ test('authenticate successfully a client with username and password', function (
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(null, true)
@@ -53,7 +53,7 @@ test('authenticate unsuccessfully a client with username and password', function
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(null, false)
@@ -104,7 +104,7 @@ test('authenticate errors', function (t) {
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     cb(new Error('this should happen!'))
@@ -156,7 +156,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
@@ -210,7 +210,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
@@ -264,7 +264,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
@@ -318,7 +318,7 @@ test('authentication error when return code 4 (bad user or password) is passed',
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
@@ -372,7 +372,7 @@ test('authentication error when non numeric return code is passed', function (t)
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
     t.deepEqual(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Non numeric error codes')
@@ -464,7 +464,7 @@ test('authorize waits for authenticate', function (t) {
   t.tearDown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
-    t.ok(client instanceof Client, 'client is there')
+    t.type(client, Client, 'client is there')
     process.nextTick(function () {
       t.equal(username, 'my username', 'username is there')
       t.deepEqual(password, Buffer.from('my pass'), 'password is there')
@@ -991,7 +991,7 @@ test('set authentication method in config options', function (t) {
 
   const s = setup(aedes({
     authenticate: function (client, username, password, cb) {
-      t.ok(client instanceof Client, 'client is there')
+      t.type(client, Client, 'client is there')
       t.equal(username, 'my username', 'username is there')
       t.deepEqual(password, Buffer.from('my pass'), 'password is there')
       cb(null, false)
