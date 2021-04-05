@@ -9,7 +9,7 @@ test('after an error, outstanding packets are discarded', function (t) {
   const s = connect(setup(), {
     keepalive: 1000
   })
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const packet = {
     cmd: 'publish',

@@ -29,11 +29,11 @@ test('delivers a will', function (t) {
       s.conn.destroy()
     }
   )
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
-    t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+    t.same(packet.payload, opts.will.payload, 'payload matches')
     t.equal(packet.qos, opts.will.qos, 'qos matches')
     t.equal(packet.retain, opts.will.retain, 'retain matches')
     cb()
@@ -45,7 +45,7 @@ test('calling close two times should not deliver two wills', function (t) {
 
   const opts = {}
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     client.close()
@@ -61,7 +61,7 @@ test('calling close two times should not deliver two wills', function (t) {
     broker.mq.removeListener('mywill', onWill)
     broker.mq.on('mywill', t.fail.bind(t))
     t.equal(packet.topic, opts.will.topic, 'topic matches')
-    t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+    t.same(packet.payload, opts.will.payload, 'payload matches')
     t.equal(packet.qos, opts.will.qos, 'qos matches')
     t.equal(packet.retain, opts.will.retain, 'retain matches')
     cb()
@@ -93,7 +93,7 @@ test('delivers old will in case of a crash', function (t) {
       persistence: persistence,
       heartbeatInterval: interval
     })
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     const start = Date.now()
 
@@ -103,7 +103,7 @@ test('delivers old will in case of a crash', function (t) {
       broker.mq.removeListener('mywill', check)
       t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
       t.equal(packet.topic, will.topic, 'topic matches')
-      t.deepEqual(packet.payload, will.payload, 'payload matches')
+      t.same(packet.payload, will.payload, 'payload matches')
       t.equal(packet.qos, will.qos, 'qos matches')
       t.equal(packet.retain, will.retain, 'retain matches')
       broker.mq.on('mywill', function (packet) {
@@ -123,7 +123,7 @@ test('delete old broker', function (t) {
   const broker = aedes({
     heartbeatInterval: heartbeatInterval
   })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const brokerId = 'dummyBroker'
 
@@ -147,7 +147,7 @@ test('store the will in the persistence', function (t) {
 
   // willConnect populates opts with a will
   const s = willConnect(setup(), opts)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('client', function () {
     // this is connack
@@ -155,10 +155,10 @@ test('store the will in the persistence', function (t) {
       id: opts.clientId
     }, function (err, packet) {
       t.error(err, 'no error')
-      t.deepEqual(packet.topic, opts.will.topic, 'will topic matches')
-      t.deepEqual(packet.payload, opts.will.payload, 'will payload matches')
-      t.deepEqual(packet.qos, opts.will.qos, 'will qos matches')
-      t.deepEqual(packet.retain, opts.will.retain, 'will retain matches')
+      t.same(packet.topic, opts.will.topic, 'will topic matches')
+      t.same(packet.payload, opts.will.payload, 'will payload matches')
+      t.same(packet.qos, opts.will.qos, 'will qos matches')
+      t.same(packet.retain, opts.will.retain, 'will retain matches')
     })
   })
 })
@@ -171,7 +171,7 @@ test('delete the will in the persistence after publish', function (t) {
   }
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     setImmediate(function () {
@@ -216,7 +216,7 @@ test('delivers a will with authorization', function (t) {
       s.conn.destroy()
     }
   )
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function (client) {
     t.equal(client.connected, false)
@@ -224,7 +224,7 @@ test('delivers a will with authorization', function (t) {
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
-    t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+    t.same(packet.payload, opts.will.payload, 'payload matches')
     t.equal(packet.qos, opts.will.qos, 'qos matches')
     t.equal(packet.retain, opts.will.retain, 'retain matches')
     t.equal(authorized, true, 'authorization called')
@@ -250,7 +250,7 @@ test('delivers a will waits for authorization', function (t) {
       s.conn.destroy()
     }
   )
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function () {
     t.pass('client is disconnected')
@@ -258,7 +258,7 @@ test('delivers a will waits for authorization', function (t) {
 
   s.broker.mq.on('mywill', function (packet, cb) {
     t.equal(packet.topic, opts.will.topic, 'topic matches')
-    t.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+    t.same(packet.payload, opts.will.payload, 'payload matches')
     t.equal(packet.qos, opts.will.qos, 'qos matches')
     t.equal(packet.retain, opts.will.retain, 'retain matches')
     t.equal(authorized, true, 'authorization called')
@@ -284,7 +284,7 @@ test('does not deliver a will without authorization', function (t) {
       s.conn.destroy()
     }
   )
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function () {
     t.equal(authorized, true, 'authorization called')
@@ -311,7 +311,7 @@ test('does not deliver a will without authentication', function (t) {
     })),
     opts
   )
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientError', function () {
     t.equal(authenticated, true, 'authentication called')
@@ -355,7 +355,7 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
   t.plan(0)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = noError(willConnect(setup(broker), {}, function () {
     s.inStream.end({
@@ -428,7 +428,7 @@ test('don\'t delivers a will if broker alive', function (t) {
     let count = 0
 
     const broker = aedes(opts)
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     const streamWill = persistence.streamWill
     persistence.streamWill = function () {
@@ -481,7 +481,7 @@ test('handle will publish error', function (t) {
     }
 
     const broker = aedes(opts)
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     broker.once('error', function (err) {
       t.equal('Throws error', err.message, 'throws error')
@@ -518,7 +518,7 @@ test('handle will publish error 2', function (t) {
     }
 
     const broker = aedes(opts)
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     broker.once('error', function (err) {
       t.equal('Throws error', err.message, 'throws error')

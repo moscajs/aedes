@@ -9,7 +9,7 @@ test('Single-level wildcard should match empty level', function (t) {
   t.plan(4)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'a/+/b', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -51,7 +51,7 @@ test('publish invalid topic with #', function (t) {
   t.plan(4)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -74,7 +74,7 @@ test('publish invalid topic with +', function (t) {
   t.plan(4)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, '#', 0, function () {
     s.outStream.once('data', function (packet) {
@@ -98,7 +98,7 @@ test('publish invalid topic with +', function (t) {
     t.plan(1)
 
     const s = connect(setup())
-    t.tearDown(s.broker.close.bind(s.broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
     s.broker.on('clientError', function () {
       t.pass('raise an error')
@@ -118,7 +118,7 @@ test('publish invalid topic with +', function (t) {
     t.plan(1)
 
     const s = connect(setup())
-    t.tearDown(s.broker.close.bind(s.broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
     s.broker.on('clientError', function () {
       t.pass('raise an error')
@@ -136,7 +136,7 @@ test('topics are case-sensitive', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
   const subscriber = connect(setup(broker), { clean: true })
@@ -152,7 +152,7 @@ test('topics are case-sensitive', function (t) {
 
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet mush match')
+      t.same(packet, expected, 'packet mush match')
     })
     ;['hello', 'HELLO', 'heLLo', 'HELLO/#', 'hello/+'].forEach(function (topic) {
       publisher.inStream.write({
@@ -176,7 +176,7 @@ function subscribeMultipleTopics (t, broker, qos, subscriber, subscriptions, don
 
   subscriber.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, subscriptions.map(obj => obj.qos))
+    t.same(packet.granted, subscriptions.map(obj => obj.qos))
     t.equal(packet.messageId, 24)
 
     publisher.inStream.write({
@@ -197,7 +197,7 @@ test('Overlapped topics with same QoS', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const subscriber = connect(setup(broker))
   const expected = {
@@ -215,7 +215,7 @@ test('Overlapped topics with same QoS', function (t) {
   subscribeMultipleTopics(t, broker, 1, subscriber, sub, function () {
     subscriber.outStream.on('data', function (packet) {
       delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
   })
 })
@@ -225,7 +225,7 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const subscriber = connect(setup(broker))
   const expected = {
@@ -243,7 +243,7 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
     subscriber.outStream.on('data', function (packet) {
       delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
   })
 })
@@ -253,7 +253,7 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const subscriber = connect(setup(broker))
 
@@ -271,7 +271,7 @@ test('Overlapped topics with QoS downgrade', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const subscriber = connect(setup(broker))
   const expected = {
@@ -288,7 +288,7 @@ test('Overlapped topics with QoS downgrade', function (t) {
     { topic: 'hello/#', qos: 1 }]
   subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
     subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
   })
 })

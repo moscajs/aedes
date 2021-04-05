@@ -11,12 +11,12 @@ test('authenticate successfully a client with username and password', function (
   t.plan(4)
 
   const s = noError(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     cb(null, true)
   }
 
@@ -32,7 +32,7 @@ test('authenticate successfully a client with username and password', function (
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 0,
       length: 2,
@@ -50,12 +50,12 @@ test('authenticate unsuccessfully a client with username and password', function
   t.plan(6)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     cb(null, false)
   }
 
@@ -68,7 +68,7 @@ test('authenticate unsuccessfully a client with username and password', function
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 5,
       length: 2,
@@ -101,12 +101,12 @@ test('authenticate errors', function (t) {
   t.plan(7)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     cb(new Error('this should happen!'))
   }
 
@@ -120,7 +120,7 @@ test('authenticate errors', function (t) {
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 5,
       length: 2,
@@ -153,12 +153,12 @@ test('authentication error when return code 1 (unacceptable protocol version) is
   t.plan(7)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
     error.returnCode = 1
     cb(error, null)
@@ -174,7 +174,7 @@ test('authentication error when return code 1 (unacceptable protocol version) is
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 5,
       length: 2,
@@ -207,12 +207,12 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
   t.plan(7)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
     error.returnCode = 2
     cb(error, null)
@@ -228,7 +228,7 @@ test('authentication error when return code 2 (identifier rejected) is passed', 
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 2,
       length: 2,
@@ -261,12 +261,12 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
   t.plan(7)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
     error.returnCode = 3
     cb(error, null)
@@ -282,7 +282,7 @@ test('authentication error when return code 3 (Server unavailable) is passed', f
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 3,
       length: 2,
@@ -315,12 +315,12 @@ test('authentication error when return code 4 (bad user or password) is passed',
   t.plan(7)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Auth error')
     error.returnCode = 4
     cb(error, null)
@@ -336,7 +336,7 @@ test('authentication error when return code 4 (bad user or password) is passed',
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 4,
       length: 2,
@@ -369,12 +369,12 @@ test('authentication error when non numeric return code is passed', function (t)
   t.plan(7)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     t.equal(username, 'my username', 'username is there')
-    t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+    t.same(password, Buffer.from('my pass'), 'password is there')
     const error = new Error('Non numeric error codes')
     error.returnCode = 'return Code'
     cb(error, null)
@@ -390,7 +390,7 @@ test('authentication error when non numeric return code is passed', function (t)
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 5,
       length: 2,
@@ -423,7 +423,7 @@ test('authorize publish', function (t) {
   t.plan(4)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
     cmd: 'publish',
@@ -437,7 +437,7 @@ test('authorize publish', function (t) {
 
   s.broker.authorizePublish = function (client, packet, cb) {
     t.ok(client, 'client exists')
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
     cb()
   }
 
@@ -446,7 +446,7 @@ test('authorize publish', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
     cb()
   })
 
@@ -461,13 +461,13 @@ test('authorize waits for authenticate', function (t) {
   t.plan(6)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
     t.type(client, Client, 'client is there')
     process.nextTick(function () {
       t.equal(username, 'my username', 'username is there')
-      t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+      t.same(password, Buffer.from('my pass'), 'password is there')
       client.authenticated = true
       cb(null, true)
     })
@@ -493,7 +493,7 @@ test('authorize waits for authenticate', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
     cb()
   })
 
@@ -521,11 +521,11 @@ test('authorize publish from configOptions', function (t) {
   const s = connect(setup(aedes({
     authorizePublish: function (client, packet, cb) {
       t.ok(client, 'client exists')
-      t.deepEqual(packet, expected, 'packet matches')
+      t.same(packet, expected, 'packet matches')
       cb()
     }
   })))
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
     cmd: 'publish',
@@ -542,7 +542,7 @@ test('authorize publish from configOptions', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
     cb()
   })
 
@@ -557,7 +557,7 @@ test('do not authorize publish', function (t) {
   t.plan(3)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
     cmd: 'publish',
@@ -571,7 +571,7 @@ test('do not authorize publish', function (t) {
 
   s.broker.authorizePublish = function (client, packet, cb) {
     t.ok(client, 'client exists')
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
     cb(new Error('auth negated'))
   }
 
@@ -638,11 +638,11 @@ test('authorize subscribe', function (t) {
   t.plan(5)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
-    t.deepEqual(sub, {
+    t.same(sub, {
       topic: 'hello',
       qos: 0
     }, 'topic matches')
@@ -656,10 +656,10 @@ test('authorize subscribe multiple same topics with same qos', function (t) {
   t.plan(4)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
-    t.deepEqual(sub, {
+    t.same(sub, {
       topic: 'hello',
       qos: 0
     }, 'topic matches')
@@ -673,10 +673,10 @@ test('authorize subscribe multiple same topics with different qos', function (t)
   t.plan(4)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
-    t.deepEqual(sub, {
+    t.same(sub, {
       topic: 'hello',
       qos: 1
     }, 'topic matches')
@@ -690,17 +690,17 @@ test('authorize subscribe multiple different topics', function (t) {
   t.plan(7)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
     if (sub.topic === 'hello') {
-      t.deepEqual(sub, {
+      t.same(sub, {
         topic: 'hello',
         qos: 0
       }, 'topic matches')
     } else if (sub.topic === 'foo') {
-      t.deepEqual(sub, {
+      t.same(sub, {
         topic: 'foo',
         qos: 0
       }, 'topic matches')
@@ -717,14 +717,14 @@ test('authorize subscribe from config options', function (t) {
   const s = connect(setup(aedes({
     authorizeSubscribe: function (client, sub, cb) {
       t.ok(client, 'client exists')
-      t.deepEqual(sub, {
+      t.same(sub, {
         topic: 'hello',
         qos: 0
       }, 'topic matches')
       cb(null, sub)
     }
   })))
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0)
 })
@@ -733,11 +733,11 @@ test('negate subscription', function (t) {
   t.plan(5)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
-    t.deepEqual(sub, {
+    t.same(sub, {
       topic: 'hello',
       qos: 0
     }, 'topic matches')
@@ -755,7 +755,7 @@ test('negate subscription', function (t) {
 
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [128])
+    t.same(packet.granted, [128])
     t.equal(packet.messageId, 24)
   })
 })
@@ -764,7 +764,7 @@ test('negate multiple subscriptions', function (t) {
   t.plan(5)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
@@ -785,7 +785,7 @@ test('negate multiple subscriptions', function (t) {
 
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [128, 128])
+    t.same(packet.granted, [128, 128])
     t.equal(packet.messageId, 24)
   })
 })
@@ -802,7 +802,7 @@ test('negate subscription with correct persistence', function (t) {
   }]
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.authorizeSubscribe = function (client, sub, cb) {
     t.ok(client, 'client exists')
@@ -815,9 +815,9 @@ test('negate subscription with correct persistence', function (t) {
   const s = connect(setup(broker), { clean: false, clientId: 'abcde' })
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [128, 0])
+    t.same(packet.granted, [128, 0])
     broker.persistence.subscriptionsByClient(broker.clients.abcde, function (_, subs, client) {
-      t.deepEqual(subs, expected)
+      t.same(subs, expected)
     })
     t.equal(packet.messageId, 24)
   })
@@ -840,7 +840,7 @@ test('negate multiple subscriptions random times', function (t) {
 
   const clock = Faketimers.createClock()
   const s = connect(setup())
-  t.tearDown(function () {
+  t.teardown(function () {
     clock.reset()
     s.broker.close()
   })
@@ -871,7 +871,7 @@ test('negate multiple subscriptions random times', function (t) {
 
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [0, 128])
+    t.same(packet.granted, [0, 128])
     t.equal(packet.messageId, 24)
   })
 })
@@ -880,7 +880,7 @@ test('failed authentication does not disconnect other client with same clientId'
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
   const s0 = setup(broker)
@@ -901,7 +901,7 @@ test('failed authentication does not disconnect other client with same clientId'
   })
 
   s0.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 0,
       length: 2,
@@ -930,7 +930,7 @@ test('failed authentication does not disconnect other client with same clientId'
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 5,
       length: 2,
@@ -963,7 +963,7 @@ test('unauthorized connection should not unregister the correct one with same cl
       }
     }
   })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('clientError', function (client, err) {
     t.equal(err.message, 'bad user name or password')
@@ -993,14 +993,14 @@ test('set authentication method in config options', function (t) {
     authenticate: function (client, username, password, cb) {
       t.type(client, Client, 'client is there')
       t.equal(username, 'my username', 'username is there')
-      t.deepEqual(password, Buffer.from('my pass'), 'password is there')
+      t.same(password, Buffer.from('my pass'), 'password is there')
       cb(null, false)
     }
   }))
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 5,
       length: 2,
@@ -1039,7 +1039,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
       return packet
     }
   })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const expected = {
     cmd: 'publish',
@@ -1072,7 +1072,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
   const s = connect(setup(broker))
 
   s.outStream.once('data', function (packet) {
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
   })
 })
 
@@ -1085,7 +1085,7 @@ test('change a topic name inside authorizeForward method in QoS 1 mode', functio
         return null
       }
     })
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     broker.on('client', function (client) {
       client.subscribe({
@@ -1120,7 +1120,7 @@ test('prevent publish in QoS 0 mode', function (t) {
       return null
     }
   })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     client.subscribe({
