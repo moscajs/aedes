@@ -12,7 +12,7 @@ const aedes = require('../')
     t.plan(2)
 
     const s = setup()
-    t.tearDown(s.broker.close.bind(s.broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
     s.inStream.write({
       cmd: 'connect',
@@ -24,7 +24,7 @@ const aedes = require('../')
     })
 
     s.outStream.on('data', function (packet) {
-      t.deepEqual(packet, {
+      t.same(packet, {
         cmd: 'connack',
         returnCode: 0,
         length: 2,
@@ -45,7 +45,7 @@ test('reject client requested for unacceptable protocol version', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -75,7 +75,7 @@ test('reject client requested for unsupported protocol version', function (t) {
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -102,7 +102,7 @@ test('reject clients with no clientId running on MQTT 3.1.0', function (t) {
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -128,7 +128,7 @@ test('reject clients without clientid and clean=false on MQTT 3.1.1', function (
   t.plan(2)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -153,7 +153,7 @@ test('clients without clientid and clean=true on MQTT 3.1.1 will get a generated
   t.plan(5)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -182,7 +182,7 @@ test('client connect error while fetching subscriptions', function (t) {
   t.plan(2)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -212,7 +212,7 @@ test('client connect clear outgoing', function (t) {
   const brokerId = 'pippo'
 
   const broker = aedes({ id: brokerId })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const subs = [{ clientId: clientId }]
   const packet = {
@@ -251,7 +251,7 @@ test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a ge
   t.plan(5)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -282,7 +282,7 @@ test('reject clients with > 23 clientId length in MQTT 3.1.0', function (t) {
   t.plan(7)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -323,7 +323,7 @@ test('connect clients with > 23 clientId length using aedes maxClientsIdLength o
   t.plan(4)
 
   const broker = aedes({ maxClientsIdLength: 26 })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -350,7 +350,7 @@ test('connect with > 23 clientId length in MQTT 3.1.1', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -378,7 +378,7 @@ test('the first Packet MUST be a CONNECT Packet', function (t) {
   t.plan(2)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const packet = {
     cmd: 'publish',
@@ -404,7 +404,7 @@ test('second CONNECT Packet sent from a Client as a protocol violation and disco
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const packet = {
     cmd: 'connect',
@@ -438,7 +438,7 @@ test('connect handler calls done when preConnect throws error', function (t) {
     }
   })
 
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -454,7 +454,7 @@ test('handler calls done when disconnect or unknown packet cmd is received', fun
 
   const broker = aedes()
 
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -498,7 +498,7 @@ test('reject second CONNECT Packet sent while first CONNECT still in preConnect 
       }, ms)
     }
   })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -526,7 +526,7 @@ test('reject clients with wrong protocol name', function (t) {
   t.plan(2)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = setup(broker)
 
@@ -552,7 +552,7 @@ test('After first CONNECT Packet, others are queued until \'connect\' event', fu
 
   const queueLimit = 50
   const broker = aedes({ queueLimit })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publishP = {
     cmd: 'publish',
@@ -595,7 +595,7 @@ test('Test queue limit', function (t) {
 
   const queueLimit = 50
   const broker = aedes({ queueLimit })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publishP = {
     cmd: 'publish',
@@ -645,7 +645,7 @@ test('Test queue limit', function (t) {
         return done(err, ok)
       }
     })
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     const s = setup(broker)
 
@@ -720,7 +720,7 @@ test('websocket clients have access to the request object', function (t) {
     }
   })
 
-  t.tearDown(() => {
+  t.teardown(() => {
     client.end(true)
     broker.close()
     server.close()

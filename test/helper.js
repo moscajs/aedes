@@ -81,7 +81,7 @@ function subscribe (t, subscriber, topic, qos, done) {
 
   subscriber.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, [qos])
+    t.same(packet.granted, [qos])
     t.equal(packet.messageId, 24)
 
     if (done) {
@@ -100,7 +100,7 @@ function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
 
   subscriber.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
-    t.deepEqual(packet.granted, expectedGranted)
+    t.same(packet.granted, expectedGranted)
     t.equal(packet.messageId, 24)
 
     if (done) {

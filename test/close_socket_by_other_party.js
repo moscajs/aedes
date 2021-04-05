@@ -48,7 +48,7 @@ test('client is closed before authenticate returns', function (t) {
       }, 2000)
     }
   })
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     t.fail('should no client registration')
@@ -111,7 +111,7 @@ test('close client when its socket is closed', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const subscriber = connect(setup(broker))
 
@@ -131,7 +131,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
 
   let client2
 
-  t.tearDown(() => {
+  t.teardown(() => {
     client2.end()
     broker.close()
     server.close()
