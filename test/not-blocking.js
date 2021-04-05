@@ -29,8 +29,7 @@ test('connect 500 concurrent clients', function (t) {
       t.equal(clients.length, total)
       t.equal(connected, total)
       while (clients.length) {
-        let c = clients.shift()
-        c.end()
+        clients.shift().end()
       }
     }, total)
 
