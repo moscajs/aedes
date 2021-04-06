@@ -590,7 +590,7 @@ test('modify qos out of range in authorize publish ', function (t) {
   t.plan(2)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
     cmd: 'publish',
@@ -618,7 +618,7 @@ test('modify qos out of range in authorize publish ', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
     cb()
   })
 

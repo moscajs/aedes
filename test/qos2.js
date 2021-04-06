@@ -659,7 +659,7 @@ test('not send pubrec when persistence fails to store packet', function (t) {
   const s = connect(setup())
   const broker = s.broker
 
-  t.tearDown(broker.close.bind(s.broker))
+  t.teardown(broker.close.bind(s.broker))
 
   s.broker.persistence.incomingStorePacket = function (client, packet, done) {
     t.pass('packet stored')
