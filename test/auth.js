@@ -586,6 +586,54 @@ test('do not authorize publish', function (t) {
   })
 })
 
+test('modify qos out of range in authorize publish ', function (t) {
+  t.plan(2)
+
+  const s = connect(setup())
+  t.tearDown(s.broker.close.bind(s.broker))
+
+  const expected = {
+    cmd: 'publish',
+    topic: 'foo',
+    payload: Buffer.from('bar'),
+    qos: 0,
+    retain: false,
+    length: 12,
+    dup: false
+  }
+
+  s.broker.authorizePublish = function (client, packet, cb) {
+    if (packet.topic === 'hello') { packet.qos = 10 }
+    cb()
+  }
+
+  s.outStream.on('data', function (packet) {
+    t.fail('should no data sent')
+  })
+  s.broker.mq.on('hello', function (packet, cb) {
+    t.fail('should not publish')
+  })
+  s.broker.mq.on('foo', function (packet, cb) {
+    t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
+    expected.brokerId = s.broker.id
+    expected.brokerCounter = s.broker.counter
+    delete expected.length
+    t.deepEqual(packet, expected, 'packet matches')
+    cb()
+  })
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world'
+  })
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'foo',
+    payload: 'bar'
+  })
+})
+
 test('authorize subscribe', function (t) {
   t.plan(5)
 
