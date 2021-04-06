@@ -1,18 +1,23 @@
 name: ci
 
-on: 
+on:
   push:
-    branches:
-      - master
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         node-version: [10.x, 12.x, 14.x]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
       - uses: actions/checkout@v2
@@ -24,7 +29,7 @@ jobs:
 
       - name: Install
         run: |
-          npm install
+          npm install --ignore-scripts
 
       - name: Check licenses
         run: |
