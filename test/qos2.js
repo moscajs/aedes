@@ -11,7 +11,7 @@ function publish (t, s, packet, done) {
   s.inStream.write(packet)
 
   s.outStream.once('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'pubrec',
       messageId: msgId,
       length: 2,
@@ -26,7 +26,7 @@ function publish (t, s, packet, done) {
     })
 
     s.outStream.once('data', function (packet) {
-      t.deepEqual(packet, {
+      t.same(packet, {
         cmd: 'pubcomp',
         messageId: msgId,
         length: 2,
@@ -44,12 +44,12 @@ function publish (t, s, packet, done) {
 
 function receive (t, subscriber, expected, done) {
   subscriber.outStream.once('data', function (packet) {
-    t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
+    t.not(packet.messageId, expected.messageId, 'messageId must differ')
 
     const msgId = packet.messageId
     delete packet.messageId
     delete expected.messageId
-    t.deepEqual(packet, expected, 'packet must match')
+    t.same(packet, expected, 'packet must match')
 
     subscriber.inStream.write({
       cmd: 'pubrec',
@@ -61,7 +61,7 @@ function receive (t, subscriber, expected, done) {
         cmd: 'pubcomp',
         messageId: msgId
       })
-      t.deepEqual(packet, {
+      t.same(packet, {
         cmd: 'pubrel',
         messageId: msgId,
         length: 2,
@@ -81,7 +81,7 @@ test('publish QoS 2', function (t) {
   t.plan(2)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const packet = {
     cmd: 'publish',
@@ -97,7 +97,7 @@ test('subscribe QoS 2', function (t) {
   t.plan(8)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -123,7 +123,7 @@ test('publish QoS 2 throws error on write', function (t) {
   t.plan(1)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('client', function (client) {
     client.connected = false
@@ -147,7 +147,7 @@ test('pubrec handler calls done when outgoingUpdate fails (clean=false)', functi
   t.plan(1)
 
   const s = connect(setup(), { clean: false })
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const handle = require('../lib/handlers/pubrec.js')
 
@@ -164,7 +164,7 @@ test('client.publish with clean=true subscribption QoS 2', function (t) {
   t.plan(8)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const toPublish = {
     cmd: 'publish',
@@ -201,7 +201,7 @@ test('call published method with client with QoS 2', function (t) {
   t.plan(9)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -236,7 +236,7 @@ test('call published method with client with QoS 2', function (t) {
     t.plan(9)
 
     const broker = aedes()
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     const opts = { clean: cleanSession }
     const publisher = connect(setup(broker))
@@ -262,15 +262,15 @@ test('call published method with client with QoS 2', function (t) {
     broker.authorizeForward = function (client, packet) {
       forwarded.brokerId = broker.id
       forwarded.brokerCounter = broker.counter
-      t.deepEqual(packet, forwarded, 'forwarded packet must match')
+      t.same(packet, forwarded, 'forwarded packet must match')
       return packet
     }
 
     subscribe(t, subscriber, 'hello', 2, function () {
       subscriber.outStream.once('data', function (packet) {
-        t.notEqual(packet.messageId, 42)
+        t.not(packet.messageId, 42)
         delete packet.messageId
-        t.deepEqual(packet, expected, 'packet must match')
+        t.same(packet, expected, 'packet must match')
       })
 
       publish(t, publisher, {
@@ -300,7 +300,7 @@ test('call published method with client with QoS 2', function (t) {
     t.plan(6)
 
     const broker = aedes()
-    t.tearDown(broker.close.bind(broker))
+    t.teardown(broker.close.bind(broker))
 
     const opts = { clean: cleanSession }
 
@@ -338,7 +338,7 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
   t.plan(6)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -354,7 +354,7 @@ test('subscribe QoS 0, but publish QoS 2', function (t) {
 
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.once('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
 
     publish(t, publisher, {
@@ -373,7 +373,7 @@ test('subscribe QoS 1, but publish QoS 2', function (t) {
   t.plan(6)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -390,7 +390,7 @@ test('subscribe QoS 1, but publish QoS 2', function (t) {
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.outStream.once('data', function (packet) {
       delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
 
     publish(t, publisher, {
@@ -409,7 +409,7 @@ test('restore QoS 2 subscriptions not clean', function (t) {
   t.plan(9)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   let subscriber = connect(setup(broker), { clean: false, clientId: 'abcde' })
   const expected = {
@@ -441,7 +441,7 @@ test('resend publish on non-clean reconnect QoS 2', function (t) {
   t.plan(8)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
   let subscriber = connect(setup(broker), opts)
@@ -473,7 +473,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
   t.plan(9)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const opts = { clean: false, clientId: 'abcde' }
   let subscriber = connect(setup(broker), opts)
@@ -497,12 +497,12 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
       subscriber = connect(setup(broker), opts)
 
       subscriber.outStream.once('data', function (packet) {
-        t.notEqual(packet.messageId, expected.messageId, 'messageId must differ')
+        t.not(packet.messageId, expected.messageId, 'messageId must differ')
 
         const msgId = packet.messageId
         delete packet.messageId
         delete expected.messageId
-        t.deepEqual(packet, expected, 'packet must match')
+        t.same(packet, expected, 'packet must match')
 
         subscriber.inStream.write({
           cmd: 'pubrec',
@@ -510,7 +510,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
         })
 
         subscriber.outStream.once('data', function (packet) {
-          t.deepEqual(packet, {
+          t.same(packet, {
             cmd: 'pubrel',
             messageId: msgId,
             length: 2,
@@ -524,7 +524,7 @@ test('resend pubrel on non-clean reconnect QoS 2', function (t) {
           subscriber = connect(setup(broker), opts)
 
           subscriber.outStream.once('data', function (packet) {
-            t.deepEqual(packet, {
+            t.same(packet, {
               cmd: 'pubrel',
               messageId: msgId,
               length: 2,
@@ -548,7 +548,7 @@ test('publish after disconnection', function (t) {
   t.plan(10)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -612,7 +612,7 @@ test('multiple publish and store one', function (t) {
       broker.persistence.incomingGetPacket(sid, toPublish, function (err, origPacket) {
         delete origPacket.brokerId
         delete origPacket.brokerCounter
-        t.deepEqual(origPacket, toPublish, 'packet must match')
+        t.same(origPacket, toPublish, 'packet must match')
         t.error(err)
       })
     })
@@ -624,7 +624,7 @@ test('packet is written to stream after being stored', function (t) {
 
   const broker = s.broker
 
-  t.tearDown(broker.close.bind(s.broker))
+  t.teardown(broker.close.bind(s.broker))
 
   let packetStored = false
 
@@ -659,7 +659,7 @@ test('not send pubrec when persistence fails to store packet', function (t) {
   const s = connect(setup())
   const broker = s.broker
 
-  t.tearDown(broker.close.bind(s.broker))
+  t.teardown(broker.close.bind(s.broker))
 
   s.broker.persistence.incomingStorePacket = function (client, packet, done) {
     t.pass('packet stored')

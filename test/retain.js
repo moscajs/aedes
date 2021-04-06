@@ -20,11 +20,11 @@ test('live retain packets', function (t) {
   }
 
   const s = noError(connect(setup()), t)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
     s.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected)
+      t.same(packet, expected)
     })
 
     s.broker.publish({
@@ -45,7 +45,7 @@ test('retain messages', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -67,7 +67,7 @@ test('retain messages', function (t) {
     setImmediate(function () {
       subscribe(t, subscriber, 'hello', 0, function () {
         subscriber.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet must match')
+          t.same(packet, expected, 'packet must match')
         })
       })
     })
@@ -80,7 +80,7 @@ test('retain messages propagates through broker subscriptions', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const expected = {
     cmd: 'publish',
@@ -97,7 +97,7 @@ test('retain messages propagates through broker subscriptions', function (t) {
     delete packet.brokerCounter
     cb()
     setImmediate(function () {
-      t.deepEqual(packet, expected, 'packet must not have been modified')
+      t.same(packet, expected, 'packet must not have been modified')
     })
   }
 
@@ -110,7 +110,7 @@ test('avoid wrong deduping of retain messages', function (t) {
   t.plan(7)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -141,7 +141,7 @@ test('avoid wrong deduping of retain messages', function (t) {
       subscriber.outStream.once('data', function (packet) {
         subscribe(t, subscriber, 'hello', 0, function () {
           subscriber.outStream.once('data', function (packet) {
-            t.deepEqual(packet, expected, 'packet must match')
+            t.same(packet, expected, 'packet must match')
           })
         })
       })
@@ -155,7 +155,7 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
   let subscriber = connect(setup(broker), { clean: true })
@@ -177,7 +177,7 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
       retain: false
     })
     subscriber.outStream.once('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
       subscriber.inStream.end()
       publisher.inStream.write({
         cmd: 'publish',
@@ -200,7 +200,7 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
 
   const clock = Faketimers.createClock()
   const broker = aedes()
-  t.tearDown(function () {
+  t.teardown(function () {
     clock.reset()
     broker.close()
   })
@@ -225,14 +225,14 @@ test('new QoS 0 subscribers receive QoS 0 retained messages when clean', functio
   const subscriber1 = connect(setup(broker), { clean: true })
   subscribe(t, subscriber1, 'hello/world', 0, function () {
     subscriber1.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
       clock.tick(100)
     })
   })
   const subscriber2 = connect(setup(broker), { clean: true })
   subscribe(t, subscriber2, 'hello/+', 0, function () {
     subscriber2.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
       clock.tick(100)
     })
   })
@@ -270,9 +270,9 @@ test('new QoS 0 subscribers receive downgraded QoS 1 retained messages when clea
     const subscriber = connect(setup(broker), { clean: true })
     subscribe(t, subscriber, 'hello', 0, function () {
       subscriber.outStream.on('data', function (packet) {
-        t.notEqual(packet.messageId, 42, 'messageId should not be the same')
+        t.not(packet.messageId, 42, 'messageId should not be the same')
         delete packet.messageId
-        t.deepEqual(packet, expected, 'packet must match')
+        t.same(packet, expected, 'packet must match')
         broker.close()
       })
     })
@@ -287,7 +287,7 @@ test('clean retained messages', function (t) {
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
   publisher.inStream.write({
@@ -317,7 +317,7 @@ test('broker not store zero-byte retained messages', function (t) {
   t.plan(0)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = connect(setup(broker))
 
@@ -342,7 +342,7 @@ test('fail to clean retained messages without retain flag', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
   const expected = {
@@ -371,7 +371,7 @@ test('fail to clean retained messages without retain flag', function (t) {
   const subscriber = connect(setup(broker), { clean: true })
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
   })
 })
@@ -380,7 +380,7 @@ test('only get the last retained messages in same topic', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker), { clean: true })
   const expected = {
@@ -409,7 +409,7 @@ test('only get the last retained messages in same topic', function (t) {
   const subscriber = connect(setup(broker), { clean: true })
   subscribe(t, subscriber, 'hello', 0, function () {
     subscriber.outStream.on('data', function (packet) {
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
   })
 })
@@ -418,7 +418,7 @@ test('deliver QoS 1 retained messages to new subscriptions', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -445,7 +445,7 @@ test('deliver QoS 1 retained messages to new subscriptions', function (t) {
     subscribe(t, subscriber, 'hello', 1, function () {
       subscriber.outStream.once('data', function (packet) {
         delete packet.messageId
-        t.deepEqual(packet, expected, 'packet must match')
+        t.same(packet, expected, 'packet must match')
       })
     })
   })
@@ -455,7 +455,7 @@ test('deliver QoS 1 retained messages to established subscriptions', function (t
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -472,7 +472,7 @@ test('deliver QoS 1 retained messages to established subscriptions', function (t
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.outStream.once('data', function (packet) {
       delete packet.messageId
-      t.deepEqual(packet, expected, 'packet must match')
+      t.same(packet, expected, 'packet must match')
     })
     publisher.inStream.write({
       cmd: 'publish',
@@ -489,7 +489,7 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const publisher = connect(setup(broker))
   const subscriber = connect(setup(broker))
@@ -511,7 +511,7 @@ test('deliver QoS 0 retained message with QoS 1 subscription', function (t) {
     setImmediate(function () {
       subscribe(t, subscriber, 'hello', 1, function () {
         subscriber.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet must match')
+          t.same(packet, expected, 'packet must match')
         })
       })
     })
@@ -531,7 +531,7 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
   t.plan(7)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   let subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
@@ -573,10 +573,10 @@ test('disconnect and retain messages with QoS 1 [clean=false]', function (t) {
 
       subscriber.outStream.once('data', function (packet) {
         // receive any queued messages (no matter they are retained messages) at the disconnected time
-        t.notEqual(packet.messageId, 42, 'messageId must differ')
+        t.not(packet.messageId, 42, 'messageId must differ')
         delete packet.messageId
         packet.length = 14
-        t.deepEqual(packet, expected, 'packet must match')
+        t.same(packet, expected, 'packet must match')
 
         // there should be no messages come from restored subscriptions
         subscriber.outStream.once('data', function (packet) {
@@ -591,7 +591,7 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
   t.plan(15)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   let subscriber = noError(connect(setup(broker), { clean: false, clientId: 'abcde' }), t)
   const expected = {
@@ -644,28 +644,28 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', function (t)
 
         subscriber.outStream.once('data', function (packet) {
           // receive any queued messages (included retained messages) at the disconnected time
-          t.notEqual(packet.messageId, 41, 'messageId must differ')
+          t.not(packet.messageId, 41, 'messageId must differ')
           delete packet.messageId
           packet.length = 14
           expected.payload = Buffer.from('world')
-          t.deepEqual(packet, expected, 'packet must match')
+          t.same(packet, expected, 'packet must match')
 
           // receive any queued messages (included retained messages) at the disconnected time
           subscriber.outStream.once('data', function (packet) {
-            t.notEqual(packet.messageId, 42, 'messageId must differ')
+            t.not(packet.messageId, 42, 'messageId must differ')
             delete packet.messageId
             packet.length = 14
             expected.payload = Buffer.from('world2')
-            t.deepEqual(packet, expected, 'packet must match')
+            t.same(packet, expected, 'packet must match')
 
             // should get the last retained message when we do a subscribe
             subscribe(t, subscriber, 'hello', 1, function () {
               subscriber.outStream.on('data', function (packet) {
-                t.notEqual(packet.messageId, 42, 'messageId must differ')
+                t.not(packet.messageId, 42, 'messageId must differ')
                 delete packet.messageId
                 packet.length = 14
                 expected.payload = Buffer.from('world2')
-                t.deepEqual(packet, expected, 'packet must match')
+                t.same(packet, expected, 'packet must match')
               })
             })
           })

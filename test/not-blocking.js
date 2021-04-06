@@ -19,7 +19,7 @@ test('connect 500 concurrent clients', function (t) {
     t.error(err, 'no error')
 
     const clock = Faketimers.createClock()
-    t.tearDown(clock.reset.bind(clock))
+    t.teardown(clock.reset.bind(clock))
 
     const port = server.address().port
 
@@ -72,7 +72,7 @@ test('do not block after a subscription', function (t) {
     t.error(err, 'no error')
 
     const clock = Faketimers.createClock()
-    t.tearDown(clock.reset.bind(clock))
+    t.teardown(clock.reset.bind(clock))
 
     const clockId = clock.setTimeout(finish, total)
 
@@ -156,7 +156,7 @@ test('do not block with overlapping subscription', function (t) {
     t.error(err, 'no error')
 
     const clock = Faketimers.createClock()
-    t.tearDown(clock.reset.bind(clock))
+    t.teardown(clock.reset.bind(clock))
 
     const clockId = clock.setTimeout(finish, total)
 

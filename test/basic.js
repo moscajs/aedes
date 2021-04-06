@@ -10,7 +10,7 @@ test('test aedes.Server', function (t) {
   t.plan(1)
 
   const broker = new aedes.Server()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   connect(setup(broker), {}, function () {
     t.pass('connected')
@@ -21,7 +21,7 @@ test('publish QoS 0', function (t) {
   t.plan(2)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
     cmd: 'publish',
@@ -36,7 +36,7 @@ test('publish QoS 0', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     t.equal(packet.messageId, undefined, 'MUST not contain a packet identifier in QoS 0')
-    t.deepEqual(packet, expected, 'packet matches')
+    t.same(packet, expected, 'packet matches')
     cb()
   })
 
@@ -51,7 +51,7 @@ test('messageId shoud reset to 1 if it reached 65535', function (t) {
   t.plan(7)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const publishPacket = {
     cmd: 'publish',
@@ -82,7 +82,7 @@ test('publish empty topic throws error', function (t) {
   t.plan(1)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'publish',
@@ -100,7 +100,7 @@ test('publish empty topic throws error', function (t) {
     t.plan(5)
 
     const s = connect(setup(), { clean: ele.clean })
-    t.tearDown(s.broker.close.bind(s.broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
     const expected = {
       cmd: 'publish',
@@ -115,11 +115,11 @@ test('publish empty topic throws error', function (t) {
 
     subscribe(t, s, 'hello', ele.qos, function () {
       s.outStream.once('data', function (packet) {
-        t.deepEqual(packet, expected, 'packet matches')
+        t.same(packet, expected, 'packet matches')
       })
 
       s.broker.persistence.subscriptionsByClient(s.client, function (_, subs) {
-        t.deepEqual(subs, expectedSubs)
+        t.same(subs, expectedSubs)
       })
 
       s.broker.publish({
@@ -160,7 +160,7 @@ test('return write errors to callback', function (t) {
     t.plan(5)
 
     const s = connect(setup(), { clean: ele.clean })
-    t.tearDown(s.broker.close.bind(s.broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
     const expected = {
       cmd: 'publish',
@@ -176,11 +176,11 @@ test('return write errors to callback', function (t) {
 
     subscribeMultiple(t, s, subs, [ele.qos, ele.qos], function () {
       s.outStream.on('data', function (packet) {
-        t.deepEqual(packet, expected, 'packet matches')
+        t.same(packet, expected, 'packet matches')
       })
 
       s.broker.persistence.subscriptionsByClient(s.client, function (_, saveSubs) {
-        t.deepEqual(saveSubs, expectedSubs)
+        t.same(saveSubs, expectedSubs)
       })
 
       s.broker.publish({
@@ -196,7 +196,7 @@ test('does not die badly on connection error', function (t) {
   t.plan(3)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'subscribe',
@@ -229,7 +229,7 @@ test('subscribe should have messageId', function (t) {
   t.plan(1)
 
   const s = connect(setup())
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'subscribe',
@@ -247,7 +247,7 @@ test('unsubscribe', function (t) {
   t.plan(5)
 
   const s = noError(connect(setup()), t)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
     s.inStream.write({
@@ -257,7 +257,7 @@ test('unsubscribe', function (t) {
     })
 
     s.outStream.once('data', function (packet) {
-      t.deepEqual(packet, {
+      t.same(packet, {
         cmd: 'unsuback',
         messageId: 43,
         dup: false,
@@ -285,7 +285,7 @@ test('unsubscribe without subscribe', function (t) {
   t.plan(1)
 
   const s = noError(connect(setup()), t)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'unsubscribe',
@@ -294,7 +294,7 @@ test('unsubscribe without subscribe', function (t) {
   })
 
   s.outStream.once('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'unsuback',
       messageId: 43,
       dup: false,
@@ -310,7 +310,7 @@ test('unsubscribe on disconnect for a clean=true client', function (t) {
 
   const opts = { clean: true }
   const s = connect(setup(), opts)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
     s.conn.destroy(null, function () {
@@ -337,7 +337,7 @@ test('unsubscribe on disconnect for a clean=false client', function (t) {
 
   const opts = { clean: false }
   const s = connect(setup(), opts)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   subscribe(t, s, 'hello', 0, function () {
     s.conn.destroy(null, function () {
@@ -363,7 +363,7 @@ test('disconnect', function (t) {
   t.plan(1)
 
   const s = noError(connect(setup()), t)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function () {
     t.pass('closed stream')
@@ -378,7 +378,7 @@ test('disconnect client on wrong cmd', function (t) {
   t.plan(1)
 
   const s = noError(connect(setup()), t)
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('clientDisconnect', function () {
     t.pass('closed stream')
@@ -452,7 +452,7 @@ test('testing other event', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const client = setup(broker)
 
@@ -466,7 +466,7 @@ test('connect without a clientId for MQTT 3.1.1', function (t) {
   t.plan(1)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.inStream.write({
     cmd: 'connect',
@@ -477,7 +477,7 @@ test('connect without a clientId for MQTT 3.1.1', function (t) {
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 0,
       length: 2,
@@ -495,7 +495,7 @@ test('disconnect existing client with the same clientId', function (t) {
   t.plan(2)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const c1 = connect(setup(broker), {
     clientId: 'abcde'
@@ -516,7 +516,7 @@ test('disconnect if another broker connects the same clientId', function (t) {
   t.plan(2)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const c1 = connect(setup(broker), {
     clientId: 'abcde'
@@ -538,7 +538,7 @@ test('publish to $SYS/broker/new/clients', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.mq.on('$SYS/' + broker.id + '/new/clients', function (packet, done) {
     t.equal(packet.payload.toString(), 'abcde', 'clientId matches')
@@ -553,7 +553,7 @@ test('publish to $SYS/broker/new/clients', function (t) {
 test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubsribers', function (t) {
   t.plan(7)
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const sub = {
     topic: 'hello',
@@ -563,14 +563,14 @@ test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubsribers', f
   broker.mq.on('$SYS/' + broker.id + '/new/subscribes', function (packet, done) {
     const payload = JSON.parse(packet.payload.toString())
     t.equal(payload.clientId, 'abcde', 'clientId matches')
-    t.deepEqual(payload.subs, [sub], 'subscriptions matches')
+    t.same(payload.subs, [sub], 'subscriptions matches')
     done()
   })
 
   broker.mq.on('$SYS/' + broker.id + '/new/unsubscribes', function (packet, done) {
     const payload = JSON.parse(packet.payload.toString())
     t.equal(payload.clientId, 'abcde', 'clientId matches')
-    t.deepEqual(payload.subs, [sub.topic], 'unsubscriptions matches')
+    t.same(payload.subs, [sub.topic], 'unsubscriptions matches')
     done()
   })
 
@@ -591,7 +591,7 @@ test('restore QoS 0 subscriptions not clean', function (t) {
   t.plan(5)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const expected = {
     cmd: 'publish',
@@ -621,7 +621,7 @@ test('restore QoS 0 subscriptions not clean', function (t) {
           })
         })
         subscriber.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet must match')
+          t.same(packet, expected, 'packet must match')
         })
       })
     })
@@ -632,7 +632,7 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
   t.plan(5)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   let subscriber = connect(setup(broker), {
     clean: true, clientId: 'abcde'
@@ -680,7 +680,7 @@ test('double sub does not double deliver', function (t) {
     subscribe(t, s, 'hello', 0, function () {
       subscribe(t, s, 'hello', 0, function () {
         s.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet matches')
+          t.same(packet, expected, 'packet matches')
           s.outStream.on('data', function () {
             t.fail('double deliver')
           })
@@ -694,7 +694,7 @@ test('double sub does not double deliver', function (t) {
       })
     })
   })
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 })
 
 test('overlapping sub does not double deliver', function (t) {
@@ -714,7 +714,7 @@ test('overlapping sub does not double deliver', function (t) {
     subscribe(t, s, 'hello', 0, function () {
       subscribe(t, s, 'hello/#', 0, function () {
         s.outStream.once('data', function (packet) {
-          t.deepEqual(packet, expected, 'packet matches')
+          t.same(packet, expected, 'packet matches')
           s.outStream.on('data', function () {
             t.fail('double deliver')
           })
@@ -728,7 +728,7 @@ test('overlapping sub does not double deliver', function (t) {
       })
     })
   })
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 })
 
 test('clear drain', function (t) {
@@ -754,7 +754,7 @@ test('clear drain', function (t) {
     })
   })
 
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 })
 
 test('id option', function (t) {
@@ -769,7 +769,7 @@ test('id option', function (t) {
   setup(broker2).conn.destroy()
   t.equal(broker2.id, 'abc', 'broker id equals id option when set')
 
-  t.tearDown(() => {
+  t.teardown(() => {
     broker1.close()
     broker2.close()
   })
@@ -779,7 +779,7 @@ test('not duplicate client close when client error occurs', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   connect(setup(broker))
   broker.on('client', function (client) {
@@ -798,7 +798,7 @@ test('not duplicate client close when double close() called', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   connect(setup(broker))
   broker.on('clientReady', function (client) {

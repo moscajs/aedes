@@ -8,7 +8,7 @@ test('count connected clients', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   t.equal(broker.connectedClients, 0, 'no connected clients')
 
@@ -35,7 +35,7 @@ test('call published method', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.published = function (packet, client, done) {
     t.equal(packet.topic, 'hello', 'topic matches')
@@ -56,7 +56,7 @@ test('call published method with client', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.published = function (packet, client, done) {
     // for internal messages, client will be null
@@ -84,7 +84,7 @@ test('emit publish event with client - QoS 0', function (t) {
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('publish', function (packet, client) {
     // for internal messages, client will be null
@@ -109,7 +109,7 @@ test('emit publish event with client - QoS 1', function (t) {
   t.plan(4)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('publish', function (packet, client) {
     // for internal messages, client will be null
@@ -136,12 +136,12 @@ test('emit subscribe event', function (t) {
   t.plan(6)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = connect(setup(broker), { clientId: 'abcde' })
 
   broker.on('subscribe', function (subscriptions, client) {
-    t.deepEqual(subscriptions, [{
+    t.same(subscriptions, [{
       topic: 'hello',
       qos: 0
     }], 'topic matches')
@@ -157,14 +157,14 @@ test('emit subscribe event if unrecognized params in subscribe packet structure'
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = noError(connect(setup(broker)))
   const subs = [{ topic: 'hello', qos: 0 }]
 
   broker.on('subscribe', function (subscriptions, client) {
     t.equal(subscriptions, subs)
-    t.deepEqual(client, s.client)
+    t.same(client, s.client)
   })
 
   s.client.subscribe({
@@ -179,12 +179,12 @@ test('emit unsubscribe event', function (t) {
   t.plan(6)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = connect(setup(broker), { clean: true, clientId: 'abcde' })
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
-    t.deepEqual(unsubscriptions, [
+    t.same(unsubscriptions, [
       'hello'
     ], 'unsubscription matches')
     t.equal(client.id, 'abcde', 'client matches')
@@ -207,14 +207,14 @@ test('emit unsubscribe event if unrecognized params in unsubscribe packet struct
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = noError(connect(setup(broker)))
   const unsubs = [{ topic: 'hello', qos: 0 }]
 
   broker.on('unsubscribe', function (unsubscriptions, client) {
     t.equal(unsubscriptions, unsubs)
-    t.deepEqual(client, s.client)
+    t.same(client, s.client)
   })
 
   s.client.unsubscribe({
@@ -229,7 +229,7 @@ test('dont emit unsubscribe event on client close', function (t) {
   t.plan(3)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   const s = noError(connect(setup(broker), { clientId: 'abcde' }), t)
 
@@ -251,7 +251,7 @@ test('emit clientDisconnect event', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('clientDisconnect', function (client) {
     t.equal(client.id, 'abcde', 'client matches')
@@ -269,7 +269,7 @@ test('emits client', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
     t.equal(client.id, 'abcde', 'clientId matches')
@@ -284,7 +284,7 @@ test('get aedes version', function (t) {
   t.plan(1)
 
   const broker = aedes()
-  t.tearDown(broker.close.bind(broker))
+  t.teardown(broker.close.bind(broker))
 
   t.equal(broker.version, require('../package.json').version)
 })
@@ -293,7 +293,7 @@ test('connect and connackSent event', { timeout: 50 }, function (t) {
   t.plan(3)
 
   const s = setup()
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   const clientId = 'my-client'
 
@@ -312,7 +312,7 @@ test('connect and connackSent event', { timeout: 50 }, function (t) {
   })
 
   s.outStream.on('data', function (packet) {
-    t.deepEqual(packet, {
+    t.same(packet, {
       cmd: 'connack',
       returnCode: 0,
       length: 2,

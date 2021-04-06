@@ -10,7 +10,7 @@ test('supports pingreq/pingresp', function (t) {
   t.plan(1)
 
   const s = noError(connect(setup()))
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('keepaliveTimeout', function (client) {
     t.fail('keep alive should not timeout')
@@ -30,7 +30,7 @@ test('supports keep alive disconnections', function (t) {
 
   const clock = Faketimers.install()
   const s = connect(setup(), { keepalive: 1 })
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.on('keepaliveTimeout', function (client) {
     t.pass('keep alive timeout')
@@ -50,7 +50,7 @@ test('supports keep alive disconnections after a pingreq', function (t) {
 
   const clock = Faketimers.install()
   const s = connect(setup(), { keepalive: 1 })
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   eos(s.conn, function () {
     t.pass('waits 1 and a half the keepalive timeout')
@@ -77,7 +77,7 @@ test('disconnect if a connect does not arrive in time', function (t) {
   const s = setup(aedes({
     connectTimeout: 500
   }))
-  t.tearDown(s.broker.close.bind(s.broker))
+  t.teardown(s.broker.close.bind(s.broker))
 
   s.client.on('error', function (err) {
     t.equal(err.message, 'connect did not arrive in time')
