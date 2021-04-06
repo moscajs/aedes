@@ -652,3 +652,33 @@ test('packet is written to stream after being stored', function (t) {
     t.end()
   })
 })
+
+test('not send pubrec when persistence fails to store packet', function (t) {
+  t.plan(2)
+
+  const s = connect(setup())
+  const broker = s.broker
+
+  t.tearDown(broker.close.bind(s.broker))
+
+  s.broker.persistence.incomingStorePacket = function (client, packet, done) {
+    t.pass('packet stored')
+    done(new Error('store error'))
+  }
+  s.broker.on('clientError', function (client, err) {
+    t.equal(err.message, 'store error')
+  })
+
+  const packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 2,
+    messageId: 42
+  }
+
+  s.inStream.write(packet)
+  s.outStream.once('data', function (packet) {
+    t.fail('should not have pubrec')
+  })
+})
