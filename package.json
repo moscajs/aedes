@@ -11,7 +11,7 @@
     "lint:typescript": "eslint -c types/.eslintrc.json aedes.d.ts types/**/*.ts test/types/**/*.test-d.ts",
     "lint:markdown": "markdownlint docs/*.md README.md",
     "test": "npm run lint && npm run unit && npm run test:typescript",
-    "test:ci": "npm run lint && npm run unit -- --cov --coverage-report=lcovonly && npm run test:typescript",
+    "test:ci": "npm run lint && npm run unit -- --cov --no-check-coverage --coverage-report=lcovonly && npm run test:typescript",
     "test:report": "npm run lint && npm run unit:report && npm run test:typescript",
     "test:typescript": "tsd",
     "unit": "tap -J test/*.js",
