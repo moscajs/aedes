@@ -28,7 +28,7 @@
     },
     "hooks": {
       "before:init": [
-        "npm run test"
+        "npm run test:ci"
       ]
     },
     "npm": {
