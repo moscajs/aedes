@@ -315,7 +315,7 @@ aedes.authorizePublish = function (client, packet, callback) {
 }
 ```
 
-By default `authorizePublish` throws errors in case a client publish to `$SYS/` topics to prevent possible DoS (see #597). If you write your own implementation of authorizePublish we suggest you to add a check for this. Default:
+By default `authorizePublish` throws error in case a client publish to topics with `$SYS/` prefix to prevent possible DoS (see [#597](https://github.com/moscajs/aedes/issues/597)). If you write your own implementation of `authorizePublish` we suggest you to add a check for this. Default implementation:
 
 ```js
 function defaultAuthorizePublish (client, packet, callback) {
