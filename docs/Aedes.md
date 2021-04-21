@@ -315,6 +315,17 @@ aedes.authorizePublish = function (client, packet, callback) {
 }
 ```
 
+By default `authorizePublish` throws errors in case a client publish to `$SYS/` topics to prevent possible DoS (see #597). If you write your own implementation of authorizePublish we suggest you to add a check for this. Default:
+
+```js
+function defaultAuthorizePublish (client, packet, callback) {
+  if (packet.topic.startsWith($SYS_PREFIX)) {
+    return callback(new Error($SYS_PREFIX + ' topic is reserved'))
+  }
+  callback(null)
+}
+```
+
 ## Handler: authorizeSubscribe (client, subscription, callback)
 
 - client: [`<Client>`](./Client.md)
