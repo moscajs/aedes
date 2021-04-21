@@ -103,7 +103,7 @@ test('publish to $SYS topic throws error', function (t) {
 
   s.inStream.write({
     cmd: 'publish',
-    topic: '$SYS/',
+    topic: '$SYS/not/allowed',
     payload: 'world'
   })
 
