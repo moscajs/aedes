@@ -95,6 +95,23 @@ test('publish empty topic throws error', function (t) {
   })
 })
 
+test('publish to $SYS topic throws error', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.teardown(s.broker.close.bind(s.broker))
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: '$SYS/',
+    payload: 'world'
+  })
+
+  s.broker.on('clientError', function (client, err) {
+    t.pass('should emit error')
+  })
+})
+
 ;[{ qos: 0, clean: false }, { qos: 0, clean: true }, { qos: 1, clean: false }, { qos: 1, clean: true }].forEach(function (ele) {
   test('subscribe a single topic in QoS ' + ele.qos + ' [clean=' + ele.clean + ']', function (t) {
     t.plan(5)
