@@ -1,7 +1,7 @@
 import { IncomingMessage } from 'http'
 import { PublishPacket, SubscribePacket, Subscription, Subscriptions, UnsubscribePacket } from './packet'
 import { Connection } from './instance'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 
 export interface Client extends EventEmitter {
   id: Readonly<string>

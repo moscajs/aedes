@@ -2,7 +2,7 @@ import { Duplex } from 'stream'
 import { Socket } from 'net'
 import { Client } from './client'
 import type { AedesPublishPacket, ConnectPacket, ConnackPacket, Subscription, PingreqPacket, PublishPacket, PubrelPacket } from './packet'
-import EventEmitter from 'events'
+import { EventEmitter } from 'events'
 
 type LastHearthbeatTimestamp = Date;
 
