@@ -12,6 +12,7 @@ const Packet = require('aedes-packet')
 const memory = require('aedes-persistence')
 const mqemitter = require('mqemitter')
 const Client = require('./lib/client')
+const { $SYS_PREFIX } = require('./lib/utils')
 
 module.exports = Aedes.Server = Aedes
 
@@ -78,7 +79,7 @@ function Aedes (opts) {
   this.clients = {}
   this.brokers = {}
 
-  const heartbeatTopic = '$SYS/' + that.id + '/heartbeat'
+  const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
 
   const bufId = Buffer.from(that.id, 'utf8')
@@ -138,12 +139,12 @@ function Aedes (opts) {
     }
   }
 
-  this.mq.on('$SYS/+/heartbeat', function storeBroker (packet, done) {
+  this.mq.on($SYS_PREFIX + '+/heartbeat', function storeBroker (packet, done) {
     that.brokers[packet.payload.toString()] = Date.now()
     done()
   })
 
-  this.mq.on('$SYS/+/new/clients', function closeSameClients (packet, done) {
+  this.mq.on($SYS_PREFIX + '+/new/clients', function closeSameClients (packet, done) {
     const serverId = packet.topic.split('/')[1]
     const clientId = packet.payload.toString()
 
@@ -206,7 +207,7 @@ function DoEnqueues () {
       return
     }
 
-    if (that.topic.indexOf('$SYS') === 0) {
+    if (that.topic.indexOf($SYS_PREFIX) === 0) {
       subs = subs.filter(removeSharp)
     }
 
@@ -281,7 +282,7 @@ Aedes.prototype._finishRegisterClient = function (client) {
   this.clients[client.id] = client
   this.emit('client', client)
   this.publish({
-    topic: '$SYS/' + this.id + '/new/clients',
+    topic: $SYS_PREFIX + this.id + '/new/clients',
     payload: Buffer.from(client.id, 'utf8')
   }, noop)
 }
@@ -291,7 +292,7 @@ Aedes.prototype.unregisterClient = function (client) {
   delete this.clients[client.id]
   this.emit('clientDisconnect', client)
   this.publish({
-    topic: '$SYS/' + this.id + '/disconnect/clients',
+    topic: $SYS_PREFIX + this.id + '/disconnect/clients',
     payload: Buffer.from(client.id, 'utf8')
   }, noop)
 }
@@ -326,6 +327,9 @@ function defaultAuthenticate (client, username, password, callback) {
 }
 
 function defaultAuthorizePublish (client, packet, callback) {
+  if (packet.topic.startsWith($SYS_PREFIX)) {
+    return callback(new Error($SYS_PREFIX + ' topic is reserved'))
+  }
   callback(null)
 }
 
