@@ -1,4 +1,5 @@
 import { expectType } from 'tsd'
+import { timingSafeEqual } from 'crypto'
 import { Socket } from 'net'
 import type {
   Aedes,
@@ -27,8 +28,8 @@ const broker = Server({
       callback(new Error('connection error'), false)
     }
   },
-  authenticate: (client: Client, username: Readonly<string>, password: Readonly<Buffer>, callback) => {
-    if (username === 'test' && password === Buffer.from('test') && client.version === 4) {
+  authenticate: (client: Client, username: string, password: Buffer, callback) => {
+    if (username === 'test' && timingSafeEqual(password, Buffer.from('test')) && client.version === 4) {
       callback(null, true)
     } else {
       const error = new Error() as AuthenticateError
