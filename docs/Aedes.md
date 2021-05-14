@@ -113,7 +113,7 @@ Emitted when timeout happes in the `client` keepalive.
 - `packet` `<aedes-packet>` & [`PUBLISH`][PUBLISH]
 - `client` [`<Client>`](./Client.md) | `null`
 
-Emitted when servers delivers the `packet` to subscribed `client`. If there are no clients subscribed to the `packet` topic, server still publish the `packet` and emit thie event. `client` is `null` when `packet` is an internal message like aedes heartbeat message and LWT.
+Emitted when servers delivers the `packet` to subscribed `client`. If there are no clients subscribed to the `packet` topic, server still publish the `packet` and emit the event. `client` is `null` when `packet` is an internal message like aedes heartbeat message and LWT.
 
 > _Note! `packet` belongs `aedes-packet` type. Some properties belongs to aedes internal, any changes on them will break aedes internal flow._
 
