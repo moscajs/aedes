@@ -126,7 +126,7 @@
     "fastseries": "^2.0.0",
     "hyperid": "^2.1.0",
     "mqemitter": "^4.4.1",
-    "mqtt-packet": "^6.9.1",
+    "mqtt-packet": "^7.0.0",
     "readable-stream": "^3.6.0",
     "retimer": "^3.0.0",
     "reusify": "^1.0.4",
