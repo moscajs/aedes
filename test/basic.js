@@ -260,6 +260,35 @@ test('subscribe should have messageId', function (t) {
   })
 })
 
+test('subscribe with messageId 0 should return suback', function (t) {
+  t.plan(1)
+
+  const s = connect(setup())
+  t.teardown(s.broker.close.bind(s.broker))
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    subscriptions: [{
+      topic: 'hello',
+      qos: 0
+    }],
+    messageId: 0
+  })
+  s.outStream.once('data', function (packet) {
+    t.same(packet, {
+      cmd: 'suback',
+      messageId: 0,
+      dup: false,
+      length: 3,
+      qos: 0,
+      retain: false,
+      granted: [
+        0
+      ]
+    }, 'packet matches')
+  })
+})
+
 test('unsubscribe', function (t) {
   t.plan(5)
 
