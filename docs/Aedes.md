@@ -403,7 +403,7 @@ aedes.authorizeForward = function (client, packet) {
 - client: [`<Client>`](./Client.md)
 - callback: `<Function>`
 
-same as [`Event: publish`](#event-publish), but provides a backpressure functionality.
+same as [`Event: publish`](#event-publish), but provides a backpressure functionality. TLDR; If you are doing operations on packets that MUST require finishing operations on a packet before handling the next one use this otherwise, expecially for long running operations, you should use [`Event: publish`](#event-publish) instead.
 
 [CONNECT]: https://github.com/mqttjs/mqtt-packet#connect
 [CONNACK]: https://github.com/mqttjs/mqtt-packet#connack
