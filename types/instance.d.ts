@@ -90,4 +90,11 @@ export interface Aedes extends EventEmitter {
     callback: () => void
   ): void
   close (callback?: () => void): void
+
+  preConnect: PreConnectHandler
+  authenticate: AuthenticateHandler
+  authorizePublish: AuthorizePublishHandler
+  authorizeSubscribe: AuthorizeSubscribeHandler
+  authorizeForward: AuthorizeForwardHandler
+  published: PublishedHandler
 }
