@@ -13,7 +13,7 @@ export interface Brokers {
 export type Connection = Duplex | Socket
 
 /* eslint no-unused-vars: 0 */
-export enum AuthErrorCode {
+export const enum AuthErrorCode {
   UNNACCEPTABLE_PROTOCOL = 1,
   IDENTIFIER_REJECTED = 2,
   SERVER_UNAVAILABLE = 3,
