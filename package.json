@@ -124,7 +124,7 @@
     "fastfall": "^1.5.1",
     "fastparallel": "^2.4.0",
     "fastseries": "^2.0.0",
-    "hyperid": "^2.1.0",
+    "hyperid": "^3.0.0",
     "mqemitter": "^4.4.1",
     "mqtt-packet": "^7.0.0",
     "readable-stream": "^3.6.0",
