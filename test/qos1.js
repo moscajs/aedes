@@ -3,6 +3,7 @@
 const { test } = require('tap')
 const concat = require('concat-stream')
 const { setup, connect, subscribe } = require('./helper')
+const Faketimers = require('@sinonjs/fake-timers')
 const aedes = require('../')
 
 test('publish QoS 1', function (t) {
@@ -510,65 +511,48 @@ test('resend publish on non-clean reconnect QoS 1', function (t) {
 })
 
 test('resend many publish on non-clean reconnect QoS 1', function (t) {
-  t.plan(38)
-
+  t.plan(4)
   const broker = aedes()
-  t.teardown(broker.close.bind(broker))
+  const clock = Faketimers.createClock()
+
+  t.teardown(() => {
+    broker.close.bind(broker)
+    clock.reset.bind(clock)
+  })
 
   const opts = { clean: false, clientId: 'abcde' }
   let subscriber = connect(setup(broker), opts)
+  const publisher = connect(setup(broker))
+  const { through } = require('../lib/utils')
+  const total = through().writableHighWaterMark * 2
+
+  let received = 0
+  clock.setTimeout(() => {
+    broker.close()
+    t.equal(received, total)
+  }, total)
 
   subscribe(t, subscriber, 'hello', 1, function () {
     subscriber.inStream.end()
 
-    const publisher = connect(setup(broker))
-
-    let count = 0
-    while (++count <= 17) {
+    for (let sent = 0; sent < total; sent++) {
       publisher.inStream.write({
         cmd: 'publish',
         topic: 'hello',
-        payload: 'message-' + count,
+        payload: 'message-' + sent,
         qos: 1,
-        messageId: 42 + count
+        messageId: 42 + sent
       })
     }
     publisher.outStream.once('data', function (packet) {
-      t.equal(packet.cmd, 'puback')
-
       subscriber = connect(setup(broker), opts)
-
-      const expected = [
-        [43, 'message-1'],
-        [44, 'message-2'],
-        [45, 'message-3'],
-        [46, 'message-4'],
-        [47, 'message-5'],
-        [48, 'message-6'],
-        [49, 'message-7'],
-        [50, 'message-8'],
-        [51, 'message-9'],
-        [52, 'message-10'],
-        [53, 'message-11'],
-        [54, 'message-12'],
-        [55, 'message-13'],
-        [56, 'message-14'],
-        [57, 'message-15'],
-        [58, 'message-16'],
-        [59, 'message-17']
-      ]
-
-      let recievedCount = 0
       subscriber.outStream.on('data', function (packet) {
         subscriber.inStream.write({
           cmd: 'puback',
           messageId: packet.messageId
         })
-
-        const [messageId, payload] = expected[recievedCount++]
-
-        t.not(packet.messageId, messageId, 'messageId should not match')
-        t.same(packet.payload, Buffer.from(payload), 'payload should match')
+        received++
+        clock.tick(1)
       })
     })
   })
