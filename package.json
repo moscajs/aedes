@@ -49,13 +49,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/moscajs/aedes.git"
-  },
-  "bugs": {
-    "url": "http://github.com/moscajs/aedes/issues"
-  },
-  "engines": {
-    "node": ">=12"
+    "url": "git+https://github.com/moscajs/aedes.git"
   },
   "keywords": [
     "mqtt",
@@ -95,6 +89,13 @@
     }
   ],
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/moscajs/aedes/issues"
+  },
+  "homepage": "https://github.com/moscajs/aedes#readme",
+  "engines": {
+    "node": ">=12"
+  },
   "devDependencies": {
     "@sinonjs/fake-timers": "^9.1.0",
     "@types/node": "^17.0.15",
