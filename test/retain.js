@@ -194,7 +194,7 @@ test('reconnected subscriber will not receive retained messages when QoS 0 and c
   })
 })
 
-test('reconnected subscriber will not receive retained messages when QoS is 128', function (t) {
+test('subscriber will not receive retained messages when QoS is 128', function (t) {
   t.plan(3)
 
   const broker = aedes()
