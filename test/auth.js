@@ -761,7 +761,7 @@ test('negate subscription', function (t) {
 })
 
 test('negate multiple subscriptions', function (t) {
-  t.plan(5)
+  t.plan(6)
 
   const s = connect(setup())
   t.teardown(s.broker.close.bind(s.broker))
@@ -770,6 +770,18 @@ test('negate multiple subscriptions', function (t) {
     t.ok(client, 'client exists')
     cb(null, null)
   }
+
+  const expectedSubs = [{
+    topic: 'hello',
+    qos: 128
+  }, {
+    topic: 'world',
+    qos: 128
+  }]
+
+  s.broker.once('subscribe', function (subs, client) {
+    t.same(subs, expectedSubs)
+  })
 
   s.inStream.write({
     cmd: 'subscribe',
