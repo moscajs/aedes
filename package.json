@@ -128,7 +128,6 @@
     "hyperid": "^3.0.0",
     "mqemitter": "^4.5.0",
     "mqtt-packet": "^7.1.2",
-    "readable-stream": "^3.6.0",
     "retimer": "^3.0.0",
     "reusify": "^1.0.4",
     "uuid": "^8.3.2"
