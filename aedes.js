@@ -5,14 +5,13 @@ const util = require('util')
 const parallel = require('fastparallel')
 const series = require('fastseries')
 const { v4: uuidv4 } = require('uuid')
-const bulk = require('bulk-write-stream')
 const reusify = require('reusify')
 const { pipeline } = require('stream')
 const Packet = require('aedes-packet')
 const memory = require('aedes-persistence')
 const mqemitter = require('mqemitter')
 const Client = require('./lib/client')
-const { $SYS_PREFIX } = require('./lib/utils')
+const { $SYS_PREFIX, bulk } = require('./lib/utils')
 
 module.exports = Aedes.Server = Aedes
 
@@ -102,7 +101,7 @@ function Aedes (opts) {
 
     pipeline(
       that.persistence.streamWill(that.brokers),
-      bulk.obj(receiveWills),
+      bulk(receiveWills),
       function done (err) {
         if (err) {
           that.emit('error', err)

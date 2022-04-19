@@ -120,7 +120,6 @@
   "dependencies": {
     "aedes-packet": "^2.3.1",
     "aedes-persistence": "^8.1.3",
-    "bulk-write-stream": "^2.0.1",
     "end-of-stream": "^1.4.4",
     "fastfall": "^1.5.1",
     "fastparallel": "^2.4.1",
