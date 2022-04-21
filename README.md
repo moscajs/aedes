@@ -24,7 +24,7 @@ Barebone MQTT server that can run on any stream servers
   - [Features](#features)
   - [Examples](#examples)
   - [Clusters](#clusters)
-  - [Exensions](#exensions)
+  - [Extensions](#extensions)
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
     - [MQEmitter](#mqemitter)
