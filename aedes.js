@@ -170,6 +170,7 @@ function storeRetained (packet, done) {
 }
 
 function emitPacket (packet, done) {
+  if (this.client) packet.clientId = this.client.id
   this.broker.mq.emit(packet, done)
 }
 
