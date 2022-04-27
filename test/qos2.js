@@ -262,6 +262,8 @@ test('call published method with client with QoS 2', function (t) {
     broker.authorizeForward = function (client, packet) {
       forwarded.brokerId = broker.id
       forwarded.brokerCounter = broker.counter
+      delete packet.clientId
+      delete packet.nl
       t.same(packet, forwarded, 'forwarded packet must match')
       return packet
     }

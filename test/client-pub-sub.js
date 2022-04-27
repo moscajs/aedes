@@ -944,6 +944,7 @@ test('programmatically add custom subscribe', function (t) {
   function deliver (packet, cb) {
     deliverP.brokerId = s.broker.id
     deliverP.brokerCounter = s.broker.counter
+    delete packet.clientId
     t.same(packet, deliverP, 'packet matches')
     cb()
   }
@@ -986,6 +987,7 @@ test('custom function in broker.subscribe', function (t) {
   function deliver (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
+    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   }

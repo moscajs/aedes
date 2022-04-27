@@ -446,6 +446,7 @@ test('authorize publish', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
+    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
@@ -493,6 +494,7 @@ test('authorize waits for authenticate', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
+    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
@@ -542,6 +544,7 @@ test('authorize publish from configOptions', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
+    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
@@ -618,6 +621,7 @@ test('modify qos out of range in authorize publish ', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
+    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
