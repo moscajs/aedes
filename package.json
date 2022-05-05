@@ -118,7 +118,7 @@
     "websocket-stream": "^5.5.2"
   },
   "dependencies": {
-    "aedes-packet": "^2.3.1",
+    "aedes-packet": "^3.0.0",
     "aedes-persistence": "^9.0.1",
     "end-of-stream": "^1.4.4",
     "fastfall": "^1.5.1",
