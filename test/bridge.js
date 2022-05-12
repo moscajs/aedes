@@ -3,46 +3,52 @@
 const { test } = require('tap')
 const { setup, connect, subscribe } = require('./helper')
 
-test('normal client sends a publish message and shall receive it back', function (t) {
-  const s = connect(setup())
-  t.teardown(s.broker.close.bind(s.broker))
+for (const qos of [0, 1]) {
+  const packet = {
+    qos,
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world'
+  }
 
-  const handle = setTimeout(() => {
-    t.fail('did not receive packet back')
-    t.end()
-  }, 1000)
-
-  subscribe(t, s, 'hello', 0, function () {
-    s.outStream.on('data', () => {
-      clearTimeout(handle)
+  if (qos > 0) packet.messageId = 42
+  
+  test('normal client sends a publish message and shall receive it back, qos = ' + qos, function (t) {
+    const s = connect(setup())
+    t.teardown(s.broker.close.bind(s.broker))
+  
+    const handle = setTimeout(() => {
+      t.fail('did not receive packet back')
       t.end()
-    })
-
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world'
+    }, 1000)
+  
+    subscribe(t, s, 'hello', qos, function () {
+      s.outStream.on('data', (packet) => {
+        if (packet.cmd == 'publish') {
+          clearTimeout(handle)
+          t.end()
+        }
+      })
+  
+      s.inStream.write(packet)
     })
   })
-})
 
-test('bridge client sends a publish message but shall not receive it back', function (t) {
-  const s = connect(setup(), { clientId: 'my-client-bridge-1', protocolVersion: 128 + 4 })
-  t.teardown(s.broker.close.bind(s.broker))
+  test('bridge client sends a publish message but shall not receive it back, qos = ' + qos, function (t) {
+    const s = connect(setup(), { clientId: 'my-client-bridge-1', protocolVersion: 128 + 4 })
+    t.teardown(s.broker.close.bind(s.broker))
 
-  const handle = setTimeout(() => t.end(), 1000)
+    const handle = setTimeout(() => t.end(), 1000)
 
-  subscribe(t, s, 'hello', 0, function () {
-    s.outStream.on('data', function () {
-      clearTimeout(handle)
-      t.fail('should not receive packet back')
-      t.end()
-    })
+    subscribe(t, s, 'hello', qos, function () {
+      s.outStream.on('data', function () {
+        clearTimeout(handle)
+        t.fail('should not receive packet back')
+        t.end()
+      })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world'
+      s.inStream.write(packet)
     })
   })
-})
+}
+
