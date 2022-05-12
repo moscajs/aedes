@@ -905,10 +905,10 @@ test('should not receive a message on negated subscription', function (t) {
 test('programmatically add custom subscribe', function (t) {
   t.plan(6)
 
-  const broker = aedes()
+  const broker = aedes({ clientId: 'my-client-xyz-7' })
   t.teardown(broker.close.bind(broker))
 
-  const s = connect(setup(broker))
+  const s = connect(setup(broker), { clientId: 'my-client-xyz-7' })
   const expected = {
     cmd: 'publish',
     topic: 'hello',
@@ -924,7 +924,8 @@ test('programmatically add custom subscribe', function (t) {
     payload: Buffer.from('world'),
     qos: 0,
     retain: false,
-    dup: false
+    dup: false,
+    clientId: 'my-client-xyz-7'
   }
   subscribe(t, s, 'hello', 0, function () {
     broker.subscribe('hello', deliver, function () {
@@ -944,7 +945,6 @@ test('programmatically add custom subscribe', function (t) {
   function deliver (packet, cb) {
     deliverP.brokerId = s.broker.id
     deliverP.brokerCounter = s.broker.counter
-    delete packet.clientId
     t.same(packet, deliverP, 'packet matches')
     cb()
   }
@@ -964,9 +964,10 @@ test('custom function in broker.subscribe', function (t) {
     qos: 1,
     retain: false,
     dup: false,
-    messageId: undefined
+    messageId: undefined,
+    clientId: 'my-client-xyz-6'
   }
-  connect(s, {}, function () {
+  connect(s, { clientId: 'my-client-xyz-6' }, function () {
     broker.subscribe('hello', deliver, function () {
       t.pass('subscribed')
     })
@@ -987,7 +988,6 @@ test('custom function in broker.subscribe', function (t) {
   function deliver (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   }

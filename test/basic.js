@@ -20,7 +20,7 @@ test('test aedes.Server', function (t) {
 test('publish QoS 0', function (t) {
   t.plan(2)
 
-  const s = connect(setup())
+  const s = connect(setup(), { clientId: 'my-client-xyz-5' })
   t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
@@ -29,13 +29,13 @@ test('publish QoS 0', function (t) {
     payload: Buffer.from('world'),
     qos: 0,
     retain: false,
-    dup: false
+    dup: false,
+    clientId: 'my-client-xyz-5'
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
-    delete packet.clientId
     t.equal(packet.messageId, undefined, 'MUST not contain a packet identifier in QoS 0')
     t.same(packet, expected, 'packet matches')
     cb()
@@ -129,7 +129,7 @@ test('publish to $SYS topic throws error', function (t) {
       qos: 0,
       retain: false
     }
-    const expectedSubs = ele.clean ? null : [{ topic: 'hello', qos: ele.qos }]
+    const expectedSubs = ele.clean ? null : [{ topic: 'hello', qos: ele.qos, rh: undefined, rap: undefined, nl: undefined }]
 
     subscribe(t, s, 'hello', ele.qos, function () {
       s.outStream.once('data', function (packet) {
@@ -189,7 +189,10 @@ test('return write errors to callback', function (t) {
       qos: 0,
       retain: false
     }
-    const subs = [{ topic: 'hello', qos: ele.qos }, { topic: 'world', qos: ele.qos }]
+    const subs = [
+      { topic: 'hello', qos: ele.qos, rh: undefined, rap: undefined, nl: undefined },
+      { topic: 'world', qos: ele.qos, rh: undefined, rap: undefined, nl: undefined }
+    ]
     const expectedSubs = ele.clean ? null : subs
 
     subscribeMultiple(t, s, subs, [ele.qos, ele.qos], function () {

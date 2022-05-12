@@ -422,7 +422,7 @@ test('authentication error when non numeric return code is passed', function (t)
 test('authorize publish', function (t) {
   t.plan(4)
 
-  const s = connect(setup())
+  const s = connect(setup(), { clientId: 'my-client-xyz' })
   t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
@@ -445,8 +445,8 @@ test('authorize publish', function (t) {
     t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
+    expected.clientId = 'my-client-xyz'
     delete expected.length
-    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
@@ -461,7 +461,7 @@ test('authorize publish', function (t) {
 test('authorize waits for authenticate', function (t) {
   t.plan(6)
 
-  const s = setup()
+  const s = setup(aedes({ clientId: 'my-client-xyz-2' }))
   t.teardown(s.broker.close.bind(s.broker))
 
   s.broker.authenticate = function (client, username, password, cb) {
@@ -486,7 +486,8 @@ test('authorize waits for authenticate', function (t) {
     qos: 0,
     retain: false,
     length: 12,
-    dup: false
+    dup: false,
+    clientId: 'my-client'
   }
 
   s.broker.mq.on('hello', function (packet, cb) {
@@ -494,7 +495,6 @@ test('authorize waits for authenticate', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
-    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
@@ -521,12 +521,13 @@ test('authorize publish from configOptions', function (t) {
   t.plan(4)
 
   const s = connect(setup(aedes({
+    clientId: 'my-client-xyz-3',
     authorizePublish: function (client, packet, cb) {
       t.ok(client, 'client exists')
       t.same(packet, expected, 'packet matches')
       cb()
     }
-  })))
+  })), { clientId: 'my-client-xyz-3' })
   t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
@@ -543,8 +544,8 @@ test('authorize publish from configOptions', function (t) {
     t.notOk(Object.prototype.hasOwnProperty.call(packet, 'messageId'), 'should not contain messageId in QoS 0')
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
+    expected.clientId = 'my-client-xyz-3'
     delete expected.length
-    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
@@ -592,7 +593,7 @@ test('do not authorize publish', function (t) {
 test('modify qos out of range in authorize publish ', function (t) {
   t.plan(2)
 
-  const s = connect(setup())
+  const s = connect(setup(), { clientId: 'my-client-xyz-4' })
   t.teardown(s.broker.close.bind(s.broker))
 
   const expected = {
@@ -602,7 +603,8 @@ test('modify qos out of range in authorize publish ', function (t) {
     qos: 0,
     retain: false,
     length: 12,
-    dup: false
+    dup: false,
+    clientId: 'my-client-xyz-4'
   }
 
   s.broker.authorizePublish = function (client, packet, cb) {
@@ -621,7 +623,6 @@ test('modify qos out of range in authorize publish ', function (t) {
     expected.brokerId = s.broker.id
     expected.brokerCounter = s.broker.counter
     delete expected.length
-    delete packet.clientId
     t.same(packet, expected, 'packet matches')
     cb()
   })
@@ -809,12 +810,19 @@ test('negate multiple subscriptions', function (t) {
 test('negate subscription with correct persistence', function (t) {
   t.plan(6)
 
+  // rh, rap, nl are undefined because mqtt.parser is set to MQTT 3.1.1 and will thus erase these props from s.inStream.write
   const expected = [{
     topic: 'hello',
-    qos: 0
+    qos: 0,
+    rh: undefined,
+    rap: undefined,
+    nl: undefined
   }, {
     topic: 'world',
-    qos: 0
+    qos: 0,
+    rh: undefined,
+    rap: undefined,
+    nl: undefined
   }]
 
   const broker = aedes()
@@ -843,10 +851,16 @@ test('negate subscription with correct persistence', function (t) {
     messageId: 24,
     subscriptions: [{
       topic: 'hello',
-      qos: 0
+      qos: 0,
+      rh: 0,
+      rap: true,
+      nl: false
     }, {
       topic: 'world',
-      qos: 0
+      qos: 0,
+      rh: 0,
+      rap: true,
+      nl: false
     }]
   })
 })
