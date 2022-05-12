@@ -239,7 +239,7 @@ test('call published method with client with QoS 2', function (t) {
     t.teardown(broker.close.bind(broker))
 
     const opts = { clean: cleanSession }
-    const publisher = connect(setup(broker))
+    const publisher = connect(setup(broker), { clientId: 'my-client-xyz-8' })
     const subscriber = connect(setup(broker), { ...opts, clientId: 'abcde' })
     const forwarded = {
       cmd: 'publish',
@@ -248,7 +248,8 @@ test('call published method with client with QoS 2', function (t) {
       qos: 2,
       retain: false,
       dup: false,
-      messageId: undefined
+      messageId: undefined,
+      clientId: 'my-client-xyz-8'
     }
     const expected = {
       cmd: 'publish',
@@ -262,6 +263,7 @@ test('call published method with client with QoS 2', function (t) {
     broker.authorizeForward = function (client, packet) {
       forwarded.brokerId = broker.id
       forwarded.brokerCounter = broker.counter
+      delete packet.nl
       t.same(packet, forwarded, 'forwarded packet must match')
       return packet
     }
