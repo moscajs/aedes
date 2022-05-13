@@ -1,10 +1,10 @@
 import { AedesPacket } from 'aedes-packet'
 import { IConnackPacket, IConnectPacket, IPingreqPacket, IPublishPacket, IPubrelPacket, ISubscribePacket, ISubscription, IUnsubscribePacket } from 'mqtt-packet'
+import { Client } from './client'
 
-export type ClientId = string
 export type SubscribePacket = ISubscribePacket & { cmd: 'subscribe' }
 export type UnsubscribePacket = IUnsubscribePacket & { cmd: 'unsubscribe' }
-export type Subscription = ISubscription & { clientId?: ClientId }
+export type Subscription = ISubscription & { clientId?: Client['id'] }
 export type Subscriptions = { subscriptions: Subscription[] }
 
 export type PublishPacket = IPublishPacket & { cmd: 'publish' }
