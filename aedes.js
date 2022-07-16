@@ -29,7 +29,8 @@ const defaultOptions = {
   trustProxy: false,
   trustedProxies: [],
   queueLimit: 42,
-  maxClientsIdLength: 23
+  maxClientsIdLength: 23,
+  sendWillsOnStartup: false
 }
 
 function Aedes (opts) {
@@ -77,6 +78,7 @@ function Aedes (opts) {
 
   this.clients = {}
   this.brokers = {}
+  this.checkPendingWills = false
 
   const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
@@ -110,6 +112,21 @@ function Aedes (opts) {
     )
   }, opts.heartbeatInterval * 4)
 
+  if (opts.sendWillsOnStartup) {
+    // Stream leftover wills on startup
+    this.checkPendingWills = true
+    pipeline(
+      that.persistence.streamWill([that.id]),
+      bulk(receiveWills),
+      function done (err) {
+        if (err) {
+          that.emit('error', err)
+        }
+        that.checkPendingWills = false
+      }
+    )
+  }
+
   function receiveWills (chunks, done) {
     that._parallel(that, checkAndPublish, chunks, done)
   }
@@ -118,8 +135,8 @@ function Aedes (opts) {
     const needsPublishing =
       !that.brokers[will.brokerId] ||
       that.brokers[will.brokerId] + (3 * opts.heartbeatInterval) <
-      Date.now()
-
+      Date.now() ||
+      that.checkPendingWills // Send anything pending on persistence
     if (needsPublishing) {
       // randomize this, so that multiple brokers
       // do not publish the same wills at the same time
