@@ -70,7 +70,7 @@ export interface Aedes extends EventEmitter {
   on (event: 'clientError' | 'connectionError', listener: (client: Client, error: Error) => void): this
   on (event: 'connackSent', listener: (packet: ConnackPacket, client: Client) => void): this
   on (event: 'ping', listener: (packet: PingreqPacket, client: Client) => void): this
-  on (event: 'publish', listener: (packet: AedesPublishPacket, client: Client) => void): this
+  on (event: 'publish', listener: (packet: AedesPublishPacket, client: Client | null) => void): this
   on (event: 'ack', listener: (packet: PublishPacket | PubrelPacket, client: Client) => void): this
   on (event: 'subscribe', listener: (subscriptions: Subscription[], client: Client) => void): this
   on (event: 'unsubscribe', listener: (unsubscriptions: string[], client: Client) => void): this
