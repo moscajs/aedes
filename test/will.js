@@ -114,6 +114,51 @@ test('delivers old will in case of a crash', function (t) {
   })
 })
 
+test('delivers old will in case of a restart on the same brokerId', function (t) {
+  t.plan(5)
+
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  persistence.broker = {
+    id: 'sameBrokerId'
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    const interval = 10 // ms, so that the will check happens fast!
+    const broker = aedes({
+      persistence: persistence,
+      heartbeatInterval: interval,
+      id: 'sameBrokerId',
+      sendWillsOnStartup: true
+    })
+    t.teardown(broker.close.bind(broker))
+
+    broker.mq.on('mywill', check)
+
+    function check (packet, cb) {
+      broker.mq.removeListener('mywill', check)
+      t.equal(packet.topic, will.topic, 'topic matches')
+      t.same(packet.payload, will.payload, 'payload matches')
+      t.equal(packet.qos, will.qos, 'qos matches')
+      t.equal(packet.retain, will.retain, 'retain matches')
+      broker.mq.on('mywill', function (packet) {
+        t.fail('the will must be delivered only once')
+      })
+      cb()
+    }
+  })
+})
+
 test('delete old broker', function (t) {
   t.plan(1)
 
