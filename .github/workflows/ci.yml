@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+          check-latest: true
           architecture: ${{ matrix.architecture }}
 
       - name: Install
