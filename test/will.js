@@ -90,7 +90,7 @@ test('delivers old will in case of a crash', function (t) {
 
     const interval = 10 // ms, so that the will check happens fast!
     const broker = aedes({
-      persistence: persistence,
+      persistence,
       heartbeatInterval: interval
     })
     t.teardown(broker.close.bind(broker))
@@ -121,7 +121,7 @@ test('delete old broker', function (t) {
 
   const heartbeatInterval = 100
   const broker = aedes({
-    heartbeatInterval: heartbeatInterval
+    heartbeatInterval
   })
   t.teardown(broker.close.bind(broker))
 
@@ -421,7 +421,7 @@ test('don\'t delivers a will if broker alive', function (t) {
     t.error(err, 'no error')
 
     const opts = {
-      persistence: persistence,
+      persistence,
       heartbeatInterval: 10
     }
 
@@ -472,7 +472,7 @@ test('handle will publish error', function (t) {
     t.error(err, 'no error')
 
     const opts = {
-      persistence: persistence,
+      persistence,
       heartbeatInterval: 10
     }
 
@@ -509,7 +509,7 @@ test('handle will publish error 2', function (t) {
     t.error(err, 'no error')
 
     const opts = {
-      persistence: persistence,
+      persistence,
       heartbeatInterval: 10
     }
 
