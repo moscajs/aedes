@@ -186,7 +186,7 @@ const server = require('net').createServer(aedes.handle)
 
 Directly subscribe a `topic` in server side. Bypass [`authorizeSubscribe`](#handler-authorizesubscribe-client-subscription-callback)
 
-The `topic` and `deliverfunc` is a compound key to differentiate the uniqueness of its subscription pool. `topic` could be the one that is existed, in this case `deliverfunc` will be invoked as well as `SUBSCRIBE` does.
+The `topic` and `deliverfunc` is a compound key to differentiate the uniqueness of its subscription pool. `topic` could be the one that is existed, in this case `deliverfunc` will be invoked as well as [`SUBSCRIBE`][SUBSCRIBE] does.
 
 `deliverfunc` supports backpressue.
 
@@ -337,7 +337,7 @@ function defaultAuthorizePublish (client, packet, callback) {
 Invoked when
 
 1. restore subscriptions in non-clean session.
-2. incoming client `SUBSCRIBE`
+2. incoming client [`SUBSCRIBE`][SUBSCRIBE]
 
 `subscription` is a dictionary object like `{ topic: hello, qos: 0 }`.
 
