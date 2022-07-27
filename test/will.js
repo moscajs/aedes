@@ -58,8 +58,11 @@ test('calling close two times should not deliver two wills', function (t) {
   willConnect(setup(broker), opts)
 
   function onWill (packet, cb) {
-    broker.mq.removeListener('mywill', onWill)
-    broker.mq.on('mywill', t.fail.bind(t))
+    broker.mq.removeListener('mywill', onWill, function () {
+      broker.mq.on('mywill', function (packet) {
+        t.fail('the will must be delivered only once')
+      })
+    })
     t.equal(packet.topic, opts.will.topic, 'topic matches')
     t.same(packet.payload, opts.will.payload, 'payload matches')
     t.equal(packet.qos, opts.will.qos, 'qos matches')
@@ -100,15 +103,16 @@ test('delivers old will in case of a crash', function (t) {
     broker.mq.on('mywill', check)
 
     function check (packet, cb) {
-      broker.mq.removeListener('mywill', check)
+      broker.mq.removeListener('mywill', check, function () {
+        broker.mq.on('mywill', function (packet) {
+          t.fail('the will must be delivered only once')
+        })
+      })
       t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
       t.equal(packet.topic, will.topic, 'topic matches')
       t.same(packet.payload, will.payload, 'payload matches')
       t.equal(packet.qos, will.qos, 'qos matches')
       t.equal(packet.retain, will.retain, 'retain matches')
-      broker.mq.on('mywill', function (packet) {
-        t.fail('the will must be delivered only once')
-      })
       cb()
     }
   })
@@ -185,8 +189,7 @@ test('delete the will in the persistence after publish', function (t) {
   willConnect(setup(broker), opts)
 
   function check (packet, cb) {
-    broker.mq.removeListener('mywill', check)
-    setImmediate(function () {
+    broker.mq.removeListener('mywill', check, function () {
       broker.persistence.getWill({
         id: opts.clientId
       }, function (err, p) {
