@@ -27,8 +27,8 @@ type PreConnectHandler = (client: Client, packet: ConnectPacket, callback: (erro
 
 type AuthenticateHandler = (
   client: Client,
-  username: Readonly<string>,
-  password: Readonly<Buffer>,
+  username: string,
+  password: Buffer,
   done: (error: AuthenticateError | null, success: boolean | null) => void
 ) => void
 
