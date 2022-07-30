@@ -78,6 +78,7 @@ function Aedes (opts) {
 
   this.clients = {}
   this.brokers = {}
+  this.oldWills = {}
   this.checkPendingWills = false
 
   const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
@@ -86,10 +87,30 @@ function Aedes (opts) {
   const bufId = Buffer.from(that.id, 'utf8')
 
   function heartbeat () {
+    Object.keys(that.oldWills).forEach(sendOldWills)
     that.publish({
       topic: heartbeatTopic,
       payload: bufId
     }, noop)
+  }
+
+  function sendOldWills (clientId) {
+    const will = that.oldWills[clientId]
+    // TODO: delay depending on keepAlive interval, which isn't available with current persistence
+    // TODO: authorize publish
+    that.publish(will, function publishWill (err) {
+      if (err) {
+        delete that.oldWills[will.clientId]
+        return err
+      }
+      that.persistence.delWill({
+        id: will.clientId,
+        brokerId: will.brokerId
+      }, function (err) {
+        delete that.oldWills[will.clientId]
+        return err
+      })
+    })
   }
 
   function deleteOldBrokers (broker) {
@@ -117,7 +138,7 @@ function Aedes (opts) {
     this.checkPendingWills = true
     pipeline(
       that.persistence.streamWill([]), // Get all pending wills
-      bulk(receiveWills),
+      bulk(receiveOldWills),
       function done (err) {
         if (err) {
           that.emit('error', err)
@@ -125,6 +146,16 @@ function Aedes (opts) {
         that.checkPendingWills = false
       }
     )
+
+    function receiveOldWills (chunks, done) {
+      that._parallel(that, storeOldWills, chunks, done)
+    }
+
+    function storeOldWills (will, done) {
+      if (will.clientId && will.brokerId === that.id) {
+        that.oldWills[will.clientId] = will
+      }
+    }
   }
 
   function receiveWills (chunks, done) {
@@ -140,6 +171,7 @@ function Aedes (opts) {
     if (needsPublishing) {
       // randomize this, so that multiple brokers
       // do not publish the same wills at the same time
+      // TODO: authorize publish
       that.publish(will, function publishWill (err) {
         if (err) {
           return done(err)
@@ -163,7 +195,7 @@ function Aedes (opts) {
   this.mq.on($SYS_PREFIX + '+/new/clients', function closeSameClients (packet, done) {
     const serverId = packet.topic.split('/')[1]
     const clientId = packet.payload.toString()
-
+    delete that.oldWills[clientId]
     if (that.clients[clientId] && serverId !== that.id) {
       that.clients[clientId].close(done)
     } else {
@@ -296,6 +328,7 @@ Aedes.prototype.registerClient = function (client) {
 
 Aedes.prototype._finishRegisterClient = function (client) {
   this.connectedClients++
+  delete this.oldWills[client.id]
   this.clients[client.id] = client
   this.emit('client', client)
   this.publish({

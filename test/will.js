@@ -133,7 +133,6 @@ test('delivers old will in case of a restart on the same brokerId', function (t)
     id: 'myClientId42'
   }, will, function (err) {
     t.error(err, 'no error')
-
     const interval = 10 // ms, so that the will check happens fast!
     const broker = aedes({
       persistence: persistence,
