@@ -6,7 +6,7 @@
   "types": "aedes.d.ts",
   "scripts": {
     "lint": "npm run lint:standard && npm run lint:typescript && npm run lint:markdown",
-    "lint:fix": "standard --fix",
+    "lint:fix": "standard --fix && eslint -c types/.eslintrc.json --fix aedes.d.ts types/**/*.ts test/types/**/*.test-d.ts",
     "lint:standard": "standard --verbose | snazzy",
     "lint:typescript": "eslint -c types/.eslintrc.json aedes.d.ts types/**/*.ts test/types/**/*.test-d.ts",
     "lint:markdown": "markdownlint docs/*.md README.md",
