@@ -1,17 +1,18 @@
+/// <reference path="../../aedes.d.ts" />
+
+import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, SubscribePacket, Subscription, UnsubscribePacket } from 'aedes:packet'
+import type { AuthenticateError, Brokers, Connection } from 'aedes:server'
+import Server, { Aedes } from 'aedes:server'
+
+import type { Client } from 'aedes:client'
+import { Socket } from 'node:net'
 import { expectType } from 'tsd'
-import { Socket } from 'net'
-import type {
-  Aedes,
-  Brokers,
-  AuthenticateError,
-  Client,
-  Connection
-} from '../../aedes'
-import { Server } from '../../aedes'
-import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet'
 
 // Aedes server
-const broker = Server({
+let broker = new Server()
+expectType<Aedes>(broker)
+
+broker = new Aedes({
   id: 'aedes',
   concurrency: 100,
   heartbeatInterval: 60000,
