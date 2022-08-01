@@ -38,7 +38,7 @@ broker = new Aedes({
       callback(error, false)
     }
   },
-  authorizePublish: (client: Client, packet: PublishPacket, callback) => {
+  authorizePublish: (client: Client | null, packet: PublishPacket, callback) => {
     if (packet.topic === 'aaaa') {
       return callback(new Error('wrong topic'))
     }

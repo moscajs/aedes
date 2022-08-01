@@ -291,7 +291,7 @@ Please refer to [Connect Return Code](http://docs.oasis-open.org/mqtt/mqtt/v3.1.
 
 ## Handler: authorizePublish (client, packet, callback)
 
-- client: [`<Client>`](./Client.md)
+- client: [`<Client>`](./Client.md) | `null`
 - packet: `<object>` [`PUBLISH`][PUBLISH]
 - callback: `<Function>` `(error) => void`
   - error `<Error>` | `null`
@@ -300,6 +300,8 @@ Invoked when
 
 1. publish LWT to all online clients
 2. incoming client publish
+
+`client` is `null` when aedes publishes obsolete LWT without connected clients
 
 If invoked `callback` with no errors, server authorizes the packet otherwise emits `clientError` with `error`. If an `error` occurs the client connection will be closed, but no error is returned to the client (MQTT-3.3.5-2)
 

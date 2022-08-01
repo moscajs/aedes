@@ -33,7 +33,7 @@ declare module 'aedes' {
     done: (error: AuthenticateError | null, success: boolean | null) => void
   ) => void
 
-  type AuthorizePublishHandler = (client: Client, packet: PublishPacket, callback: (error?: Error | null) => void) => void
+  type AuthorizePublishHandler = (client: Client | null, packet: PublishPacket, callback: (error?: Error | null) => void) => void
 
   type AuthorizeSubscribeHandler = (client: Client, subscription: Subscription, callback: (error: Error | null, subscription?: Subscription | null) => void) => void
 
