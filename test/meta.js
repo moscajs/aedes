@@ -307,7 +307,7 @@ test('connect and connackSent event', { timeout: 50 }, function (t) {
     protocolId: 'MQTT',
     protocolVersion: 4,
     clean: true,
-    clientId: clientId,
+    clientId,
     keepalive: 0
   })
 

@@ -107,7 +107,7 @@ Brokers that support the [Bridge Protocol][bridge_protocol] can connect to
 Aedes.  When connecting with this special protocol, subscriptions work as usual
 except that the `retain` flag in the packet is propagated as-is.
 
-## Exensions
+## Extensions
 
 - [aedes-logging]: Logging module for Aedes, based on Pino
 - [aedes-stats]: Stats for Aedes

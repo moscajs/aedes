@@ -42,7 +42,7 @@ test('connect 500 concurrent clients', function (t) {
 
     for (let i = 0; i < total; i++) {
       clients[i] = mqtt.connect({
-        port: port,
+        port,
         keepalive: 0,
         reconnectPeriod: 100
       }).on('connect', function () {
@@ -79,7 +79,7 @@ test('do not block after a subscription', function (t) {
     const port = server.address().port
 
     const publisher = mqtt.connect({
-      port: port,
+      port,
       keepalive: 0
     }).on('error', function (err) {
       clock.clearTimeout(clockId)
@@ -103,7 +103,7 @@ test('do not block after a subscription', function (t) {
 
     function startSubscriber () {
       subscriber = mqtt.connect({
-        port: port,
+        port,
         keepalive: 0
       }).on('error', function (err) {
         clock.clearTimeout(clockId)
@@ -163,7 +163,7 @@ test('do not block with overlapping subscription', function (t) {
     const port = server.address().port
 
     const publisher = mqtt.connect({
-      port: port,
+      port,
       keepalive: 0
     }).on('error', function (err) {
       clock.clearTimeout(clockId)
@@ -187,7 +187,7 @@ test('do not block with overlapping subscription', function (t) {
 
     function startSubscriber () {
       subscriber = mqtt.connect({
-        port: port,
+        port,
         keepalive: 0
       }).on('error', function (err) {
         clock.clearTimeout(clockId)

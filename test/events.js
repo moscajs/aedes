@@ -161,7 +161,7 @@ test('Test backpressure aedes published function', function (t) {
 
   server.listen(0, function () {
     const port = server.address().port
-    publisher = mqtt.connect({ port: port, host: 'localhost', clean: true, keepalive: 30 })
+    publisher = mqtt.connect({ port, host: 'localhost', clean: true, keepalive: 30 })
 
     function next () {
       if (--publishCount > 0) { process.nextTick(publish) }

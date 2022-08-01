@@ -19,10 +19,10 @@ function setup (broker) {
 
   return {
     client: broker.handle(conn),
-    conn: conn,
-    inStream: inStream,
-    outStream: outStream,
-    broker: broker
+    conn,
+    inStream,
+    outStream,
+    broker
   }
 }
 
@@ -74,8 +74,8 @@ function subscribe (t, subscriber, topic, qos, done) {
     cmd: 'subscribe',
     messageId: 24,
     subscriptions: [{
-      topic: topic,
-      qos: qos
+      topic,
+      qos
     }]
   })
 
@@ -110,10 +110,10 @@ function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
 }
 
 module.exports = {
-  setup: setup,
-  connect: connect,
-  noError: noError,
-  subscribe: subscribe,
-  subscribeMultiple: subscribeMultiple,
+  setup,
+  connect,
+  noError,
+  subscribe,
+  subscribeMultiple,
   delay: util.promisify(setTimeout)
 }
