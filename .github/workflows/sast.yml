@@ -1,0 +1,29 @@
+name: sast
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: true
+      matrix:
+        language: [ 'javascript' ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+      - uses: github/codeql-action/analyze@v2
