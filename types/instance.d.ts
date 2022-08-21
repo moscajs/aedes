@@ -1,6 +1,7 @@
 declare module 'aedes' {
   import { Duplex } from 'node:stream'
   import { Socket } from 'node:net'
+  import { IncomingMessage } from 'http'
   import { Client } from 'aedes:client'
   import type { AedesPublishPacket, ConnectPacket, ConnackPacket, Subscription, PingreqPacket, PublishPacket, PubrelPacket } from 'aedes:packet'
   import { EventEmitter } from 'node:events'
@@ -65,7 +66,7 @@ declare module 'aedes' {
     brokers: Readonly<Brokers>
 
     constructor(option?: AedesOptions)
-    handle: (stream: Connection) => Client
+    handle: (stream: Connection, request: IncomingMessage ) => Client
 
     on (event: 'closed', listener: () => void): this
     on (event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout', listener: (client: Client) => void): this
