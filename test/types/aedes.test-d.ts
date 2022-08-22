@@ -4,6 +4,7 @@ import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, P
 import type { AuthenticateError, Brokers, Connection } from 'aedes:server'
 import Server, { Aedes } from 'aedes:server'
 
+import { IncomingMessage } from 'node:http'
 import type { Client } from 'aedes:client'
 import { Socket } from 'node:net'
 import { expectType } from 'tsd'
@@ -124,11 +125,12 @@ expectType<void>(broker.close())
 expectType<void>(broker.close(() => {}))
 
 // Aedes client
-const client = broker.handle({} as Connection)
+const client = broker.handle({} as Connection, {} as IncomingMessage)
 
 expectType<Client>(client)
 
 expectType<Connection>(client.conn)
+expectType<IncomingMessage>(client.req!)
 
 expectType<Client>(client.on('connected', () => {}))
 expectType<Client>(client.on('error', (error: Error) => {

@@ -66,7 +66,7 @@ declare module 'aedes' {
     brokers: Readonly<Brokers>
 
     constructor(option?: AedesOptions)
-    handle: (stream: Connection, request: IncomingMessage ) => Client
+    handle: (stream: Connection, request: IncomingMessage) => Client
 
     on (event: 'closed', listener: () => void): this
     on (event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout', listener: (client: Client) => void): this
