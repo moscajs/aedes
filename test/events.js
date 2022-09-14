@@ -1,6 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
+const mqemitter = require('mqemitter')
 const { setup, connect, subscribe } = require('./helper')
 const aedes = require('../')
 
@@ -16,7 +17,29 @@ test('publishes an hearbeat', function (t) {
     const id = message.topic.match(/\$SYS\/([^/]+)\/heartbeat/)[1]
     t.equal(id, broker.id, 'broker id matches')
     t.same(message.payload.toString(), id, 'message has id as the payload')
+    cb()
   })
+})
+
+test('publishes birth', function (t) {
+  t.plan(2)
+
+  const mq = mqemitter()
+  const brokerId = 'test-broker'
+
+  mq.on('$SYS/+/birth', function (message, cb) {
+    const id = message.topic.match(/\$SYS\/([^/]+)\/birth/)[1]
+    t.equal(id, brokerId, 'broker id matches')
+    t.same(message.payload.toString(), id, 'message has id as the payload')
+    cb()
+  })
+
+  const broker = aedes({
+    id: brokerId,
+    mq
+  })
+
+  t.teardown(broker.close.bind(broker))
 })
 
 ;['$mcollina', '$SYS'].forEach(function (topic) {
