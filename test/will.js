@@ -58,8 +58,11 @@ test('calling close two times should not deliver two wills', function (t) {
   willConnect(setup(broker), opts)
 
   function onWill (packet, cb) {
-    broker.mq.removeListener('mywill', onWill)
-    broker.mq.on('mywill', t.fail.bind(t))
+    broker.mq.removeListener('mywill', onWill, function () {
+      broker.mq.on('mywill', function (packet) {
+        t.fail('the will must be delivered only once')
+      })
+    })
     t.equal(packet.topic, opts.will.topic, 'topic matches')
     t.same(packet.payload, opts.will.payload, 'payload matches')
     t.equal(packet.qos, opts.will.qos, 'qos matches')
@@ -69,7 +72,61 @@ test('calling close two times should not deliver two wills', function (t) {
 })
 
 test('delivers old will in case of a crash', function (t) {
-  t.plan(6)
+  t.plan(8)
+
+  const persistence = memory()
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  persistence.broker = {
+    id: 'anotherBroker'
+  }
+
+  persistence.putWill({
+    id: 'myClientId42'
+  }, will, function (err) {
+    t.error(err, 'no error')
+
+    let authorized = false
+    const interval = 10 // ms, so that the will check happens fast!
+    const broker = aedes({
+      persistence,
+      heartbeatInterval: interval,
+      authorizePublish: function (client, packet, callback) {
+        t.strictSame(client, null, 'client must be null')
+        authorized = true
+        callback(null)
+      }
+    })
+    t.teardown(broker.close.bind(broker))
+
+    const start = Date.now()
+
+    broker.mq.on('mywill', check)
+
+    function check (packet, cb) {
+      broker.mq.removeListener('mywill', check, function () {
+        broker.mq.on('mywill', function (packet) {
+          t.fail('the will must be delivered only once')
+        })
+      })
+      t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
+      t.equal(packet.topic, will.topic, 'topic matches')
+      t.same(packet.payload, will.payload, 'payload matches')
+      t.equal(packet.qos, will.qos, 'qos matches')
+      t.equal(packet.retain, will.retain, 'retain matches')
+      t.equal(authorized, true, 'authorization called')
+      cb()
+    }
+  })
+})
+
+test('deliver old will without authorization in case of a crash', function (t) {
+  t.plan(2)
 
   const persistence = memory()
   const will = {
@@ -90,25 +147,20 @@ test('delivers old will in case of a crash', function (t) {
 
     const interval = 10 // ms, so that the will check happens fast!
     const broker = aedes({
-      persistence: persistence,
-      heartbeatInterval: interval
+      persistence,
+      heartbeatInterval: interval,
+      authorizePublish: function (client, packet, callback) {
+        t.strictSame(client, null, 'client must be null')
+        callback(new Error())
+      }
     })
-    t.teardown(broker.close.bind(broker))
 
-    const start = Date.now()
+    t.teardown(broker.close.bind(broker))
 
     broker.mq.on('mywill', check)
 
     function check (packet, cb) {
-      broker.mq.removeListener('mywill', check)
-      t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
-      t.equal(packet.topic, will.topic, 'topic matches')
-      t.same(packet.payload, will.payload, 'payload matches')
-      t.equal(packet.qos, will.qos, 'qos matches')
-      t.equal(packet.retain, will.retain, 'retain matches')
-      broker.mq.on('mywill', function (packet) {
-        t.fail('the will must be delivered only once')
-      })
+      t.fail('received will without authorization')
       cb()
     }
   })
@@ -121,7 +173,7 @@ test('delete old broker', function (t) {
 
   const heartbeatInterval = 100
   const broker = aedes({
-    heartbeatInterval: heartbeatInterval
+    heartbeatInterval
   })
   t.teardown(broker.close.bind(broker))
 
@@ -185,8 +237,7 @@ test('delete the will in the persistence after publish', function (t) {
   willConnect(setup(broker), opts)
 
   function check (packet, cb) {
-    broker.mq.removeListener('mywill', check)
-    setImmediate(function () {
+    broker.mq.removeListener('mywill', check, function () {
       broker.persistence.getWill({
         id: opts.clientId
       }, function (err, p) {
@@ -421,7 +472,7 @@ test('don\'t delivers a will if broker alive', function (t) {
     t.error(err, 'no error')
 
     const opts = {
-      persistence: persistence,
+      persistence,
       heartbeatInterval: 10
     }
 
@@ -472,7 +523,7 @@ test('handle will publish error', function (t) {
     t.error(err, 'no error')
 
     const opts = {
-      persistence: persistence,
+      persistence,
       heartbeatInterval: 10
     }
 
@@ -509,7 +560,7 @@ test('handle will publish error 2', function (t) {
     t.error(err, 'no error')
 
     const opts = {
-      persistence: persistence,
+      persistence,
       heartbeatInterval: 10
     }
 

@@ -124,27 +124,25 @@ function Aedes (opts) {
   }
 
   function checkAndPublish (will, done) {
-    const needsPublishing =
-      !that.brokers[will.brokerId] ||
-      that.brokers[will.brokerId] + (3 * opts.heartbeatInterval) <
-      Date.now()
+    const notPublish =
+      that.brokers[will.brokerId] !== undefined && that.brokers[will.brokerId] + (3 * opts.heartbeatInterval) >= Date.now()
 
-    if (needsPublishing) {
-      // randomize this, so that multiple brokers
-      // do not publish the same wills at the same time
-      that.publish(will, function publishWill (err) {
-        if (err) {
-          return done(err)
-        }
+    if (notPublish) return done()
 
+    // randomize this, so that multiple brokers
+    // do not publish the same wills at the same time
+    this.authorizePublish(that.clients[will.clientId] || null, will, function (err) {
+      if (err) { return doneWill() }
+      that.publish(will, doneWill)
+
+      function doneWill (err) {
+        if (err) { return done(err) }
         that.persistence.delWill({
           id: will.clientId,
           brokerId: will.brokerId
         }, done)
-      })
-    } else {
-      done()
-    }
+      }
+    })
   }
 
   this.mq.on($SYS_PREFIX + '+/heartbeat', function storeBroker (packet, done) {

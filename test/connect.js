@@ -214,13 +214,13 @@ test('client connect clear outgoing', function (t) {
   const broker = aedes({ id: brokerId })
   t.teardown(broker.close.bind(broker))
 
-  const subs = [{ clientId: clientId }]
+  const subs = [{ clientId }]
   const packet = {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 1,
-    brokerId: brokerId,
+    brokerId,
     brokerCounter: 2,
     retain: true,
     messageId: 42,
@@ -235,7 +235,7 @@ test('client connect clear outgoing', function (t) {
       protocolId: 'MQTT',
       protocolVersion: 4,
       clean: true,
-      clientId: clientId,
+      clientId,
       keepalive: 0
     })
 
@@ -705,7 +705,7 @@ test('websocket clients have access to the request object', function (t) {
 
   const server = http.createServer()
   ws.createServer({
-    server: server
+    server
   }, broker.handle)
 
   server.listen(port, function (err) {

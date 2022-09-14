@@ -11,21 +11,39 @@ on:
       - '*.md'
 
 jobs:
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+        - name: Check out repo
+          uses: actions/checkout@v3
+          with:
+            persist-credentials: false
+
+        - name: Dependency review
+          uses: actions/dependency-review-action@v2
+
   test:
     runs-on: ${{ matrix.os }}
-
+    permissions:
+      contents: read
     strategy:
       matrix:
-        node-version: [14.x, 16.x, "*"]
+        node-version: [14, 16, '*']
         os: [ubuntu-latest, windows-latest, macOS-latest]
-
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
 
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+          check-latest: true
 
       - name: Install
         run: |
@@ -49,6 +67,8 @@ jobs:
   coverage:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master

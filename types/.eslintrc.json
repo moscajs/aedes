@@ -1,7 +1,6 @@
 {
   "extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
     "standard"
   ],
@@ -15,16 +14,19 @@
     "createDefaultProgram": true
   },
   "rules": {
+    "linebreak-style": ["warn", "unix"],
     "no-console": "off",
-    "@typescript-eslint/indent": ["error", 2],
     "semi": ["error", "never"],
-    "import/export": "off" // this errors on multiple exports (overload interfaces)
+    "import/export": "off", // this errors on multiple exports (overload interfaces)
+    "@typescript-eslint/indent": ["error", 2]
   },
   "overrides": [
     {
-      "files": ["*.d.ts","*.test-d.ts"],
+      "files": ["*.d.ts", "*.test-d.ts"],
       "rules": {
-        "@typescript-eslint/no-explicit-any": "off"
+        "no-dupe-class-members": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/triple-slash-reference": "off"
       }
     },
     {
