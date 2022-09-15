@@ -1,6 +1,7 @@
 'use strict'
 
 const { test } = require('tap')
+const mqemitter = require('mqemitter')
 const { setup, connect, subscribe } = require('./helper')
 const aedes = require('../')
 
@@ -16,7 +17,47 @@ test('publishes an hearbeat', function (t) {
     const id = message.topic.match(/\$SYS\/([^/]+)\/heartbeat/)[1]
     t.equal(id, broker.id, 'broker id matches')
     t.same(message.payload.toString(), id, 'message has id as the payload')
+    cb()
   })
+})
+
+test('publishes birth', function (t) {
+  t.plan(4)
+
+  const mq = mqemitter()
+  const brokerId = 'test-broker'
+  const fakeBroker = 'fake-broker'
+  const clientId = 'test-client'
+
+  mq.on(`$SYS/${brokerId}/birth`, (message, cb) => {
+    t.pass('broker birth received')
+    t.same(message.payload.toString(), brokerId, 'message has id as the payload')
+    cb()
+  })
+
+  const broker = aedes({
+    id: brokerId,
+    mq
+  })
+
+  broker.on('client', (client) => {
+    t.equal(client.id, clientId, 'client connected')
+    // set a fake counter on a fake broker
+    process.nextTick(() => {
+      broker.clients[clientId].duplicates[fakeBroker] = 42
+      mq.emit({ topic: `$SYS/${fakeBroker}/birth`, payload: Buffer.from(fakeBroker) })
+    })
+  })
+
+  mq.on(`$SYS/${fakeBroker}/birth`, (message, cb) => {
+    process.nextTick(() => {
+      t.equal(!!broker.clients[clientId].duplicates[fakeBroker], false, 'client duplicates has been resetted')
+      cb()
+    })
+  })
+
+  const s = connect(setup(broker), { clientId })
+  t.teardown(s.broker.close.bind(s.broker))
 })
 
 ;['$mcollina', '$SYS'].forEach(function (topic) {

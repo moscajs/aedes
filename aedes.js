@@ -79,9 +79,18 @@ function Aedes (opts) {
   this.brokers = {}
 
   const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
+  const birthTopic = $SYS_PREFIX + that.id + '/birth'
+
   this._heartbeatInterval = setInterval(heartbeat, opts.heartbeatInterval)
 
   const bufId = Buffer.from(that.id, 'utf8')
+
+  // in a cluster env this is used to warn other broker instances
+  // that this broker is alive
+  that.publish({
+    topic: birthTopic,
+    payload: bufId
+  }, noop)
 
   function heartbeat () {
     that.publish({
@@ -138,6 +147,19 @@ function Aedes (opts) {
 
   this.mq.on($SYS_PREFIX + '+/heartbeat', function storeBroker (packet, done) {
     that.brokers[packet.payload.toString()] = Date.now()
+    done()
+  })
+
+  this.mq.on($SYS_PREFIX + '+/birth', function brokerBorn (packet, done) {
+    const brokerId = packet.payload.toString()
+
+    // reset duplicates counter
+    if (brokerId !== that.id) {
+      for (const clientId in that.clients) {
+        delete that.clients[clientId].duplicates[brokerId]
+      }
+    }
+
     done()
   })
 
