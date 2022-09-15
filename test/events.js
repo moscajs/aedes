@@ -22,15 +22,16 @@ test('publishes an hearbeat', function (t) {
 })
 
 test('publishes birth', function (t) {
-  t.plan(2)
+  t.plan(4)
 
   const mq = mqemitter()
   const brokerId = 'test-broker'
+  const fakeBroker = 'fake-broker'
+  const clientId = 'test-client'
 
-  mq.on('$SYS/+/birth', function (message, cb) {
-    const id = message.topic.match(/\$SYS\/([^/]+)\/birth/)[1]
-    t.equal(id, brokerId, 'broker id matches')
-    t.same(message.payload.toString(), id, 'message has id as the payload')
+  mq.on(`$SYS/${brokerId}/birth`, (message, cb) => {
+    t.pass('broker birth received')
+    t.same(message.payload.toString(), brokerId, 'message has id as the payload')
     cb()
   })
 
@@ -39,7 +40,24 @@ test('publishes birth', function (t) {
     mq
   })
 
-  t.teardown(broker.close.bind(broker))
+  broker.on('client', (client) => {
+    t.equal(client.id, clientId, 'client connected')
+    // set a fake counter on a fake broker
+    process.nextTick(() => {
+      broker.clients[clientId].duplicates[fakeBroker] = 42
+      mq.emit({ topic: `$SYS/${fakeBroker}/birth`, payload: Buffer.from(fakeBroker) })
+    })
+  })
+
+  mq.on(`$SYS/${fakeBroker}/birth`, (message, cb) => {
+    process.nextTick(() => {
+      t.equal(!!broker.clients[clientId].duplicates[fakeBroker], false, 'client duplicates has been resetted')
+      cb()
+    })
+  })
+
+  const s = connect(setup(broker), { clientId })
+  t.teardown(s.broker.close.bind(s.broker))
 })
 
 ;['$mcollina', '$SYS'].forEach(function (topic) {
