@@ -3,6 +3,14 @@
 const { test } = require('tap')
 const { setup, connect, subscribe } = require('./helper')
 const aedes = require('../')
+const { validateTopic } = require('../lib/utils')
+
+test('validation of `null` topic', function (t) {
+  // issue #780
+  t.plan(1)
+  const err = validateTopic(null, 'SUBSCRIBE')
+  t.equal(err.message, 'impossible to SUBSCRIBE to an empty topic')
+})
 
 // [MQTT-4.7.1-3]
 test('Single-level wildcard should match empty level', function (t) {
