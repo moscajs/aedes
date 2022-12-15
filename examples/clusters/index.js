@@ -1,32 +1,44 @@
 const cluster = require('cluster')
-const mqemitter = require('mqemitter-mongodb')
-const mongoPersistence = require('aedes-persistence-mongodb')
-
+const Aedes = require('aedes')
+const { createServer } = require('net')
+const { cpus } = require('os')
 const MONGO_URL = 'mongodb://127.0.0.1/aedes-clusters'
+
+const mq = process.env.MQ === 'redis'
+  ? require('mqemitter-redis')({
+    port: process.env.REDIS_PORT || 6379
+  })
+  : require('mqemitter-mongodb')({
+    url: MONGO_URL
+  })
+
+const persistence = process.env.PERSISTENCE === 'redis'
+  ? require('aedes-persistence-redis')({
+    port: process.env.REDIS_PORT || 6379
+  })
+  : require('aedes-persistence-mongodb')({
+    url: MONGO_URL
+  })
 
 function startAedes () {
   const port = 1883
 
-  const aedes = require('aedes')({
+  const aedes = Aedes({
     id: 'BROKER_' + cluster.worker.id,
-    mq: mqemitter({
-      url: MONGO_URL
-    }),
-    persistence: mongoPersistence({
-      url: MONGO_URL,
-      // Optional ttl settings
-      ttl: {
-        packets: 300, // Number of seconds
-        subscriptions: 300
-      }
-    })
+    mq,
+    persistence
   })
 
-  const server = require('net').createServer(aedes.handle)
+  const server = createServer(aedes.handle)
 
-  server.listen(port, function () {
+  server.listen(port, '0.0.0.0', function () {
     console.log('Aedes listening on port:', port)
     aedes.publish({ topic: 'aedes/hello', payload: "I'm broker " + aedes.id })
+  })
+
+  server.on('error', function (err) {
+    console.log('Server error', err)
+    process.exit(1)
   })
 
   aedes.on('subscribe', function (subscriptions, client) {
@@ -56,7 +68,7 @@ function startAedes () {
 }
 
 if (cluster.isMaster) {
-  const numWorkers = require('os').cpus().length
+  const numWorkers = cpus().length
   for (let i = 0; i < numWorkers; i++) {
     cluster.fork()
   }
