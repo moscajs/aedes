@@ -9,7 +9,7 @@ declare module 'client' {
     clean: Readonly<boolean>
     version: Readonly<number>
     conn: Connection
-    req?: IncomingMessage | null
+    req?: IncomingMessage
     connecting: Readonly<boolean>
     connected: Readonly<boolean>
     closed: Readonly<boolean>
