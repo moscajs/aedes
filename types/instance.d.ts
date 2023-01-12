@@ -30,7 +30,7 @@ declare module 'aedes' {
   type AuthenticateHandler = (
     client: Client,
     username: Readonly<string>,
-    password: Readonly<Buffer>,
+    password?: Readonly<Buffer>,
     done: (error: AuthenticateError | null, success: boolean | null) => void
   ) => void
 
