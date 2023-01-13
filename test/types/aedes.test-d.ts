@@ -29,7 +29,7 @@ broker = new Aedes({
       callback(new Error('connection error'), false)
     }
   },
-  authenticate: (client: Client, username: Readonly<string>, password: Readonly<Buffer>, callback) => {
+  authenticate: (client: Client, username: Readonly<string | undefined>, password: Readonly<Buffer | undefined>, callback) => {
     if (username === 'test' && password === Buffer.from('test') && client.version === 4) {
       callback(null, true)
     } else {
