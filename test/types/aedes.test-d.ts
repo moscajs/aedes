@@ -2,7 +2,7 @@
 
 import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, SubscribePacket, Subscription, UnsubscribePacket } from 'aedes:packet'
 import type { AuthenticateError, Brokers, Connection } from 'aedes:server'
-import Server, { Aedes } from 'aedes:server'
+import Aedes, { Server } from 'aedes:server'
 
 import { IncomingMessage } from 'node:http'
 import type { Client } from 'aedes:client'
