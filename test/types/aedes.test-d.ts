@@ -126,8 +126,10 @@ expectType<void>(broker.close(() => {}))
 
 // Aedes client
 const client = broker.handle({} as Connection, {} as IncomingMessage)
+const client2 = broker.handle({} as Connection)
 
 expectType<Client>(client)
+expectType<Client>(client2)
 
 expectType<Connection>(client.conn)
 expectType<IncomingMessage>(client.req!)
