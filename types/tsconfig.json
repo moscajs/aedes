@@ -5,11 +5,11 @@
     "noEmit": true,
     "strict": true,
     "removeComments": true,
-    "typeRoots" : ["../types", "../node_modules/@types/"]
+    "typeRoots" : ["./", "../node_modules/@types/"]
   },
   "include": [
-    "./test/types/*.test-d.ts",
-    "./types/*.d.ts",
-    "aedes.d.ts"
+    "../test/types/*.test-d.ts",
+    "./*.d.ts",
+    "../aedes.d.ts"
   ]
 }

@@ -1,3 +1,4 @@
+
 declare module 'aedes' {
   import { Duplex } from 'node:stream'
   import { Socket } from 'node:net'
@@ -66,7 +67,7 @@ declare module 'aedes' {
     brokers: Readonly<Brokers>
 
     constructor(option?: AedesOptions)
-    handle: (stream: Connection, request: IncomingMessage) => Client
+    handle: (stream: Connection, request?: IncomingMessage) => Client
 
     on (event: 'closed', listener: () => void): this
     on (event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout', listener: (client: Client) => void): this
@@ -91,8 +92,7 @@ declare module 'aedes' {
     published: PublishedHandler
   }
 
-  export { Aedes }
-  // export function createServer(options?: AedesOptions): Aedes
+  export class Server extends Aedes {}
 }
 
 declare module 'aedes:server' {
