@@ -13,7 +13,7 @@ const mqemitter = require('mqemitter')
 const Client = require('./lib/client')
 const { $SYS_PREFIX, bulk } = require('./lib/utils')
 
-module.exports = Aedes.Server = Aedes
+module.exports = Aedes.createServer = Aedes
 
 const defaultOptions = {
   concurrency: 100,
