@@ -7,12 +7,12 @@ import type {
   Client,
   Connection
 } from '../../aedes'
-import Aedes, { createServer } from '../../aedes'
+import Aedes, { createBroker } from '../../aedes'
 import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet'
 import { expectType } from 'tsd'
 
 // Aedes server
-let broker = createServer()
+let broker = createBroker()
 expectType<Aedes>(broker)
 
 broker = new Aedes({

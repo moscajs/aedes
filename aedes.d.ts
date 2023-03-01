@@ -1,6 +1,6 @@
 import Aedes, { AedesOptions } from './types/instance'
 
-export declare function createServer (options?: AedesOptions): Aedes
+export declare function createBroker (options?: AedesOptions): Aedes
 
 export * from './types/instance'
 export * from './types/packet'
