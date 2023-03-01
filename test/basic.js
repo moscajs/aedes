@@ -6,10 +6,10 @@ const { setup, connect, subscribe, subscribeMultiple, noError } = require('./hel
 const aedes = require('../')
 const proxyquire = require('proxyquire')
 
-test('test aedes.Server', function (t) {
+test('test aedes.createBroker', function (t) {
   t.plan(1)
 
-  const broker = new aedes.Server()
+  const broker = aedes.createBroker()
   t.teardown(broker.close.bind(broker))
 
   connect(setup(broker), {}, function () {
