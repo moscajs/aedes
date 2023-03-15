@@ -281,6 +281,12 @@ Here is a list of some interesting projects that are using Aedes as MQTT Broker.
 Want to contribute? Check our list of
 [features/bugs](https://github.com/moscajs/aedes/projects/1)
 
+## Security notice
+
+Messages sent to the broker are considered _valid_ once they pass the [`authorizePublish`](https://github.com/moscajs/aedes/blob/main/docs/Aedes.md#handler-authorizepublish-client-packet-callback) callback.
+In other terms, if permissions for the given client are revoked after the call completes, the message is still considered valid.
+In case you are sending time-sensitive messages, make sure to use QoS 0 or connect with a clean session.
+
 ## Support
 
 If there are bugs/leaks in production scenarios, we encourage people to send Pull Request and/or reach out maintainers for some paid support.
