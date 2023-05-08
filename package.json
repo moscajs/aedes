@@ -98,7 +98,7 @@
   },
   "devDependencies": {
     "@sinonjs/fake-timers": "^10.0.2",
-    "@types/node": "^18.14.2",
+    "@types/node": "^20.1.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "concat-stream": "^2.0.0",
