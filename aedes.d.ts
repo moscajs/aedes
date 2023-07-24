@@ -6,3 +6,7 @@ export * from './types/instance'
 export * from './types/packet'
 export * from './types/client'
 export default Aedes
+
+declare module 'aedes' {
+  export = Aedes
+}
