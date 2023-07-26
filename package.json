@@ -105,7 +105,7 @@
     "duplexify": "^4.1.2",
     "license-checker": "^25.0.1",
     "markdownlint-cli": "^0.33.0",
-    "mqtt": "^4.3.7",
+    "mqtt": "^5.0.0",
     "mqtt-connection": "^4.1.0",
     "pre-commit": "^1.2.2",
     "proxyquire": "^2.1.3",
