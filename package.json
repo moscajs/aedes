@@ -94,7 +94,7 @@
   },
   "homepage": "https://github.com/moscajs/aedes#readme",
   "engines": {
-    "node": ">=14"
+    "node": ">=16"
   },
   "devDependencies": {
     "@sinonjs/fake-timers": "^10.3.0",
