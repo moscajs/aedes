@@ -19,7 +19,7 @@ jobs:
       contents: read
     steps:
         - name: Check out repo
-          uses: actions/checkout@v3
+          uses: actions/checkout@v4
           with:
             persist-credentials: false
 
@@ -36,7 +36,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
