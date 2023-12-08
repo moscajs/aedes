@@ -6,9 +6,12 @@ import type {
   Client,
   Connection
 } from '../../aedes'
-import Aedes, { createBroker } from '../../aedes'
+import Aedes, { AedesOptions, createBroker } from '../../aedes'
 import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet'
 import { expectType } from 'tsd'
+
+// Test for createBroker function
+expectType<(options?: AedesOptions) => Aedes>(createBroker)
 
 // Aedes server
 let broker = createBroker()
