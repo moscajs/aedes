@@ -113,7 +113,7 @@
     "snazzy": "^9.0.0",
     "standard": "^17.1.0",
     "tap": "^16.3.7",
-    "tsd": "^0.28.1",
+    "tsd": "^0.30.0",
     "typescript": "^5.1.6",
     "websocket-stream": "^5.5.2"
   },
