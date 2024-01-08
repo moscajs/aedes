@@ -168,7 +168,13 @@ function Aedes (opts) {
     const clientId = packet.payload.toString()
 
     if (that.clients[clientId] && serverId !== that.id) {
-      that.clients[clientId].close(done)
+      if (that.clients[clientId].closed) {
+        // remove the client from the list if it is already closed
+        delete that.clients[clientId]
+        done()
+      } else {
+        that.clients[clientId].close(done)
+      }
     } else {
       done()
     }
