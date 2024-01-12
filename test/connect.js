@@ -97,6 +97,40 @@ test('reject client requested for unsupported protocol version', function (t) {
   })
 })
 
+test('reject clients that exceed the keepalive limit', function (t) {
+  t.plan(3)
+
+  const broker = aedes({
+    keepaliveLimit: 100
+  })
+  t.teardown(broker.close.bind(broker))
+
+  const s = setup(broker)
+
+  s.inStream.write({
+    cmd: 'connect',
+    keepalive: 150
+  })
+  s.outStream.on('data', function (packet) {
+    console.log(packet)
+    t.same(packet, {
+      cmd: 'connack',
+      returnCode: 6,
+      length: 2,
+      qos: 0,
+      retain: false,
+      dup: false,
+      topic: null,
+      payload: null,
+      sessionPresent: false
+    }, 'unsuccessful connack, keep alive limit exceeded')
+  })
+  broker.on('connectionError', function (client, err) {
+    t.equal(err.message, 'keep alive limit exceeded')
+    t.equal(broker.connectedClients, 0)
+  })
+})
+
 // Guarded in mqtt-packet
 test('reject clients with no clientId running on MQTT 3.1.0', function (t) {
   t.plan(3)
