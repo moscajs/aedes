@@ -221,3 +221,20 @@ test('Test backpressure aedes published function', function (t) {
     })
   })
 })
+
+test('clear closed clients when the same clientId is managed by another broker', function (t) {
+  t.plan(1)
+
+  const clientId = 'closed-client'
+  const broker = aedes()
+
+  // simulate a closed client on the broker
+  broker.clients[clientId] = { closed: true }
+
+  // simulate the creation of the same client on another broker of the cluster
+  broker.publish({ topic: '$SYS/anotherbroker/new/clients', payload: clientId }, () => {
+    t.equal(broker.clients[clientId], undefined) // check that the closed client was removed
+  })
+
+  t.teardown(broker.close.bind(broker))
+})
