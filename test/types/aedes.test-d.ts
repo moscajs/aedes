@@ -23,6 +23,7 @@ broker = new Aedes({
   heartbeatInterval: 60000,
   connectTimeout: 30000,
   maxClientsIdLength: 23,
+  keepaliveLimit: 0,
   preConnect: (client: Client, packet: ConnectPacket, callback) => {
     if (client.req) {
       callback(new Error('not websocket stream'), false)
