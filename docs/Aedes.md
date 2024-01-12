@@ -42,6 +42,7 @@
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
+  - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. __Default__: `0`
 - Returns `<Aedes>`
 
 Create a new Aedes server.

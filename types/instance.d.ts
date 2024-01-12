@@ -75,6 +75,7 @@ export interface AedesOptions {
   concurrency?: number;
   heartbeatInterval?: number;
   connectTimeout?: number;
+  keepaliveLimit?: number;
   queueLimit?: number;
   maxClientsIdLength?: number;
   preConnect?: PreConnectHandler;
