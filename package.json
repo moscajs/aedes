@@ -100,7 +100,7 @@
     "@sinonjs/fake-timers": "^10.3.0",
     "@types/node": "^20.4.5",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
-    "@typescript-eslint/parser": "^6.2.0",
+    "@typescript-eslint/parser": "^7.0.1",
     "concat-stream": "^2.0.0",
     "duplexify": "^4.1.2",
     "license-checker": "^25.0.1",
