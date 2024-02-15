@@ -1,4 +1,4 @@
-name: ci
+name: CI
 
 on:
   push:
@@ -10,33 +10,33 @@ on:
       - 'docs/**'
       - '*.md'
 
+permissions:
+  contents: read
+
 jobs:
   dependency-review:
     name: Dependency Review
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-        - name: Check out repo
-          uses: actions/checkout@v3
+        - name: Checkout repository
+          uses: actions/checkout@v4
           with:
             persist-credentials: false
 
         - name: Dependency review
-          uses: actions/dependency-review-action@v2
+          uses: actions/dependency-review-action@v4
 
   test:
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
     strategy:
       matrix:
         node-version: [16, 18, 20]
         os: [ubuntu-latest, windows-latest, macOS-latest]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -45,6 +45,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           check-latest: true
+          cache: npm
+          cache-dependency-path: package.json
 
       - name: Install
         run: |
@@ -68,8 +70,6 @@ jobs:
   coverage:
     needs: test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@master

@@ -1,4 +1,4 @@
-name: sast
+name: CodeQL
 
 on:
   push:
@@ -11,19 +11,25 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
     strategy:
       fail-fast: true
       matrix:
-        language: [ 'javascript' ]
+        language: [ 'javascript-typescript' ]
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: github/codeql-action/init@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
 
-      - uses: github/codeql-action/analyze@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
