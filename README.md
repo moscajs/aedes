@@ -1,12 +1,10 @@
-<!-- markdownlint-disable MD013 MD024 -->
+<!-- markdownlint-disable MD013 -->
 # Aedes
 
 ![ci](https://github.com/moscajs/aedes/workflows/ci/badge.svg)
-[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](http://standardjs.com/)
+[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/moscajs/aedes/graphs/commit-activity)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/moscajs/aedes/pulls)\
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/moscajs/aedes.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/moscajs/aedes/alerts/)
-[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/moscajs/aedes.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/moscajs/aedes/context:javascript)
 [![Coverage Status](https://coveralls.io/repos/moscajs/aedes/badge.svg?branch=main&service=github)](https://coveralls.io/github/moscajs/aedes?branch=main)
 [![Known Vulnerabilities](https://snyk.io/test/github/moscajs/aedes/badge.svg)](https://snyk.io/test/github/moscajs/aedes)\
 ![node](https://img.shields.io/node/v/aedes)
@@ -283,7 +281,7 @@ Want to contribute? Check our list of
 
 ## Security notice
 
-Messages sent to the broker are considered _valid_ once they pass the [`authorizePublish`](https://github.com/moscajs/aedes/blob/main/docs/Aedes.md#handler-authorizepublish-client-packet-callback) callback.
+Messages sent to the broker are considered _valid_ once they pass the [`authorizePublish`](./docs/Aedes.md#handler-authorizepublish-client-packet-callback) callback.
 In other terms, if permissions for the given client are revoked after the call completes, the message is still considered valid.
 In case you are sending time-sensitive messages, make sure to use QoS 0 or connect with a clean session.
 
