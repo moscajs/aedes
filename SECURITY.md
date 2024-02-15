@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-Please email daniel.sorridi+aedes@gmail.com; matteo.collina+aedes@gmail.com
+Please report all vulnerabilities to [https://github.com/moscajs/aedes/security](https://github.com/moscajs/aedes/security).
