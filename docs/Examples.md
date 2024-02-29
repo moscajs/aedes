@@ -114,7 +114,9 @@ In order to use Aedes in clusters you have to choose a persistence and an mqemit
 
 The tag `userdata` on the client structure is free for use by users to store whatever they want.
 
-Example snippet which uses JWT authentication, and captures the client ip address:
+<details>
+  <summary>Example snippet which uses JWT authentication, and captures the client ip address:</summary>
+  
 ```
   broker.authenticate = (client, username, password, callback)=>{
     username = (username || '');
@@ -152,6 +154,4 @@ Example snippet which uses JWT authentication, and captures the client ip addres
   }
 ```
 
-
-
-
+</details>
