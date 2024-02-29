@@ -18,6 +18,7 @@
   - [client.unsubscribe (unsubscriptions, [callback])](#clientunsubscribe-unsubscriptions-callback)
   - [client.close ([callback])](#clientclose-callback)
   - [client.emptyOutgoingQueue ([callback])](#clientemptyoutgoingqueue-callback)
+  - [client.userdata](#clientuserdata)
 
 ## new Client(aedes, stream, request)
 
@@ -154,3 +155,21 @@ Clear all outgoing messages (QoS > 1) related to this client from persistence
 
 [websocket-stream]: https://www.npmjs.com/websocket-stream
 [websocket-stream-doc-on-the-server]: https://github.com/maxogden/websocket-stream/blob/master/readme.md#on-the-server
+
+## client.userdata
+
+Aedes will not create or use client.userdata - so this is safe to create if you need to store your own data against  client.
+
+Examples of possible use: authenticating by JWT (store the decoded JWT data here), capture the IP address of the client, store additional statistics.
+
+As the client is available in most callbacks, this may be useful.  Beware client can be null in some callbacks for internal publish ($SYS).
+
+```
+client.userdata = {
+  ip: clientip,
+  data: {
+    write:[ 'path/allowed/publish' ],
+    read:[ 'path/allowed/subscribe' ]
+  }
+}
+```
