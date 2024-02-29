@@ -109,3 +109,49 @@ In order to use Aedes in clusters you have to choose a persistence and an mqemit
 [mqemitter-redis]: https://www.npmjs.com/mqemitter-redis
 [mqemitter-mongodb]: https://www.npmjs.com/mqemitter-mongodb
 [mqemitter-child-process]: https://www.npmjs.com/mqemitter-child-process
+
+## Client userdata
+
+The tag `userdata` on the client structure is free for use by users to store whatever they want.
+
+<details>
+  <summary>Example snippet which uses JWT authentication, and captures the client ip address:</summary>
+  
+```
+  broker.authenticate = (client, username, password, callback)=>{
+    username = (username || '');
+    password = (password || '').toString();
+    let allow = false;
+    client.userdata = {};
+    if ((username === 'jwt')){
+      try {
+        var token = jwt.verify( password, secret );
+        // store token away for future use
+        client.userdata.token = token;
+        allow = true;
+      } catch(e) {
+        console.log('invalid jwt');
+      }
+    }
+    if (allow){
+      if (client.conn && client.conn.remoteAddress){
+        client.userdata.ip = client.conn.remoteAddress;
+      }
+      if (client.req){
+        if (client.req.socket){
+          client.userdata.ip = client.req.socket.remoteAddress;
+        }
+        if (client.req.rawHeaders){
+          for (let i = 0; i < client.req.rawHeaders.length; i++){
+            if (client.req.rawHeaders[i] === 'x-forwarded-for'){
+              client.userdata.ip = client.req.rawHeaders[i+1];
+            }
+          }
+        }
+      }
+    }
+    callback(null, allow);
+  }
+```
+
+</details>
