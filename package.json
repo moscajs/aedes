@@ -116,7 +116,7 @@
     "release-it": "^17.0.5",
     "snazzy": "^9.0.0",
     "standard": "^17.1.0",
-    "tap": "^16.3.10",
+    "tap": "^18.7.1",
     "tsd": "^0.30.4",
     "typescript": "^5.3.3",
     "websocket-stream": "^5.5.2"
