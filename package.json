@@ -129,7 +129,7 @@
     "fastparallel": "^2.4.1",
     "fastseries": "^2.0.0",
     "hyperid": "^3.2.0",
-    "mqemitter": "^5.0.0",
+    "mqemitter": "^6.0.0",
     "mqtt-packet": "^9.0.0",
     "retimer": "^4.0.0",
     "reusify": "^1.0.4",
