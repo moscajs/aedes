@@ -108,7 +108,7 @@
     "concat-stream": "^2.0.0",
     "duplexify": "^4.1.2",
     "license-checker": "^25.0.1",
-    "markdownlint-cli": "^0.39.0",
+    "markdownlint-cli": "^0.40.0",
     "mqtt": "^5.3.5",
     "mqtt-connection": "^4.1.0",
     "pre-commit": "^1.2.2",
