@@ -420,6 +420,29 @@ test('does not deliver will when client sends a DISCONNECT', function (t) {
   })
 })
 
+test('deletes from persistence on DISCONNECT', function (t) {
+  t.plan(2)
+
+  const opts = {
+    clientId: 'abcde'
+  }
+  const broker = aedes()
+  t.teardown(broker.close.bind(broker))
+
+  const s = noError(willConnect(setup(broker), opts, function () {
+    s.inStream.end({
+      cmd: 'disconnect'
+    })
+  }), t)
+
+  s.broker.persistence.getWill({
+    id: opts.clientId
+  }, function (err, packet) {
+    t.error(err, 'no error')
+    t.notOk(packet)
+  })
+})
+
 test('does not store multiple will with same clientid', function (t) {
   t.plan(4)
 
