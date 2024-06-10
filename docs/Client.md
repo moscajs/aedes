@@ -72,6 +72,15 @@ It is available only after `CONNACK (rc=0)`, otherwise it is `null` in cases:
 - after `CONNACK (rc!=0)` response
 - `connectionError` raised by aedes
 
+## client.username
+
+- `<string>` __Default__: `null`
+
+Client username, specified by CONNECT packet.
+
+It is available only after a successful call to `aedes.authenticate()`, where it
+will be set to the username specifed by the client, or `null` if no username was supplied.
+
 ## client.clean
 
 - `<boolean>` __Default__: `true`
