@@ -30,7 +30,8 @@ const defaultOptions = {
   trustedProxies: [],
   queueLimit: 42,
   maxClientsIdLength: 23,
-  keepaliveLimit: 0
+  keepaliveLimit: 0,
+  dedupeLimit: 100
 }
 
 function Aedes (opts) {
@@ -47,6 +48,7 @@ function Aedes (opts) {
   // internal track for last brokerCounter
   this.counter = 0
   this.queueLimit = opts.queueLimit
+  this.dedupeLimit = opts.dedupeLimit
   this.connectTimeout = opts.connectTimeout
   this.keepaliveLimit = opts.keepaliveLimit
   this.maxClientsIdLength = opts.maxClientsIdLength

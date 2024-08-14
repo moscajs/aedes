@@ -78,6 +78,7 @@ export interface AedesOptions {
   keepaliveLimit?: number;
   queueLimit?: number;
   maxClientsIdLength?: number;
+  dedupeLimit?: number;
   preConnect?: PreConnectHandler;
   authenticate?: AuthenticateHandler;
   authorizePublish?: AuthorizePublishHandler;

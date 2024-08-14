@@ -30,6 +30,7 @@ node_modules
 .lock-wscript
 .vscode
 *code-workspace
+.idea
 
 # 0x
 flamegraph.html
