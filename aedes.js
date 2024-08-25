@@ -172,7 +172,7 @@ function Aedes (opts) {
     if (that.clients[clientId] && serverId !== that.id) {
       if (that.clients[clientId].closed) {
         // remove the client from the list if it is already closed
-        delete that.clients[clientId]
+        that.deleteClient(clientId)
         done()
       } else {
         that.clients[clientId].close(done)
@@ -316,13 +316,17 @@ Aedes.prototype._finishRegisterClient = function (client) {
 }
 
 Aedes.prototype.unregisterClient = function (client) {
-  this.connectedClients--
-  delete this.clients[client.id]
+  this.deleteClient(client.id)
   this.emit('clientDisconnect', client)
   this.publish({
     topic: $SYS_PREFIX + this.id + '/disconnect/clients',
     payload: Buffer.from(client.id, 'utf8')
   }, noop)
+}
+
+Aedes.prototype.deleteClient = function (clientId) {
+  this.connectedClients--
+  delete this.clients[clientId]
 }
 
 function closeClient (client, cb) {
