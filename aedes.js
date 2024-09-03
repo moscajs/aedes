@@ -25,6 +25,7 @@ const defaultOptions = {
   authorizePublish: defaultAuthorizePublish,
   authorizeSubscribe: defaultAuthorizeSubscribe,
   authorizeForward: defaultAuthorizeForward,
+  preUnsubscribe: defaultPreUnsubscribe,
   published: defaultPublished,
   trustProxy: false,
   trustedProxies: [],
@@ -71,6 +72,7 @@ function Aedes (opts) {
   this.authorizePublish = opts.authorizePublish
   this.authorizeSubscribe = opts.authorizeSubscribe
   this.authorizeForward = opts.authorizeForward
+  this.preUnsubscribe = opts.preUnsubscribe
   this.published = opts.published
 
   this.decodeProtocol = opts.decodeProtocol
@@ -371,6 +373,10 @@ function defaultAuthorizeSubscribe (client, sub, callback) {
 
 function defaultAuthorizeForward (client, packet) {
   return packet
+}
+
+function defaultPreUnsubscribe (client, packet, callback) {
+  callback(client, packet)
 }
 
 function defaultPublished (packet, client, callback) {

@@ -29,6 +29,7 @@
   - [Handler: authorizePublish (client, packet, callback)](#handler-authorizepublish-client-packet-callback)
   - [Handler: authorizeSubscribe (client, subscription, callback)](#handler-authorizesubscribe-client-subscription-callback)
   - [Handler: authorizeForward (client, packet)](#handler-authorizeforward-client-packet)
+  - [Handler: preUnsubscribe (client, packet, callback)](#handler-preunsubscribe-client-packet-callback)
   - [Handler: published (packet, client, callback)](#handler-published-packet-client-callback)
 
 ## new Aedes([options]) / new Aedes.Server([options])
@@ -400,6 +401,31 @@ aedes.authorizeForward = function (client, packet) {
 }
 ```
 
+## Handler: preUnsubscribe (client, packet, callback)
+
+- client: [`<Client>`](./Client.md)
+- packet: `<aedes-packet>` & [`UNSUBSCRIBE`][UNSUBSCRIBE]
+- callback: `<Function>`
+
+Invoked when a client unsubscribes from topics. Just like
+[`authorizeSubscribe`](#handler-authorizesubscribe-client-subscription-callback), this function allows modifying the topics before executing the unsubscribe. This may be needed in cases where topics were modified in `authorizeSubscribe`. For example:
+
+```js
+aedes.authorizeSubscribe = (client, subscription, callback) => {
+  // overwrite subscription: force client to its namespace
+  subscription.topic = `/${client.id}/${subscription.topic}`;
+  callback(null, subscription);
+}
+
+aedes.preUnsubscribe = (client, packet, callback) => {
+  // overwrite unsubscriptions: force client to its namespace
+  for (let i in packet.unsubscriptions) {
+    packet.unsubscriptions[i] = `/${client.id}/${packet.unsubscriptions[i]}`;
+  }
+  callback(packet, client)
+}
+```
+
 ## Handler: published (packet, client, callback)
 
 - packet: `<aedes-packet>` & [`PUBLISH`][PUBLISH]
@@ -411,6 +437,7 @@ same as [`Event: publish`](#event-publish), but provides a backpressure function
 [CONNECT]: https://github.com/mqttjs/mqtt-packet#connect
 [CONNACK]: https://github.com/mqttjs/mqtt-packet#connack
 [SUBSCRIBE]: https://github.com/mqttjs/mqtt-packet#subscribe
+[UNSUBSCRIBE]: https://github.com/mqttjs/mqtt-packet#unsubscribe
 [PINGREQ]: https://github.com/mqttjs/mqtt-packet#pingreq
 [PUBLISH]: https://github.com/mqttjs/mqtt-packet#publish
 [PUBREL]: https://github.com/mqttjs/mqtt-packet#pubrel
