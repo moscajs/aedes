@@ -3,6 +3,7 @@
   "version": "0.51.3",
   "description": "Stream-based MQTT broker",
   "main": "aedes.js",
+  "type": "commonjs",
   "types": "aedes.d.ts",
   "scripts": {
     "lint": "npm run lint:standard && npm run lint:typescript && npm run lint:markdown",
