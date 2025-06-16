@@ -43,6 +43,7 @@
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
   - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. __Default__: `0`
+  - `dedupeLimit` `<number>` the maximum number of packets that are checked for duplication. This is used to prevent the broker from resending the same packet multiple times. __Default__: `100`
 - Returns `<Aedes>`
 
 Create a new Aedes server.
