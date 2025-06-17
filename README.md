@@ -52,7 +52,7 @@ npm install aedes
 
 ## Docker
 
-Check Docker docs [here](https://github.com/moscajs/aedes-cli#docker)
+Check the [Docker docs](https://github.com/moscajs/aedes-cli#docker)
 
 ## API
 

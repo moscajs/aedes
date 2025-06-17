@@ -13,13 +13,13 @@ import type {
 } from './packet'
 import { EventEmitter } from 'node:events'
 
-type LastHearthbeatTimestamp = Date;
+type LastHearthbeatTimestamp = Date
 
 export interface Brokers {
   [brokerId: string]: LastHearthbeatTimestamp;
 }
 
-export type Connection = Duplex | Socket;
+export type Connection = Duplex | Socket
 
 /* eslint no-unused-vars: 0 */
 export const enum AuthErrorCode {
@@ -30,43 +30,43 @@ export const enum AuthErrorCode {
   NOT_AUTHORIZED = 5,
 }
 
-export type AuthenticateError = Error & { returnCode: AuthErrorCode };
+export type AuthenticateError = Error & { returnCode: AuthErrorCode }
 
 type PreConnectHandler = (
   client: Client,
   packet: ConnectPacket,
   callback: (error: Error | null, success: boolean) => void
-) => void;
+) => void
 
 type AuthenticateHandler = (
   client: Client,
   username: Readonly<string | undefined>,
   password: Readonly<Buffer | undefined>,
   done: (error: AuthenticateError | null, success: boolean | null) => void
-) => void;
+) => void
 
 type AuthorizePublishHandler = (
   client: Client | null,
   packet: PublishPacket,
   callback: (error?: Error | null) => void
-) => void;
+) => void
 
 type AuthorizeSubscribeHandler = (
   client: Client,
   subscription: Subscription,
   callback: (error: Error | null, subscription?: Subscription | null) => void
-) => void;
+) => void
 
 type AuthorizeForwardHandler = (
   client: Client,
   packet: AedesPublishPacket
-) => AedesPublishPacket | null | void;
+) => AedesPublishPacket | null | void
 
 type PublishedHandler = (
   packet: AedesPublishPacket,
   client: Client,
   callback: (error?: Error | null) => void
-) => void;
+) => void
 
 export interface AedesOptions {
   mq?: any;
@@ -92,64 +92,64 @@ export default class Aedes extends EventEmitter {
   closed: Readonly<boolean>
   brokers: Readonly<Brokers>
 
-  constructor(option?: AedesOptions);
+  constructor (option?: AedesOptions)
   handle: (stream: Connection, request?: IncomingMessage) => Client
 
-  on(event: 'closed', listener: () => void): this;
-  on(
+  on (event: 'closed', listener: () => void): this
+  on (
     event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout',
     listener: (client: Client) => void
-  ): this;
+  ): this
 
-  on(
+  on (
     event: 'clientError' | 'connectionError',
     listener: (client: Client, error: Error) => void
-  ): this;
+  ): this
 
-  on(
+  on (
     event: 'connackSent',
     listener: (packet: ConnackPacket, client: Client) => void
-  ): this;
+  ): this
 
-  on(
+  on (
     event: 'ping',
     listener: (packet: PingreqPacket, client: Client) => void
-  ): this;
+  ): this
 
-  on(
+  on (
     event: 'publish',
     listener: (packet: AedesPublishPacket, client: Client | null) => void
-  ): this;
+  ): this
 
-  on(
+  on (
     event: 'ack',
     listener: (packet: PublishPacket | PubrelPacket, client: Client) => void
-  ): this;
+  ): this
 
-  on(
+  on (
     event: 'subscribe',
     listener: (subscriptions: Subscription[], client: Client) => void
-  ): this;
+  ): this
 
-  on(
+  on (
     event: 'unsubscribe',
     listener: (unsubscriptions: string[], client: Client) => void
-  ): this;
+  ): this
 
-  publish(packet: PublishPacket, callback: (error?: Error) => void): void;
-  subscribe(
+  publish (packet: PublishPacket, callback: (error?: Error) => void): void
+  subscribe (
     topic: string,
     deliverfunc: (packet: AedesPublishPacket, callback: () => void) => void,
     callback: () => void
-  ): void;
+  ): void
 
-  unsubscribe(
+  unsubscribe (
     topic: string,
     deliverfunc: (packet: AedesPublishPacket, callback: () => void) => void,
     callback: () => void
-  ): void;
+  ): void
 
-  close(callback?: () => void): void;
+  close (callback?: () => void): void
 
   preConnect: PreConnectHandler
   authenticate: AuthenticateHandler
