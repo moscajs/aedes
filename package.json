@@ -104,8 +104,6 @@
     "@fastify/pre-commit": "^2.2.0",
     "@sinonjs/fake-timers": "^11.2.2",
     "@types/node": "^24.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.34.1",
-    "@typescript-eslint/parser": "^8.34.1",
     "concat-stream": "^2.0.0",
     "duplexify": "^4.1.2",
     "eslint": "^9.29.0",
