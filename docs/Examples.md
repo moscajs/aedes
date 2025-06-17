@@ -67,10 +67,17 @@ server.listen(port, function () {
 ```js
 const aedes = require('aedes')()
 const httpServer = require('http').createServer()
-const ws = require('websocket-stream')
+const ws = require('ws')
 const port = 8888
 
-ws.createServer({ server: httpServer }, aedes.handle)
+const wss = new ws.WebSocketServer({
+  server:httpServer
+})
+
+wss.on('connection', (websocket, req) => {
+  const stream = ws.createWebSocketStream(websocket)
+  aedes.handle(stream, req)
+})
 
 httpServer.listen(port, function () {
   console.log('websocket server listening on port ', port)

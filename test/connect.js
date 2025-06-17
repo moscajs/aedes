@@ -2,7 +2,7 @@
 
 const { test } = require('tap')
 const http = require('http')
-const ws = require('websocket-stream')
+const ws = require('ws')
 const mqtt = require('mqtt')
 const { setup, connect, delay } = require('./helper')
 const aedes = require('../')
@@ -720,7 +720,7 @@ test('Test queue limit', function (t) {
   })
 })
 
-// websocket-stream based connections
+// websocket based connections
 test('websocket clients have access to the request object', function (t) {
   t.plan(3)
 
@@ -738,9 +738,14 @@ test('websocket clients have access to the request object', function (t) {
   })
 
   const server = http.createServer()
-  ws.createServer({
+  const wss = new ws.WebSocketServer({
     server
-  }, broker.handle)
+  })
+  wss.on('connection', (websocket, req) => {
+  // websocket is a WebSocket, but aedes expects a stream.
+    const stream = ws.createWebSocketStream(websocket)
+    broker.handle(stream, req)
+  })
 
   server.listen(port, function (err) {
     t.error(err, 'no error')

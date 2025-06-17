@@ -34,13 +34,13 @@ Client connection stream object.
 
 In the case of `net.createServer`, `conn` passed to the `connectionlistener` function by node's [net.createServer](https://nodejs.org/api/net.html#net_net_createserver_options_connectionlistener) API.
 
-In the case of [`websocket-stream`][websocket-stream], it's the `stream` argument passed to the websocket `handle` function in [`websocket-stream #on-the-server`][websocket-stream-doc-on-the-server]].
+In the case of [`ws`][ws], it's the `stream.Duplex` argument passed to the `handle` function.
 
 ## client.req
 
 - `<http.IncomingMessage>`
 
-only for [`websocket-stream`][websocket-stream]. It is a HTTP Websocket upgrade request object passed to websocket `handle` function in [`websocket-stream #on-the-server`][websocket-stream-doc-on-the-server]. It gives an option for accessing headers or cookies.
+only for [`ws`][ws]. It is a HTTP Websocket upgrade request object passed to the `handle` function. It gives an option for accessing headers or cookies.
 
 ## client.connecting
 
@@ -152,5 +152,4 @@ Clear all outgoing messages (QoS > 1) related to this client from persistence
 [SUBSCRIBE]: https://github.com/mqttjs/mqtt-packet#subscribe
 [UNSUBSCRIBE]: https://github.com/mqttjs/mqtt-packet#unsubscribe
 
-[websocket-stream]: https://www.npmjs.com/websocket-stream
-[websocket-stream-doc-on-the-server]: https://github.com/maxogden/websocket-stream/blob/master/readme.md#on-the-server
+[ws]: https://www.npmjs.com/package/ws
