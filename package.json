@@ -103,7 +103,7 @@
   "devDependencies": {
     "@fastify/pre-commit": "^2.2.0",
     "@sinonjs/fake-timers": "^11.2.2",
-    "@types/node": "^20.11.17",
+    "@types/node": "^24.0.3",
     "@typescript-eslint/eslint-plugin": "^8.34.1",
     "@typescript-eslint/parser": "^8.34.1",
     "concat-stream": "^2.0.0",
@@ -118,8 +118,8 @@
     "release-it": "^17.0.5",
     "snazzy": "^9.0.0",
     "tap": "^16.3.10",
-    "tsd": "^0.31.0",
-    "typescript": "^5.3.3",
+    "tsd": "^0.32.0",
+    "typescript": "^5.8.3",
     "websocket-stream": "^5.5.2"
   },
   "dependencies": {
