@@ -10,7 +10,7 @@ const proxyquire = require('proxyquire')
 test('test Aedes constructor', function (t) {
   t.plan(1)
   const aedes = new Aedes()
-  t.teardown(aedes.close.bind(broker))
+  t.teardown(aedes.close.bind(aedes))
   t.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
 })
 
