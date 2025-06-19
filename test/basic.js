@@ -7,9 +7,10 @@ const aedes = require('../')
 const { Aedes } = require('../')
 const proxyquire = require('proxyquire')
 
-test('test Aedes', function (t) {
+test('test Aedes constructor', function (t) {
   t.plan(1)
   const aedes = new Aedes()
+  t.teardown(aedes.close.bind(broker))
   t.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
 })
 
