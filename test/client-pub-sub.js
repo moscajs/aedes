@@ -808,24 +808,28 @@ test('get message when client connects', function (t) {
   t.plan(2)
 
   const client1 = 'gav'
+  const client2 = 'friend'
   const broker = aedes()
   t.teardown(broker.close.bind(broker))
 
   broker.on('client', function (client) {
-    client.subscribe({
-      subscriptions: [{
-        topic: '$SYS/+/new/clients',
-        qos: 0
-      }]
-    }, function (err) {
-      t.error(err, 'no error')
-    })
+    if (client.id === client1) {
+      client.subscribe({
+        subscriptions: [{
+          topic: '$SYS/+/new/clients',
+          qos: 0
+        }]
+      }, function (err) {
+        t.error(err, 'no error')
+      })
+    }
   })
 
   const s1 = connect(setup(broker), { clientId: client1 })
+  connect(setup(broker), { clientId: client2 })
 
   s1.outStream.on('data', function (packet) {
-    t.equal(client1, packet.payload.toString())
+    t.equal(client2, packet.payload.toString())
   })
 })
 
