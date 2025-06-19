@@ -6,6 +6,10 @@ const { setup, connect, subscribe, subscribeMultiple, noError } = require('./hel
 const aedes = require('../')
 const proxyquire = require('proxyquire')
 
+// console.log(aedes)
+
+// process.exit()
+
 test('test aedes.createBroker', function (t) {
   t.plan(1)
 
