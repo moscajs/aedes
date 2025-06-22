@@ -5,6 +5,7 @@ const concat = require('concat-stream')
 const { setup, connect, subscribe } = require('./helper')
 const Faketimers = require('@sinonjs/fake-timers')
 const aedes = require('../')
+const noop = () => {}
 
 test('publish QoS 1', function (t) {
   t.plan(1)
@@ -40,8 +41,8 @@ test('publish QoS 1 throws error', function (t) {
   const s = connect(setup())
   t.teardown(s.broker.close.bind(s.broker))
 
-  s.broker.persistence.subscriptionsByTopic = function (packet, done) {
-    return done(new Error('Throws error'))
+  s.broker.persistence.subscriptionsByTopic = async function (_packet) {
+    throw new Error('Throws error')
   }
 
   s.inStream.write({
@@ -132,17 +133,18 @@ test('publish QoS 1 and check offline queue', function (t) {
       if (queue.length === 2) {
         setImmediate(() => {
           for (let i = 0; i < queue.length; i++) {
-            broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
-              if (origPacket) {
-                delete origPacket.brokerId
-                delete origPacket.brokerCounter
-                delete origPacket.payload
-                delete origPacket.messageId
-                delete sent.payload
-                delete sent.messageId
-                t.same(origPacket, sent, 'origPacket must match')
-              }
-            })
+            broker.persistence.outgoingClearMessageId(subscriberClient, queue[i])
+              .then(origPacket => {
+                if (origPacket) {
+                  delete origPacket.brokerId
+                  delete origPacket.brokerCounter
+                  delete origPacket.payload
+                  delete origPacket.messageId
+                  delete sent.payload
+                  delete sent.messageId
+                  t.same(origPacket, sent, 'origPacket must match')
+                }
+              }, noop)
           }
         })
       }
@@ -205,9 +207,10 @@ test('publish QoS 1 and empty offline queue', function (t) {
         setImmediate(() => {
           broker.clients[subscriberClient.id].emptyOutgoingQueue(function () {
             for (let i = 0; i < queue.length; i++) {
-              broker.persistence.outgoingClearMessageId(subscriberClient, queue[i], function (_, origPacket) {
-                t.equal(!!origPacket, false, 'Packet has been removed')
-              })
+              broker.persistence.outgoingClearMessageId(subscriberClient, queue[i])
+                .then(origPacket => {
+                  t.equal(!!origPacket, false, 'Packet has been removed')
+                })
             }
           })
         })

@@ -151,8 +151,8 @@ test('pubrec handler calls done when outgoingUpdate fails (clean=false)', functi
 
   const handle = require('../lib/handlers/pubrec.js')
 
-  s.broker.persistence.outgoingUpdate = function (client, pubrel, done) {
-    done(Error('throws error'))
+  s.broker.persistence.outgoingUpdate = async () => {
+    throw Error('throws error')
   }
 
   handle(s.client, { messageId: 42 }, function done () {
@@ -585,7 +585,7 @@ test('publish after disconnection', function (t) {
 })
 
 test('multiple publish and store one', function (t) {
-  t.plan(2)
+  t.plan(1)
 
   const broker = aedes()
 
@@ -608,15 +608,17 @@ test('multiple publish and store one', function (t) {
     s.inStream.write(toPublish)
   }
   let recvcnt = 0
-  s.outStream.on('data', function (packet) {
+
+  s.outStream.on('data', (_packet) => {
     if (++recvcnt < 5) return
     broker.close(function () {
-      broker.persistence.incomingGetPacket(sid, toPublish, function (err, origPacket) {
-        delete origPacket.brokerId
-        delete origPacket.brokerCounter
-        t.same(origPacket, toPublish, 'packet must match')
-        t.error(err)
-      })
+      broker.persistence.incomingGetPacket(sid, toPublish)
+        .then(origPacket => {
+          delete origPacket.brokerId
+          delete origPacket.brokerCounter
+          t.same(origPacket, toPublish, 'packet must match')
+        })
+        .catch(t.error)
     })
   })
 })
@@ -632,10 +634,10 @@ test('packet is written to stream after being stored', function (t) {
 
   const fn = broker.persistence.incomingStorePacket.bind(broker.persistence)
 
-  s.broker.persistence.incomingStorePacket = function (client, packet, done) {
+  s.broker.persistence.incomingStorePacket = async (client, packet) => {
     packetStored = true
     t.pass('packet stored')
-    fn(client, packet, done)
+    fn(client, packet)
   }
 
   const packet = {
@@ -663,9 +665,9 @@ test('not send pubrec when persistence fails to store packet', function (t) {
 
   t.teardown(broker.close.bind(s.broker))
 
-  s.broker.persistence.incomingStorePacket = function (client, packet, done) {
+  s.broker.persistence.incomingStorePacket = async () => {
     t.pass('packet stored')
-    done(new Error('store error'))
+    throw new Error('store error')
   }
   s.broker.on('clientError', function (client, err) {
     t.equal(err.message, 'store error')

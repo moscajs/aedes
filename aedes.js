@@ -137,7 +137,7 @@ class Aedes extends EventEmitter {
           that.persistence.delWill({
             id: will.clientId,
             brokerId: will.brokerId
-          }, done)
+          }).then(will => done(undefined, will), done)
         }
       })
     }
@@ -263,7 +263,8 @@ class Aedes extends EventEmitter {
 
 function storeRetained (packet, done) {
   if (packet.retain) {
-    this.broker.persistence.storeRetained(packet, done)
+    this.broker.persistence.storeRetained(packet)
+      .then(() => done(null), done)
   } else {
     done()
   }
@@ -281,10 +282,8 @@ function enqueueOffline (packet, done) {
   enqueuer.packet = packet
   enqueuer.topic = packet.topic
   enqueuer.broker = this.broker
-  this.broker.persistence.subscriptionsByTopic(
-    packet.topic,
-    enqueuer.done
-  )
+  this.broker.persistence.subscriptionsByTopic(packet.topic)
+    .then(subs => enqueuer.done(null, subs), enqueuer.done)
 }
 
 class DoEnqueues {
@@ -319,7 +318,8 @@ class DoEnqueues {
       that.complete = null
       that.topic = null
 
-      broker.persistence.outgoingEnqueueCombi(subs, packet, complete)
+      broker.persistence.outgoingEnqueueCombi(subs, packet)
+        .then(() => complete(null), complete)
       broker._enqueuers.release(that)
     }
   }

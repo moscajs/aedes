@@ -220,8 +220,8 @@ test('client connect error while fetching subscriptions', function (t) {
 
   const s = setup(broker)
 
-  broker.persistence.subscriptionsByClient = function (c, cb) {
-    cb(new Error('error'), [], c)
+  broker.persistence.subscriptionsByClient = async () => {
+    throw new Error('error')
   }
 
   s.inStream.write({
@@ -261,24 +261,26 @@ test('client connect clear outgoing', function (t) {
     dup: false
   }
 
-  broker.persistence.outgoingEnqueueCombi(subs, packet, function () {
-    const s = setup(broker)
+  broker.persistence.outgoingEnqueueCombi(subs, packet)
+    .then(() => {
+      const s = setup(broker)
 
-    s.inStream.write({
-      cmd: 'connect',
-      protocolId: 'MQTT',
-      protocolVersion: 4,
-      clean: true,
-      clientId,
-      keepalive: 0
-    })
+      s.inStream.write({
+        cmd: 'connect',
+        protocolId: 'MQTT',
+        protocolVersion: 4,
+        clean: true,
+        clientId,
+        keepalive: 0
+      })
 
-    broker.on('clientReady', function (client) {
-      broker.persistence.outgoingUpdate(client, packet, function (err) {
-        t.equal('no such packet', err.message, 'packet not found')
+      broker.on('clientReady', function (client) {
+        broker.persistence.outgoingUpdate(client, packet)
+          .catch(err => {
+            t.equal('no such packet', err.message, 'packet not found')
+          })
       })
     })
-  })
 })
 
 test('clients with zero-byte clientid and clean=true on MQTT 3.1.1 will get a generated clientId', function (t) {

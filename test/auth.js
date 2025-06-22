@@ -840,9 +840,8 @@ test('negate subscription with correct persistence', function (t) {
   s.outStream.once('data', function (packet) {
     t.equal(packet.cmd, 'suback')
     t.same(packet.granted, [128, 0])
-    broker.persistence.subscriptionsByClient(broker.clients.abcde, function (_, subs, client) {
-      t.same(subs, expected)
-    })
+    broker.persistence.subscriptionsByClient(broker.clients.abcde)
+      .then(subs => { t.same(subs, expected) })
     t.equal(packet.messageId, 24)
   })
 

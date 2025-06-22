@@ -43,8 +43,8 @@ test('publish direct to a single client throws error', function (t) {
   const broker = aedes()
   t.teardown(broker.close.bind(broker))
 
-  broker.persistence.outgoingEnqueue = function (sub, packet, done) {
-    done(new Error('Throws error'))
+  broker.persistence.outgoingEnqueue = async () => {
+    throw new Error('Throws error')
   }
 
   broker.on('client', function (client) {
@@ -67,8 +67,8 @@ test('publish direct to a single client throws error 2', function (t) {
   const broker = aedes()
   t.teardown(broker.close.bind(broker))
 
-  broker.persistence.outgoingUpdate = function (client, packet, done) {
-    done(new Error('Throws error'), client, packet)
+  broker.persistence.outgoingUpdate = async function () {
+    throw new Error('Throws error')
   }
 
   broker.on('client', function (client) {
@@ -143,8 +143,8 @@ test('publish QoS 2 throws error in pubrel', function (t) {
         cmd: 'pubrec',
         messageId: packet.messageId
       })
-      s.broker.persistence.outgoingUpdate = function (client, pubrel, cb) {
-        cb(new Error('error'))
+      s.broker.persistence.outgoingUpdate = async function () {
+        throw new Error('error')
       }
     }
   })
@@ -637,8 +637,8 @@ test('unsubscribe should not call removeSubscriptions when [clean=true]', functi
   const broker = aedes()
   t.teardown(broker.close.bind(broker))
 
-  broker.persistence.removeSubscriptions = function (client, subs, cb) {
-    cb(Error('remove subscription is called'))
+  broker.persistence.removeSubscriptions = async () => {
+    throw new Error('remove subscription is called')
   }
 
   broker.on('client', function (client) {
@@ -699,8 +699,8 @@ test('unsubscribe throws error 2', function (t) {
       qos: 2
     }, function (err) {
       t.error(err, 'no error')
-      broker.persistence.removeSubscriptions = function (client, unsubscriptions, done) {
-        done(new Error('error'))
+      broker.persistence.removeSubscriptions = async () => {
+        throw new Error('error')
       }
       client.unsubscribe({
         unsubscriptions: [{

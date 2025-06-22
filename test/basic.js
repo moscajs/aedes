@@ -144,9 +144,10 @@ test('publish to $SYS topic throws error', function (t) {
         t.same(packet, expected, 'packet matches')
       })
 
-      s.broker.persistence.subscriptionsByClient(s.client, function (_, subs) {
-        t.same(subs, expectedSubs)
-      })
+      s.broker.persistence.subscriptionsByClient(s.client)
+        .then(subs => {
+          t.same(subs.length > 0 ? subs : null, expectedSubs)
+        })
 
       s.broker.publish({
         cmd: 'publish',
@@ -208,9 +209,10 @@ test('return write errors to callback', function (t) {
         t.same(packet, expected, 'packet matches')
       })
 
-      s.broker.persistence.subscriptionsByClient(s.client, function (_, saveSubs) {
-        t.same(saveSubs, expectedSubs)
-      })
+      s.broker.persistence.subscriptionsByClient(s.client)
+        .then(saveSubs => {
+          t.same(saveSubs.length > 0 ? saveSubs : null, expectedSubs)
+        })
 
       s.broker.publish({
         cmd: 'publish',
@@ -697,9 +699,10 @@ test('do not restore QoS 0 subscriptions when clean', function (t) {
   }, function () {
     subscribe(t, subscriber, 'hello', 0, function () {
       subscriber.inStream.end()
-      subscriber.broker.persistence.subscriptionsByClient(broker.clients.abcde, function (_, subs, client) {
-        t.equal(subs, null, 'no previous subscriptions restored')
-      })
+      subscriber.broker.persistence.subscriptionsByClient(broker.clients.abcde)
+        .then(subs => {
+          t.equal(subs.length > 0 ? subs : null, null, 'no previous subscriptions restored')
+        })
       const publisher = connect(setup(broker), {
       }, function () {
         subscriber = connect(setup(broker), {
