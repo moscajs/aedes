@@ -4,7 +4,15 @@ const { test } = require('tap')
 const eos = require('end-of-stream')
 const { setup, connect, subscribe, subscribeMultiple, noError } = require('./helper')
 const aedes = require('../')
+const { Aedes } = require('../')
 const proxyquire = require('proxyquire')
+
+test('test Aedes constructor', function (t) {
+  t.plan(1)
+  const aedes = new Aedes()
+  t.teardown(aedes.close.bind(aedes))
+  t.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
+})
 
 test('test aedes.createBroker', function (t) {
   t.plan(1)
