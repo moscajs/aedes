@@ -38,6 +38,7 @@ class Aedes extends EventEmitter {
     const that = this
 
     opts = Object.assign({}, defaultOptions, opts)
+    this.opts = opts
     this.id = opts.id || uuidv4()
     // +1 when construct a new aedes-packet
     // internal track for last brokerCounter
@@ -76,6 +77,15 @@ class Aedes extends EventEmitter {
     this.clients = {}
     this.brokers = {}
 
+    // metadata
+    this.connectedClients = 0
+    this.closed = false
+    this.listen()
+  }
+
+  async listen () {
+    const opts = this.opts
+    const that = this
     const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
     const birthTopic = $SYS_PREFIX + that.id + '/birth'
 
@@ -176,10 +186,6 @@ class Aedes extends EventEmitter {
         done()
       }
     })
-
-    // metadata
-    this.connectedClients = 0
-    this.closed = false
   }
 
   get version () {
