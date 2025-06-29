@@ -57,8 +57,7 @@ class Aedes extends EventEmitter {
       // return, just to please standard
       return new Client(that, conn, req)
     }
-    this.persistence = opts.persistence || memory()
-    this.persistence.broker = this
+
     this._parallel = parallel()
     this._series = series()
     this._enqueuers = reusify(DoEnqueues)
@@ -76,16 +75,20 @@ class Aedes extends EventEmitter {
 
     this.clients = {}
     this.brokers = {}
-
-    // metadata
-    this.connectedClients = 0
-    this.closed = false
-    this.listen()
+    this.closed = true
   }
 
   async listen () {
     const opts = this.opts
     const that = this
+
+    // metadata
+    this.connectedClients = 0
+    this.closed = false
+
+    this.persistence = opts.persistence || memory()
+    await this.persistence.setup(this)
+
     const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
     const birthTopic = $SYS_PREFIX + that.id + '/birth'
 
@@ -192,8 +195,10 @@ class Aedes extends EventEmitter {
     return version
   }
 
-  static createBroker (opts) {
-    return new Aedes(opts)
+  static async createBroker (opts) {
+    const aedes = new Aedes(opts)
+    await aedes.listen()
+    return aedes
   }
 
   publish (packet, client, done) {
@@ -396,6 +401,6 @@ class PublishState {
 
 function noop () {}
 
-module.exports = Aedes.createBroker
+module.exports = async (opts) => await Aedes.createBroker(opts)
 module.exports.createBroker = Aedes.createBroker
 module.exports.Aedes = Aedes
