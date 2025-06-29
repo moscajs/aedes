@@ -2,7 +2,7 @@
 
 const { test } = require('tap')
 const { setup, connect, subscribe } = require('./helper')
-const aedes = require('../')
+const { Aedes } = require('../')
 const { validateTopic } = require('../lib/utils')
 
 test('validation of `null` topic', function (t) {
@@ -16,18 +16,20 @@ test('validation of `null` topic', function (t) {
 test('Single-level wildcard should match empty level', function (t) {
   t.plan(4)
 
-  const s = connect(setup())
-  t.teardown(s.broker.close.bind(s.broker))
+  Aedes.createBroker().then((broker) => {
+    const s = connect(setup(broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
-  subscribe(t, s, 'a/+/b', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.pass('ok')
-    })
+    subscribe(t, s, 'a/+/b', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.pass('ok')
+      })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'a//b',
-      payload: 'world'
+      s.inStream.write({
+        cmd: 'publish',
+        topic: 'a//b',
+        payload: 'world'
+      })
     })
   })
 })
@@ -36,21 +38,23 @@ test('Single-level wildcard should match empty level', function (t) {
 test('publish empty topic', function (t) {
   t.plan(4)
 
-  const s = connect(setup())
+  Aedes.createBroker().then((broker) => {
+    const s = connect(setup(broker))
 
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
-    })
+    subscribe(t, s, '#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet')
+      })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: '',
-      payload: 'world'
-    })
+      s.inStream.write({
+        cmd: 'publish',
+        topic: '',
+        payload: 'world'
+      })
 
-    s.broker.close(function () {
-      t.equal(s.broker.connectedClients, 0, 'no connected clients')
+      s.broker.close(function () {
+        t.equal(s.broker.connectedClients, 0, 'no connected clients')
+      })
     })
   })
 })
@@ -58,46 +62,50 @@ test('publish empty topic', function (t) {
 test('publish invalid topic with #', function (t) {
   t.plan(4)
 
-  const s = connect(setup())
-  t.teardown(s.broker.close.bind(s.broker))
+  Aedes.createBroker().then((broker) => {
+    const s = connect(setup(broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
+    subscribe(t, s, '#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet')
+      })
+
+      s.inStream.write({
+        cmd: 'publish',
+        topic: 'hello/#',
+        payload: 'world'
+      })
     })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello/#',
-      payload: 'world'
+    s.broker.on('clientError', function () {
+      t.pass('raise an error')
     })
-  })
-
-  s.broker.on('clientError', function () {
-    t.pass('raise an error')
   })
 })
 
 test('publish invalid topic with +', function (t) {
   t.plan(4)
 
-  const s = connect(setup())
-  t.teardown(s.broker.close.bind(s.broker))
+  Aedes.createBroker().then((broker) => {
+    const s = connect(setup(broker))
+    t.teardown(s.broker.close.bind(s.broker))
 
-  subscribe(t, s, '#', 0, function () {
-    s.outStream.once('data', function (packet) {
-      t.fail('no packet')
+    subscribe(t, s, '#', 0, function () {
+      s.outStream.once('data', function (packet) {
+        t.fail('no packet')
+      })
+
+      s.inStream.write({
+        cmd: 'publish',
+        topic: 'hello/+/eee',
+        payload: 'world'
+      })
     })
 
-    s.inStream.write({
-      cmd: 'publish',
-      topic: 'hello/+/eee',
-      payload: 'world'
+    s.broker.on('clientError', function () {
+      t.pass('raise an error')
     })
-  })
-
-  s.broker.on('clientError', function () {
-    t.pass('raise an error')
   })
 })
 
@@ -105,37 +113,41 @@ test('publish invalid topic with +', function (t) {
   test('subscribe to invalid topic with "' + topic + '"', function (t) {
     t.plan(1)
 
-    const s = connect(setup())
-    t.teardown(s.broker.close.bind(s.broker))
+    Aedes.createBroker().then((broker) => {
+      const s = connect(setup(broker))
+      t.teardown(s.broker.close.bind(s.broker))
 
-    s.broker.on('clientError', function () {
-      t.pass('raise an error')
-    })
+      s.broker.on('clientError', function () {
+        t.pass('raise an error')
+      })
 
-    s.inStream.write({
-      cmd: 'subscribe',
-      messageId: 24,
-      subscriptions: [{
-        topic,
-        qos: 0
-      }]
+      s.inStream.write({
+        cmd: 'subscribe',
+        messageId: 24,
+        subscriptions: [{
+          topic,
+          qos: 0
+        }]
+      })
     })
   })
 
   test('unsubscribe to invalid topic with "' + topic + '"', function (t) {
     t.plan(1)
 
-    const s = connect(setup())
-    t.teardown(s.broker.close.bind(s.broker))
+    Aedes.createBroker().then((broker) => {
+      const s = connect(setup(broker))
+      t.teardown(s.broker.close.bind(s.broker))
 
-    s.broker.on('clientError', function () {
-      t.pass('raise an error')
-    })
+      s.broker.on('clientError', function () {
+        t.pass('raise an error')
+      })
 
-    s.inStream.write({
-      cmd: 'unsubscribe',
-      messageId: 24,
-      unsubscriptions: [topic]
+      s.inStream.write({
+        cmd: 'unsubscribe',
+        messageId: 24,
+        unsubscriptions: [topic]
+      })
     })
   })
 })
@@ -143,32 +155,33 @@ test('publish invalid topic with +', function (t) {
 test('topics are case-sensitive', function (t) {
   t.plan(4)
 
-  const broker = aedes()
-  t.teardown(broker.close.bind(broker))
+  Aedes.createBroker().then((broker) => {
+    t.teardown(broker.close.bind(broker))
 
-  const publisher = connect(setup(broker), { clean: true })
-  const subscriber = connect(setup(broker), { clean: true })
-  const expected = {
-    cmd: 'publish',
-    topic: 'hello',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 12,
-    retain: false
-  }
+    const publisher = connect(setup(broker), { clean: true })
+    const subscriber = connect(setup(broker), { clean: true })
+    const expected = {
+      cmd: 'publish',
+      topic: 'hello',
+      payload: Buffer.from('world'),
+      qos: 0,
+      dup: false,
+      length: 12,
+      retain: false
+    }
 
-  subscribe(t, subscriber, 'hello', 0, function () {
-    subscriber.outStream.on('data', function (packet) {
-      t.same(packet, expected, 'packet mush match')
-    })
-    ;['hello', 'HELLO', 'heLLo', 'HELLO/#', 'hello/+'].forEach(function (topic) {
-      publisher.inStream.write({
-        cmd: 'publish',
-        topic,
-        payload: 'world',
-        qos: 0,
-        retain: false
+    subscribe(t, subscriber, 'hello', 0, function () {
+      subscriber.outStream.on('data', function (packet) {
+        t.same(packet, expected, 'packet mush match')
+      })
+      ;['hello', 'HELLO', 'heLLo', 'HELLO/#', 'hello/+'].forEach(function (topic) {
+        publisher.inStream.write({
+          cmd: 'publish',
+          topic,
+          payload: 'world',
+          qos: 0,
+          retain: false
+        })
       })
     })
   })
@@ -204,26 +217,27 @@ function subscribeMultipleTopics (t, broker, qos, subscriber, subscriptions, don
 test('Overlapped topics with same QoS', function (t) {
   t.plan(4)
 
-  const broker = aedes()
-  t.teardown(broker.close.bind(broker))
+  Aedes.createBroker().then((broker) => {
+    t.teardown(broker.close.bind(broker))
 
-  const subscriber = connect(setup(broker))
-  const expected = {
-    cmd: 'publish',
-    topic: 'hello/world',
-    payload: Buffer.from('world'),
-    qos: 1,
-    dup: false,
-    length: 20,
-    retain: false
-  }
-  const sub = [
-    { topic: 'hello/world', qos: 1 },
-    { topic: 'hello/#', qos: 1 }]
-  subscribeMultipleTopics(t, broker, 1, subscriber, sub, function () {
-    subscriber.outStream.on('data', function (packet) {
-      delete packet.messageId
-      t.same(packet, expected, 'packet must match')
+    const subscriber = connect(setup(broker))
+    const expected = {
+      cmd: 'publish',
+      topic: 'hello/world',
+      payload: Buffer.from('world'),
+      qos: 1,
+      dup: false,
+      length: 20,
+      retain: false
+    }
+    const sub = [
+      { topic: 'hello/world', qos: 1 },
+      { topic: 'hello/#', qos: 1 }]
+    subscribeMultipleTopics(t, broker, 1, subscriber, sub, function () {
+      subscriber.outStream.on('data', function (packet) {
+        delete packet.messageId
+        t.same(packet, expected, 'packet must match')
+      })
     })
   })
 })
@@ -232,26 +246,27 @@ test('Overlapped topics with same QoS', function (t) {
 test('deliver overlapped topics respecting the maximum QoS of all the matching subscriptions - QoS 0 publish', function (t) {
   t.plan(4)
 
-  const broker = aedes()
-  t.teardown(broker.close.bind(broker))
+  Aedes.createBroker().then((broker) => {
+    t.teardown(broker.close.bind(broker))
 
-  const subscriber = connect(setup(broker))
-  const expected = {
-    cmd: 'publish',
-    topic: 'hello/world',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 18,
-    retain: false
-  }
-  const sub = [
-    { topic: 'hello/world', qos: 0 },
-    { topic: 'hello/#', qos: 2 }]
-  subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
-    subscriber.outStream.on('data', function (packet) {
-      delete packet.messageId
-      t.same(packet, expected, 'packet must match')
+    const subscriber = connect(setup(broker))
+    const expected = {
+      cmd: 'publish',
+      topic: 'hello/world',
+      payload: Buffer.from('world'),
+      qos: 0,
+      dup: false,
+      length: 18,
+      retain: false
+    }
+    const sub = [
+      { topic: 'hello/world', qos: 0 },
+      { topic: 'hello/#', qos: 2 }]
+    subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
+      subscriber.outStream.on('data', function (packet) {
+        delete packet.messageId
+        t.same(packet, expected, 'packet must match')
+      })
     })
   })
 })
@@ -260,17 +275,18 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
 test('deliver overlapped topics respecting the maximum QoS of all the matching subscriptions - QoS 2 publish', function (t) {
   t.plan(3)
 
-  const broker = aedes()
-  t.teardown(broker.close.bind(broker))
+  Aedes.createBroker().then((broker) => {
+    t.teardown(broker.close.bind(broker))
 
-  const subscriber = connect(setup(broker))
+    const subscriber = connect(setup(broker))
 
-  const sub = [
-    { topic: 'hello/world', qos: 0 },
-    { topic: 'hello/#', qos: 2 }]
-  subscribeMultipleTopics(t, broker, 2, subscriber, sub, function () {
-    subscriber.outStream.on('data', function () {
-      t.fail('should receive messages with the maximum QoS')
+    const sub = [
+      { topic: 'hello/world', qos: 0 },
+      { topic: 'hello/#', qos: 2 }]
+    subscribeMultipleTopics(t, broker, 2, subscriber, sub, function () {
+      subscriber.outStream.on('data', function () {
+        t.fail('should receive messages with the maximum QoS')
+      })
     })
   })
 })
@@ -278,25 +294,26 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
 test('Overlapped topics with QoS downgrade', function (t) {
   t.plan(4)
 
-  const broker = aedes()
-  t.teardown(broker.close.bind(broker))
+  Aedes.createBroker().then((broker) => {
+    t.teardown(broker.close.bind(broker))
 
-  const subscriber = connect(setup(broker))
-  const expected = {
-    cmd: 'publish',
-    topic: 'hello/world',
-    payload: Buffer.from('world'),
-    qos: 0,
-    dup: false,
-    length: 18,
-    retain: false
-  }
-  const sub = [
-    { topic: 'hello/world', qos: 1 },
-    { topic: 'hello/#', qos: 1 }]
-  subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
-    subscriber.outStream.on('data', function (packet) {
-      t.same(packet, expected, 'packet must match')
+    const subscriber = connect(setup(broker))
+    const expected = {
+      cmd: 'publish',
+      topic: 'hello/world',
+      payload: Buffer.from('world'),
+      qos: 0,
+      dup: false,
+      length: 18,
+      retain: false
+    }
+    const sub = [
+      { topic: 'hello/world', qos: 1 },
+      { topic: 'hello/#', qos: 1 }]
+    subscribeMultipleTopics(t, broker, 0, subscriber, sub, function () {
+      subscriber.outStream.on('data', function (packet) {
+        t.same(packet, expected, 'packet must match')
+      })
     })
   })
 })
