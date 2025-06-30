@@ -38,6 +38,7 @@ class Aedes extends EventEmitter {
     const that = this
 
     opts = Object.assign({}, defaultOptions, opts)
+    this.opts = opts
     this.id = opts.id || uuidv4()
     // +1 when construct a new aedes-packet
     // internal track for last brokerCounter
@@ -56,8 +57,7 @@ class Aedes extends EventEmitter {
       // return, just to please standard
       return new Client(that, conn, req)
     }
-    this.persistence = opts.persistence || memory()
-    this.persistence.broker = this
+
     this._parallel = parallel()
     this._series = series()
     this._enqueuers = reusify(DoEnqueues)
@@ -75,6 +75,19 @@ class Aedes extends EventEmitter {
 
     this.clients = {}
     this.brokers = {}
+    this.closed = true
+  }
+
+  async listen () {
+    const opts = this.opts
+    const that = this
+
+    // metadata
+    this.connectedClients = 0
+    this.closed = false
+
+    this.persistence = opts.persistence || memory()
+    await this.persistence.setup(this)
 
     const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
     const birthTopic = $SYS_PREFIX + that.id + '/birth'
@@ -137,7 +150,7 @@ class Aedes extends EventEmitter {
           that.persistence.delWill({
             id: will.clientId,
             brokerId: will.brokerId
-          }, done)
+          }).then(will => done(undefined, will), done)
         }
       })
     }
@@ -176,18 +189,16 @@ class Aedes extends EventEmitter {
         done()
       }
     })
-
-    // metadata
-    this.connectedClients = 0
-    this.closed = false
   }
 
   get version () {
     return version
   }
 
-  static createBroker (opts) {
-    return new Aedes(opts)
+  static async createBroker (opts) {
+    const aedes = new Aedes(opts)
+    await aedes.listen()
+    return aedes
   }
 
   publish (packet, client, done) {
@@ -263,7 +274,8 @@ class Aedes extends EventEmitter {
 
 function storeRetained (packet, done) {
   if (packet.retain) {
-    this.broker.persistence.storeRetained(packet, done)
+    this.broker.persistence.storeRetained(packet)
+      .then(() => done(null), done)
   } else {
     done()
   }
@@ -281,10 +293,8 @@ function enqueueOffline (packet, done) {
   enqueuer.packet = packet
   enqueuer.topic = packet.topic
   enqueuer.broker = this.broker
-  this.broker.persistence.subscriptionsByTopic(
-    packet.topic,
-    enqueuer.done
-  )
+  this.broker.persistence.subscriptionsByTopic(packet.topic)
+    .then(subs => enqueuer.done(null, subs), enqueuer.done)
 }
 
 class DoEnqueues {
@@ -319,7 +329,8 @@ class DoEnqueues {
       that.complete = null
       that.topic = null
 
-      broker.persistence.outgoingEnqueueCombi(subs, packet, complete)
+      broker.persistence.outgoingEnqueueCombi(subs, packet)
+        .then(() => complete(null), complete)
       broker._enqueuers.release(that)
     }
   }
@@ -390,6 +401,6 @@ class PublishState {
 
 function noop () {}
 
-module.exports = Aedes.createBroker
+module.exports = async (opts) => await Aedes.createBroker(opts)
 module.exports.createBroker = Aedes.createBroker
 module.exports.Aedes = Aedes
