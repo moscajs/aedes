@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
 const readline = require('readline')
+const unit = 'msg/s' // default unit for the results
 
 function parseConfig (config) {
   // parse config string like "QoS=0, Cores=2" into an object
@@ -50,33 +51,40 @@ async function gatherData () {
   return { results, maxCounts }
 }
 
-function reportPerLabel (label, results, maxCounts) {
+function reportPerLabel (label, results, maxCounts, avg) {
   const roundLabels = []
   for (let i = 0; i < maxCounts; i++) {
     roundLabels.push(`Round ${i + 1}`)
   }
-  const avg = {}
-  const unit = 'messages/s'
-  console.log(`# Benchmark Results for ${label}:\n`)
+
+  console.log(`\n # Benchmark Results ${label}`)
   console.log(`|Benchmark | Units | ${roundLabels.join(' |')}`)
   console.log(`|----------|-------|${roundLabels.map(() => '---').join('|')}`)
   for (const key in results) {
     console.log(`| ${key} | ${unit}| ${results[key].values.join(' |')}`)
-    avg[key] = results[key].values.reduce((acc, num) => acc + num, 0) / results[key].values.length
+    if (!avg[key]) {
+      avg[key] = {}
+    }
+    avg[key][label] = results[key].values.reduce((acc, num) => acc + num, 0) / results[key].values.length
   }
   console.log('\n')
-  console.log('|Benchmark | Average | Units')
-  console.log('|----------|---------|------')
-  for (const key in avg) {
-    console.log(`| ${key} | ${avg[key].toFixed(0)} | ${unit} |`)
-  }
+  return avg
 }
 
 async function report () {
   const { results, maxCounts } = await gatherData()
   const labels = Object.keys(results)
+  const avg = {}
   for (const label of labels) {
-    reportPerLabel(label, results[label], maxCounts)
+    reportPerLabel(label, results[label], maxCounts, avg)
+  }
+  console.log(`\n # Combined Results`)
+  console.log('| Label | Benchmark | Average | Units')
+  console.log('|----------|---------|------|---')
+  for (const key in avg) {
+    for (const label in avg[key]) {
+        console.log(`| ${label} | ${key} | ${avg[key][label].toFixed(0)} | ${unit} |`)
+    }
   }
 }
 
