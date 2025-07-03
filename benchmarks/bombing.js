@@ -7,7 +7,12 @@ const interval = 5000
 let sent = 0
 
 function count () {
-  console.log('sent/s', sent / interval * 1000)
+  if (process.send) {
+    const rate = Math.floor(sent / interval * 1000)
+    process.send({ type: 'rate', data: rate })
+  } else {
+    console.log('sent/s', sent / interval * 1000)
+  }
   sent = 0
 }
 

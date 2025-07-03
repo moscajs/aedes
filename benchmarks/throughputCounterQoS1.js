@@ -8,7 +8,12 @@ const interval = 5000
 let counter = 0
 
 function count () {
-  console.log('received/s', counter / interval * 1000)
+  if (process.send) {
+    const rate = Math.floor(counter / interval * 1000)
+    process.send({ type: 'rate', data: rate })
+  } else {
+    console.log('received/s', counter / interval * 1000)
+  }
   counter = 0
 }
 
