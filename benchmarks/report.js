@@ -78,12 +78,20 @@ async function report () {
   for (const label of labels) {
     reportPerLabel(label, results[label], maxCounts, avg)
   }
-  console.log(`\n # Combined Results`)
-  console.log('| Label | Benchmark | Average | Units')
-  console.log('|----------|---------|------|---')
+  console.log('\n # Combined Results')
+  console.log('| Label | Benchmark | Average | Units | Percentage')
+  console.log('|-------|-----------|---------|-------|-----------')
   for (const key in avg) {
+    let p
+    let v
     for (const label in avg[key]) {
-        console.log(`| ${label} | ${key} | ${avg[key][label].toFixed(0)} | ${unit} |`)
+      if (p === undefined) {
+        p = 100
+        v = avg[key][label]
+      } else {
+        p = (avg[key][label] / v) * 100
+      }
+      console.log(`| ${label} | ${key} | ${avg[key][label].toFixed(0)} | ${unit} | ${p.toFixed(2)}%`)
     }
   }
 }
