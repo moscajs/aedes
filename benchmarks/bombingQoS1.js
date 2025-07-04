@@ -12,7 +12,8 @@ function count () {
     process.send({ type: 'rate', data: rate })
   } else {
     console.log('sent/s', sent / interval * 1000)
-  }
+  } 
+  sent = 0
 }
 
 setInterval(count, interval)
