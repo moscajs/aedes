@@ -14,7 +14,7 @@ message
 with QoS0 and QoS1 using the scripts above it produces CSV data, this
  data includes the current git branch name.
 - report.js reads the CSV data from STDIN and turns it into a Markdown
-report, see the 'examples' folder
+report.
 
 Examples:
 
