@@ -66,34 +66,38 @@ function reportPerLabel (label, results, maxCounts, avg) {
     roundLabels.push(`Round ${i + 1}`)
   }
 
-  console.log(`\n # Benchmark Results ${label}`)
+  console.log(`\n # Benchmark Results for ${label}`)
   console.log(`|Benchmark | Config | Units | ${roundLabels.join(' |')}`)
   console.log(`|----------|--------|-------|${roundLabels.map(() => '---').join('|')}`)
   for (const key in results) {
     const { unit, values, benchmark, config } = results[key]
-
     console.log(`| ${benchmark} | ${config} | ${unit}| ${values.join(' |')}`)
-    if (!avg[key]) {
-      avg[key] = {}
-    }
-    avg[key][label] = {
-      value: values.reduce((acc, num) => acc + num, 0) / values.length,
-      unit,
-      config
-    }
   }
   console.log('\n')
+}
+
+function calculateAverages (results) {
+  const avg = {}
+  for (const label in results) {
+    const resultsL2 = results[label]
+    for (const key in resultsL2) {
+      const { unit, values, benchmark, config } = resultsL2[key]
+      if (!avg[key]) {
+        avg[key] = {}
+      }
+      avg[key][label] = {
+        value: values.reduce((acc, num) => acc + num, 0) / values.length,
+        benchmark,
+        unit,
+        config
+      }
+    }
+  }
   return avg
 }
 
-async function report () {
-  const { results, maxCounts } = await gatherData()
-  const labels = Object.keys(results)
-  const avg = {}
-  for (const label of labels) {
-    reportPerLabel(label, results[label], maxCounts, avg)
-  }
-  console.log('\n # Combined Results')
+function reportAverages (avg) {
+  console.log('\n # Overall Benchmark Results')
   console.log('| Label | Benchmark | Config | Average | Units | Percentage')
   console.log('|-------|-----------|--------|---------|-------|-----------')
   for (const key in avg) {
@@ -109,6 +113,15 @@ async function report () {
       }
       console.log(`| ${label} | ${benchmark} | ${config} | ${value.toFixed(0)} | ${unit} | ${perc}%`)
     }
+  }
+}
+
+async function report () {
+  const { results, maxCounts } = await gatherData()
+  const avg = calculateAverages(results)
+  reportAverages(avg)
+  for (const label in results) {
+    reportPerLabel(label, results[label], maxCounts)
   }
 }
 
