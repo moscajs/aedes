@@ -3,10 +3,8 @@
 This folder contains a number of scripts to perform benchmark testing and
 reporting on it:
 
-- bombing.js publishes QoS0 messages
-- bombingQoS.js publishes QoS1 messages
-- throughputCounter.js subscribes using QOS0 and receives messages
-- throughputCounterQoS1.js subscribes using QOS1 and receives messages
+- sender.js publishes messages with a serialnumber as payload (add '-q 1' to get QoS1)
+- receiver.js subscribes and validates the serialnumber (add '-q 1' to get QoS1)
 - pingpong.js measures latency between sending and receiving the same
 message
 - server.js starts the Aedes server to use in the test

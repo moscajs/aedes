@@ -1,7 +1,11 @@
 #! /usr/bin/env node
 
 const readline = require('readline')
-const unit = 'msg/s' // default unit for the results
+
+const defaultUnit = 'msg/s' // default unit for the results
+const units = {
+  'pingpong.js': 'ms'
+}
 
 function parseConfig (config) {
   // parse config string like "QoS=0, Cores=2" into an object
@@ -31,19 +35,24 @@ async function gatherData () {
       continue // skips empty lines
     }
     const benchmark = fields[1]
-    const config = parseConfig(fields[2])
+    const config = fields[2]
+    const parsedConfig = parseConfig(config)
     const value = Number(fields[3])
-    const key = `${benchmark} QoS${config.QoS}`
+    const key = `${benchmark} QoS${parsedConfig.QoS}`
     if (!results[label]) {
       results[label] = {}
     }
     const resultsL2 = results[label]
     if (!resultsL2[key]) {
-      resultsL2[key] = { values: [] }
+      resultsL2[key] = {
+        values: [],
+        benchmark,
+        config,
+        unit: units[benchmark] || defaultUnit
+      }
     }
     const resultsL3 = resultsL2[key]
     resultsL3.values.push(value)
-    resultsL3.config = config
     if (resultsL3.values.length > maxCounts) {
       maxCounts = resultsL3.values.length
     }
@@ -58,14 +67,20 @@ function reportPerLabel (label, results, maxCounts, avg) {
   }
 
   console.log(`\n # Benchmark Results ${label}`)
-  console.log(`|Benchmark | Units | ${roundLabels.join(' |')}`)
-  console.log(`|----------|-------|${roundLabels.map(() => '---').join('|')}`)
+  console.log(`|Benchmark | Config | Units | ${roundLabels.join(' |')}`)
+  console.log(`|----------|--------|-------|${roundLabels.map(() => '---').join('|')}`)
   for (const key in results) {
-    console.log(`| ${key} | ${unit}| ${results[key].values.join(' |')}`)
+    const { unit, values, benchmark, config } = results[key]
+
+    console.log(`| ${benchmark} | ${config} | ${unit}| ${values.join(' |')}`)
     if (!avg[key]) {
       avg[key] = {}
     }
-    avg[key][label] = results[key].values.reduce((acc, num) => acc + num, 0) / results[key].values.length
+    avg[key][label] = {
+      value: values.reduce((acc, num) => acc + num, 0) / values.length,
+      unit,
+      config
+    }
   }
   console.log('\n')
   return avg
@@ -79,19 +94,20 @@ async function report () {
     reportPerLabel(label, results[label], maxCounts, avg)
   }
   console.log('\n # Combined Results')
-  console.log('| Label | Benchmark | Average | Units | Percentage')
-  console.log('|-------|-----------|---------|-------|-----------')
+  console.log('| Label | Benchmark | Config | Average | Units | Percentage')
+  console.log('|-------|-----------|--------|---------|-------|-----------')
   for (const key in avg) {
-    let p
-    let v
+    let perc
+    let ref
     for (const label in avg[key]) {
-      if (p === undefined) {
-        p = 100
-        v = avg[key][label]
+      const { value, unit, benchmark, config } = avg[key][label]
+      if (perc === undefined) {
+        perc = 100
+        ref = value
       } else {
-        p = (avg[key][label] / v) * 100
+        perc = ((value / ref) * 100).toFixed(2)
       }
-      console.log(`| ${label} | ${key} | ${avg[key][label].toFixed(0)} | ${unit} | ${p.toFixed(2)}%`)
+      console.log(`| ${label} | ${benchmark} | ${config} | ${value.toFixed(0)} | ${unit} | ${perc}%`)
     }
   }
 }
