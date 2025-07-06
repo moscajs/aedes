@@ -2,7 +2,9 @@
 # Aedes
 
 - [Aedes](#aedes)
-  - [new Aedes([options]) / new Aedes.Server([options])](#new-aedesoptions--new-aedesserveroptions)
+  - [new Aedes([options])](#new-aedesoptions)
+  - [Aedes.createBroker([options])](#aedescreatebrokeroptions)
+  - [aedes.listen()](#aedeslisten)
   - [aedes.id](#aedesid)
   - [aedes.connectedClients](#aedesconnectedclients)
   - [aedes.closed](#aedesclosed)
@@ -31,12 +33,13 @@
   - [Handler: authorizeForward (client, packet)](#handler-authorizeforward-client-packet)
   - [Handler: published (packet, client, callback)](#handler-published-packet-client-callback)
 
-## new Aedes([options]) / new Aedes.Server([options])
+## new Aedes([options])
 
 - options `<object>`
   - `mq` [`<MQEmitter>`](../README.md#mqemitter) middleware used to deliver messages to subscribed clients. In a cluster environment it is used also to share messages between brokers instances. __Default__: `mqemitter`
   - `concurrency` `<number>` maximum number of concurrent messages delivered by `mq`. __Default__: `100`
   - `persistence` [`<Persistence>`](../README.md#persistence) middleware that stores _QoS > 0, retained, will_ packets and _subscriptions_. __Default__: `aedes-persistence` (_in memory_)
+  Versions 1.x and above require peristence to support async access,see [MIGRATION.md][MIGRATION] for details.
   - `queueLimit` `<number>` maximum number of queued messages before client session is established. If number of queued items exceeds, `connectionError` throws an error `Client queue limit reached`. __Default__: `42`
   - `maxClientsIdLength` option to override MQTT 3.1.0 clients Id length limit. __Default__: `23`
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
@@ -45,9 +48,36 @@
   - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. __Default__: `0`
 - Returns `<Aedes>`
 
-Create a new Aedes server.
+Create a new Aedes server instance.
 
-Aedes is the class and function exposed by this module. It can be created by `Aedes()` or using `new Aedes()`. An variant `aedes.Server` is for TypeScript or ES modules.
+Aedes is the class exported by this module.
+The instance will only start listening after [aedes.listen()](#aedeslisten) is called.
+The recommended way to start an Aedes server is to use [Aedes.createBroker([options])](#aedescreatebrokeroptions) instead.
+
+## Aedes.createBroker([options])
+
+A async static method in the Aedes class which creates the instance and automatically awaits `listen()`.
+
+Using `Aedes.createBroker([options])` is the recommended way to start Aedes, example:
+
+```js
+const aedes = await Aedes.createBroker([options])
+```
+
+It uses the same options as [new Aedes([options])](#new-aedesoptions)
+
+## aedes.listen()
+
+Async method to make the aedes instance start listening.
+Example:
+
+```js
+const aedes = new Aedes([options])
+await aedes.listen()
+```
+
+You should typically not need to use this as it is more compact to use
+[Aedes.createBroker([options])](#aedescreatebrokeroptions) instead.
 
 ## aedes.id
 
@@ -173,7 +203,9 @@ Emitted when server is closed.
 A connection listener that pipe stream to aedes.
 
 ```js
-const aedes = require('./aedes')()
+const { Aedes } = require('/aedes')
+const aedes = await Aedes.createBroker()
+
 const server = require('net').createServer(aedes.handle)
 ```
 
@@ -414,3 +446,4 @@ same as [`Event: publish`](#event-publish), but provides a backpressure function
 [PINGREQ]: https://github.com/mqttjs/mqtt-packet#pingreq
 [PUBLISH]: https://github.com/mqttjs/mqtt-packet#publish
 [PUBREL]: https://github.com/mqttjs/mqtt-packet#pubrel
+[MIGRATION]: MIGRATION.md
