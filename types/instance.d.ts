@@ -86,7 +86,7 @@ export interface AedesOptions {
   published?: PublishedHandler;
 }
 
-export default class Aedes extends EventEmitter {
+export class Aedes extends EventEmitter {
   id: Readonly<string>
   connectedClients: Readonly<number>
   closed: Readonly<boolean>
@@ -135,6 +135,10 @@ export default class Aedes extends EventEmitter {
     event: 'unsubscribe',
     listener: (unsubscriptions: string[], client: Client) => void
   ): this
+
+  listen (): Promise<void>
+
+  static createBroker (option?: AedesOptions): Promise<Aedes>
 
   publish (packet: PublishPacket, callback: (error?: Error) => void): void
   subscribe (
