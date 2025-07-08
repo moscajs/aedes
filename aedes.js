@@ -87,6 +87,9 @@ class Aedes extends EventEmitter {
     this.closed = false
 
     this.persistence = opts.persistence || memory()
+    if (this.persistence.setup.constructor.name !== 'AsyncFunction') {
+      throw new Error('persistence.setup() must be an async function')
+    }
     await this.persistence.setup(this)
 
     const heartbeatTopic = $SYS_PREFIX + that.id + '/heartbeat'
@@ -401,6 +404,14 @@ class PublishState {
 
 function noop () {}
 
-module.exports = async (opts) => await Aedes.createBroker(opts)
+function warnMigrate () {
+  throw new Error(
+` Aedes default export has been removed.
+ Use 'const aedes = await Aedes.createBroker()' instead.
+ See: https://github.com/moscajs/aedes/docs/MIGRATION.MD
+ `)
+}
+
+module.exports = warnMigrate
 module.exports.createBroker = Aedes.createBroker
 module.exports.Aedes = Aedes

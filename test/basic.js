@@ -4,6 +4,7 @@ const { test } = require('tap')
 const eos = require('end-of-stream')
 const { setup, connect, subscribe, subscribeMultiple, noError } = require('./helper')
 const { Aedes } = require('../')
+const defaultExport = require('../')
 const proxyquire = require('proxyquire')
 
 test('test Aedes constructor', function (t) {
@@ -12,9 +13,13 @@ test('test Aedes constructor', function (t) {
   t.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
 })
 
+test('test warning on default export', function (t) {
+  t.plan(1)
+  t.throws(defaultExport, 'received expected error')
+})
+
 test('test aedes.createBroker', (t) => {
   t.plan(1)
-
   Aedes.createBroker().then((broker) => {
     t.teardown(broker.close.bind(broker))
 
@@ -22,6 +27,25 @@ test('test aedes.createBroker', (t) => {
       t.pass('connected')
     })
   })
+})
+
+test('test non-async persistence.setup throws error', (t) => {
+  t.plan(1)
+
+  class P {
+    setup () {
+      console.log('I am a synchronous setup function')
+    }
+  }
+
+  const p = new P()
+  const broker = new Aedes({ persistence: p })
+  t.teardown(broker.close.bind(broker))
+  broker.listen()
+    .then(() => t.fail('missing expected error'))
+    .catch((_err) => {
+      t.pass('receiving expected error')
+    })
 })
 
 test('publish QoS 0', function (t) {
@@ -467,7 +491,7 @@ test('disconnect client on wrong cmd', function (t) {
     })
 
     s.broker.on('clientReady', function (c) {
-    // don't use stream write here because it will throw an error on mqtt_packet genetete
+      // don't use stream write here because it will throw an error on mqtt_packet genetete
       c._parser.emit('packet', { cmd: 'pippo' })
     })
   })
@@ -838,7 +862,7 @@ test('clear drain', function (t) {
     const s = connect(setup(broker), {
     }, function () {
       subscribe(t, s, 'hello', 0, function () {
-      // fake a busy socket
+        // fake a busy socket
         s.conn.write = function (chunk, enc, cb) {
           return false
         }
