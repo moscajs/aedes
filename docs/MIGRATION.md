@@ -42,3 +42,9 @@ const broker = await Aedes.createBroker(opts)
 Make sure that the persistence interface that you use is recent enough so that
 it supports the new async interface. Aedes will exit if it does not find an
 async persistence interface.
+The following versions are the minimum versions to use:
+
+- aedes-persistence: 10.2.2
+- aedes-persistence-level: 9.1.2
+- aedes-persistence-mongodb: 9.3.1
+- aedes-persistence-redis: 11.2.1
