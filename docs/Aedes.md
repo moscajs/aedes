@@ -56,7 +56,7 @@ The recommended way to start an Aedes server is to use [Aedes.createBroker([opti
 
 ## Aedes.createBroker([options])
 
-A async static method in the Aedes class which creates the instance and automatically awaits `listen()`.
+An async static method in the Aedes class which creates the instance and automatically awaits `listen()`.
 
 Using `Aedes.createBroker([options])` is the recommended way to start Aedes, example:
 
