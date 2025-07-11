@@ -134,5 +134,20 @@
     "retimer": "^4.0.0",
     "reusify": "^1.1.0",
     "uuid": "^11.1.0"
+  },
+  "peerDependencies": {
+    "aedes-persistence-mongodb": "^9.3.1",
+    "aedes-persistence-redis": "^11.2.1"
+  },
+  "peerDependenciesMeta": {
+    "aedes-persistence-level": {
+      "optional": true
+    },
+    "aedes-persistence-mongodb": {
+      "optional": true
+    },
+    "aedes-persistence-redis": {
+      "optional": true
+    }
   }
 }
