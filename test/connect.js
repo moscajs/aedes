@@ -5,7 +5,7 @@ const http = require('http')
 const ws = require('ws')
 const mqtt = require('mqtt')
 const { setup, connect, delay } = require('./helper')
-const Aedes = require('../')
+const { Aedes } = require('../')
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
