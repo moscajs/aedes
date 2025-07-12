@@ -44,6 +44,7 @@ jobs:
       - name: Run benchmark on main
         run: node benchmarks/runBenchmark.js > ../results.main.csv
         working-directory: main-source
+        continue-on-error: true
 
       # Run benchmark on PR branch
       - name: Checkout PR branch
