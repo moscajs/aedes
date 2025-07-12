@@ -5,24 +5,20 @@ description: "Runs benchmarks and posts or updates a sticky PR comment with the 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      node-version:
+        description: "Node.js version"
+        default: "20"
+        required: false
+      main-ref:
+        description: "Git ref for the main branch (e.g. main or master)"
+        default: "main"
+        required: false
 
 permissions:
   contents: read
   pull-requests: write # Required for commenting on PRs
-
-inputs:
-  node-version:
-    description: "Node.js version"
-    default: "20"
-    required: false
-  main-ref:
-    description: "Git ref for the main branch (e.g. main or master)"
-    default: "main"
-    required: false
-  report-tag:
-    description: "Tag added to the PR comment to identify it for updating"
-    default: "<!-- BENCHMARK_REPORT_COMMENT -->"
-    required: false
 
 jobs:
   benchmark:
