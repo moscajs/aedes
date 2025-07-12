@@ -42,7 +42,7 @@ jobs:
         working-directory: main-source
 
       - name: Run benchmark on main
-        run: node benchmarks/runBenchmark.js > ../results.main.csv
+        run: node benchmarks/runBenchmarks.js > ../results.main.csv
         working-directory: main-source
         continue-on-error: true
 
@@ -62,10 +62,7 @@ jobs:
         working-directory: pr-source
 
       - name: Run benchmark on PR branch
-        run: |
-          pwd
-          ls
-          node benchmarks/runBenchmark.js > ../results.branch.csv
+        run: node benchmarks/runBenchmarks.js > ../results.branch.csv
         working-directory: pr-source
 
       # Generate the report
