@@ -1,0 +1,55 @@
+name: "Sticky PR Comment"
+description: "Posts or updates a pull request comment identified by a tag."
+inputs:
+  file:
+    description: "Path to the file whose contents are to be posted"
+    required: true
+  tag:
+    description: "Unique tag to identify the comment (e.g. <!-- BENCHMARK_REPORT_COMMENT -->)"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Read file and set as output
+      id: file
+      shell: bash
+      run: |
+        echo "body<<EOF" >> $GITHUB_OUTPUT
+        cat "${{ inputs.file }}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Post or update PR comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ github.token }}
+        script: |
+          const tag = `${{ inputs.tag }}`;
+          const body = `${tag}\n${{ steps.file.outputs.body }}`;
+          const pr = context.payload.pull_request?.number;
+          if (!pr) {
+            core.setFailed("No pull request found in context.");
+            return;
+          }
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: pr,
+          });
+          const tagged = comments.find(comment =>
+            comment.body.includes(tag)
+          );
+          if (tagged) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: tagged.id,
+              body: body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+              body: body,
+            });
+          }
