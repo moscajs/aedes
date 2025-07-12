@@ -38,7 +38,7 @@ jobs:
           node-version: ${{ github.event.inputs.nodeVersion }}
 
       - name: Install dependencies (main)
-        run: npm ci
+        run: npm install --ignore-scripts
         working-directory: main-source
 
       - name: Run benchmark on main
@@ -57,7 +57,7 @@ jobs:
           node-version: ${{github.event.inputs.nodeVersion }}
 
       - name: Install dependencies (PR)
-        run: npm ci
+        run: npm install --ignore-scripts
         working-directory: pr-source
 
       - name: Run benchmark on PR branch
