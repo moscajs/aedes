@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   pull-requests: write # Required for commenting on PRs
+  issues: write
 
 jobs:
   benchmark:
@@ -61,11 +62,11 @@ jobs:
       - name: Generate report
         shell: bash
         run: |
-          cat results.main.csv results.branch.csv | node pr-source/benchmarks/report.js > result.md
+          cat results.main.csv results.branch.csv | node main-source/benchmarks/report.js > result.md
 
       # Post or update sticky PR comment
       - name: Post or Update Benchmark Comment
-        uses: ./pr-source/.github/actions/sticky-pr-comment
+        uses: ./main-source/.github/actions/sticky-pr-comment
         with:
           file: result.md
           tag: "<!-- BENCHMARK_REPORT_COMMENT -->" # This tag will identify the stick comment
