@@ -5,16 +5,6 @@ description: "Runs benchmarks and posts or updates a sticky PR comment with the 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  workflow_dispatch:
-    inputs:
-      nodeVersion:
-        description: "Node.js version"
-        default: "20"
-        required: false
-      mainRef:
-        description: "Git ref of the branch to compare to"
-        default: "main"
-        required: false
 
 permissions:
   contents: read
@@ -24,25 +14,28 @@ jobs:
   benchmark:
     name: Benchmark
     runs-on: ubuntu-latest
+    env: 
+      nodeVersion: 20
+      mainRef: "main"
     steps:
       # Run benchmark on main branch
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.mainRef }}
+          ref: ${{ env.mainRef }}
           path: main-source
 
       - name: Set up Node.js (main)
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ github.event.inputs.nodeVersion }}
+          node-version: ${{ env.nodeVersion }}
 
       - name: Install dependencies (main)
         run: npm install --ignore-scripts
         working-directory: main-source
 
       - name: Run benchmark on main
-        run: node benchmarks/runBenchmarks.js ${{ github.event.inputs.mainRef }} > ../results.main.csv
+        run: node benchmarks/runBenchmarks.js > ../results.main.csv
         working-directory: main-source
 
       # Run benchmark on PR branch
@@ -54,14 +47,14 @@ jobs:
       - name: Set up Node.js (PR)
         uses: actions/setup-node@v4
         with:
-          node-version: ${{github.event.inputs.nodeVersion }}
+          node-version: ${{ env.nodeVersion }}
 
       - name: Install dependencies (PR)
         run: npm install --ignore-scripts
         working-directory: pr-source
 
       - name: Run benchmark on PR branch
-        run: node benchmarks/runBenchmarks.js ${{ github.head_ref }} > ../results.branch.csv
+        run: node benchmarks/runBenchmarks.js > ../results.branch.csv
         working-directory: pr-source
 
       # Generate the report
