@@ -5,6 +5,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: write # Required for commenting on PRs
+  
 inputs:
   node-version:
     description: "Node.js version"
@@ -18,7 +22,7 @@ inputs:
     description: "Tag added to the PR comment to identify it for updating"
     default: "<!-- BENCHMARK_REPORT_COMMENT -->"
     required: false
-    
+
 runs:
   using: "composite"
   steps:
