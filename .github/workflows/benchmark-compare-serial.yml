@@ -12,8 +12,8 @@ on:
         default: "20"
         required: false
       mainRef:
-        description: "Git ref for the main branch (e.g. main or master)"
-        default: ${{ github.base_ref }}
+        description: "Git ref of the branch to compare to"
+        default: "main"
         required: false
 
 permissions:
