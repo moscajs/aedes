@@ -13,7 +13,7 @@ on:
         required: false
       mainRef:
         description: "Git ref for the main branch (e.g. main or master)"
-        default: "main"
+        default: ${{ github.base_ref }}
         required: false
 
 permissions:
@@ -29,7 +29,7 @@ jobs:
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.mainRef}}
+          ref: ${{ github.event.inputs.mainRef }}
           path: main-source
 
       - name: Set up Node.js (main)
@@ -42,7 +42,7 @@ jobs:
         working-directory: main-source
 
       - name: Run benchmark on main
-        run: node benchmarks/runBenchmarks.js > ../results.main.csv
+        run: node benchmarks/runBenchmarks.js ${{ github.event.inputs.mainRef }} > ../results.main.csv
         working-directory: main-source
 
       # Run benchmark on PR branch
@@ -61,7 +61,7 @@ jobs:
         working-directory: pr-source
 
       - name: Run benchmark on PR branch
-        run: node benchmarks/runBenchmarks.js > ../results.branch.csv
+        run: node benchmarks/runBenchmarks.js ${{ github.head_ref }} > ../results.branch.csv
         working-directory: pr-source
 
       # Generate the report
