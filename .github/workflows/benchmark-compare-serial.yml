@@ -7,11 +7,11 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
-      node-version:
+      nodeVersion:
         description: "Node.js version"
         default: "20"
         required: false
-      main-ref:
+      mainRef:
         description: "Git ref for the main branch (e.g. main or master)"
         default: "main"
         required: false
@@ -23,18 +23,19 @@ permissions:
 jobs:
   benchmark:
     name: Benchmark
+    runs-on: ubuntu-latest
     steps:
       # Run benchmark on main branch
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.main-ref }}
+          ref: ${{ github.event.inputs.mainRef}}
           path: main-source
 
       - name: Set up Node.js (main)
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ inputs.node-version }}
+          node-version: ${{ github.event.inputs.nodeVersion }}
 
       - name: Install dependencies (main)
         run: npm ci
@@ -53,7 +54,7 @@ jobs:
       - name: Set up Node.js (PR)
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ inputs.node-version }}
+          node-version: ${{github.event.inputs.nodeVersion }}
 
       - name: Install dependencies (PR)
         run: npm ci
