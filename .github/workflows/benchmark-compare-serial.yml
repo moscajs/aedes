@@ -62,6 +62,8 @@ jobs:
         working-directory: pr-source
 
       - name: Run benchmark on PR branch
+        run: pwd
+        run: ls
         run: node benchmarks/runBenchmark.js > ../results.branch.csv
         working-directory: pr-source
 
