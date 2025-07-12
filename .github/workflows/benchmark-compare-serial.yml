@@ -73,7 +73,7 @@ jobs:
 
       # Post or update sticky PR comment
       - name: Post or Update Benchmark Comment
-        uses: ./.github/actions/sticky-comment 
+        uses: ./pr-source/.github/actions/sticky-comment 
         with:
           file: result.md
           tag: "<!-- BENCHMARK_REPORT_COMMENT -->" # This tag will identify the stick comment
