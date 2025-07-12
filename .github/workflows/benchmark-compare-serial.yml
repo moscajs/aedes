@@ -25,55 +25,57 @@ inputs:
     required: false
 
 jobs:
-  steps:
-    # Run benchmark on main branch
-    - name: Checkout main branch
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.main-ref }}
-        path: main-source
+  benchmark:
+    name: Benchmark
+    steps:
+      # Run benchmark on main branch
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.main-ref }}
+          path: main-source
 
-    - name: Set up Node.js (main)
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ inputs.node-version }}
+      - name: Set up Node.js (main)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
 
-    - name: Install dependencies (main)
-      run: npm ci
-      working-directory: main-source
+      - name: Install dependencies (main)
+        run: npm ci
+        working-directory: main-source
 
-    - name: Run benchmark on main
-      run: node benchmarks/runBenchmark.js > ../results.main.csv
-      working-directory: main-source
+      - name: Run benchmark on main
+        run: node benchmarks/runBenchmark.js > ../results.main.csv
+        working-directory: main-source
 
-    # Run benchmark on PR branch
-    - name: Checkout PR branch
-      uses: actions/checkout@v4
-      with:
-        path: pr-source
+      # Run benchmark on PR branch
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          path: pr-source
 
-    - name: Set up Node.js (PR)
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ inputs.node-version }}
+      - name: Set up Node.js (PR)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
 
-    - name: Install dependencies (PR)
-      run: npm ci
-      working-directory: pr-source
+      - name: Install dependencies (PR)
+        run: npm ci
+        working-directory: pr-source
 
-    - name: Run benchmark on PR branch
-      run: node benchmarks/runBenchmark.js > ../results.branch.csv
-      working-directory: pr-source
+      - name: Run benchmark on PR branch
+        run: node benchmarks/runBenchmark.js > ../results.branch.csv
+        working-directory: pr-source
 
-    # Generate the report
-    - name: Generate report
-      shell: bash
-      run: |
-        cat results.main.csv results.branch.csv | node pr-source/benchmarks/report.js > result.md
+      # Generate the report
+      - name: Generate report
+        shell: bash
+        run: |
+          cat results.main.csv results.branch.csv | node pr-source/benchmarks/report.js > result.md
 
-    # Post or update sticky PR comment
-    - name: Post or Update Benchmark Comment
-      uses: ./.github/actions/sticky-comment 
-      with:
-        file: result.md
-        tag: "<!-- BENCHMARK_REPORT_COMMENT -->" # This tag will identify the stick comment
+      # Post or update sticky PR comment
+      - name: Post or Update Benchmark Comment
+        uses: ./.github/actions/sticky-comment 
+        with:
+          file: result.md
+          tag: "<!-- BENCHMARK_REPORT_COMMENT -->" # This tag will identify the stick comment
