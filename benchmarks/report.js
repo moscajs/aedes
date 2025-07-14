@@ -2,6 +2,10 @@
 
 const readline = require('readline')
 
+// if any average is more than threshold% off we exit with 1
+const threshold = 10
+let failed = false
+
 const defaultUnit = 'msg/s' // default unit for the results
 const units = {
   'pingpong.js': 'ms'
@@ -96,20 +100,37 @@ function calculateAverages (results) {
   return avg
 }
 
+function calculatePercentage (ref, value) {
+  if (ref === undefined) {
+    return { ref: value, diff: 0 }
+  }
+  const perc = ((value / ref) * 100)
+  if (perc > 100) {
+    const diff = perc - 100
+    return { ref, diff }
+  }
+  const diff = (100 - perc) * -1
+  return { ref, diff }
+}
+
 function reportAverages (avg) {
   console.log('\n # Overall Benchmark Results')
+  console.log(`\n +x% is better, -x% is worse, current threshold to fail at -${threshold}%\n\n`)
   console.log('| Label | Benchmark | Config | Average | Units | Percentage')
   console.log('|-------|-----------|--------|---------|-------|-----------')
   for (const key in avg) {
-    let perc
-    let ref
+    let oldRef
     for (const label in avg[key]) {
       const { value, unit, benchmark, config } = avg[key][label]
-      if (perc === undefined) {
-        perc = 100
-        ref = value
-      } else {
-        perc = ((value / ref) * 100).toFixed(2)
+      const { ref, diff } = calculatePercentage(oldRef, value)
+      oldRef = ref
+      // for unit = ms lower is better
+      const correctedDiff = unit === 'ms' ? diff * -1 : diff
+      const sign = correctedDiff > 0 ? '+' : ''
+      const perc = correctedDiff === 0 ? 100 : `${sign}${correctedDiff.toFixed(2)}`
+      if (diff > threshold) {
+        console.error(`\n\nError: ${key} is more than ${sign}${threshold}% off the reference (${ref} ${unit})`)
+        failed = true
       }
       console.log(`| ${label} | ${benchmark} | ${config} | ${value.toFixed(0)} | ${unit} | ${perc}%`)
     }
@@ -125,4 +146,6 @@ async function report () {
   }
 }
 
-report()
+report().then(() => {
+  process.exit(failed ? 1 : 0)
+})

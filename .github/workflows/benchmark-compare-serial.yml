@@ -17,17 +17,18 @@ jobs:
       nodeVersion: 20
       mainRef: "main"
     steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.nodeVersion }}
+          cache: npm
+
       # Run benchmark on main branch
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           ref: ${{ env.mainRef }}
           path: main-source
-
-      - name: Set up Node.js (main)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.nodeVersion }}
 
       - name: Install dependencies (main)
         run: npm install --ignore-scripts
@@ -43,11 +44,6 @@ jobs:
         with:
           path: pr-source
 
-      - name: Set up Node.js (PR)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.nodeVersion }}
-
       - name: Install dependencies (PR)
         run: npm install --ignore-scripts
         working-directory: pr-source
@@ -61,5 +57,6 @@ jobs:
         shell: bash
         run: |
           cat results.main.csv results.branch.csv | node main-source/benchmarks/report.js >> $GITHUB_STEP_SUMMARY
+          exit $?
 
      
