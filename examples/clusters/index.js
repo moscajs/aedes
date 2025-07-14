@@ -1,5 +1,5 @@
 const cluster = require('cluster')
-const Aedes = require('aedes')
+const { Aedes } = require('aedes')
 const { createServer } = require('net')
 const { cpus } = require('os')
 const MONGO_URL = 'mongodb://127.0.0.1/aedes-clusters'
@@ -20,10 +20,10 @@ const persistence = process.env.PERSISTENCE === 'redis'
     url: MONGO_URL
   })
 
-function startAedes () {
+async function startAedes () {
   const port = 1883
 
-  const aedes = Aedes({
+  const aedes = await Aedes.createBroker({
     id: 'BROKER_' + cluster.worker.id,
     mq,
     persistence

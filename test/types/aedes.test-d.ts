@@ -6,18 +6,14 @@ import type {
   Client,
   Connection
 } from '../../aedes'
-import Aedes, { AedesOptions, createBroker } from '../../aedes'
+import { Aedes } from '../../aedes'
 import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet'
 import { expectType } from 'tsd'
 
-// Test for createBroker function
-expectType<(options?: AedesOptions) => Aedes>(createBroker)
-
 // Aedes server
-let broker = createBroker()
-expectType<Aedes>(broker)
+expectType<Promise<Aedes>>(Aedes.createBroker())
 
-broker = new Aedes({
+const broker = new Aedes({
   id: 'aedes',
   concurrency: 100,
   heartbeatInterval: 60000,

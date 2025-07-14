@@ -56,8 +56,8 @@ Check the [Docker docs](https://github.com/moscajs/aedes-cli#docker)
 
 ## API
 
-- [Aedes object](./docs/Aedes.md)
-- [Client object](./docs/Client.md)
+- [Aedes class](./docs/Aedes.md)
+- [Client class](./docs/Client.md)
 
 ## Features
 
