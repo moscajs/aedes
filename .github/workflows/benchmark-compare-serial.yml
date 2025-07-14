@@ -21,7 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.nodeVersion }}
-          cache: npm
 
       # Run benchmark on main branch
       - name: Checkout main branch
