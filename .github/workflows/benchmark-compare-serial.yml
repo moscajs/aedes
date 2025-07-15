@@ -56,6 +56,5 @@ jobs:
         shell: bash
         run: |
           cat results.main.csv results.branch.csv | node main-source/benchmarks/report.js >> $GITHUB_STEP_SUMMARY
-          exit $?
 
      
