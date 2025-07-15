@@ -4,9 +4,13 @@
 ## Simple plain MQTT server
 
 ```js
-const aedes = require('aedes')()
-const server = require('net').createServer(aedes.handle)
+
+const { Aedes } = require('aedes')
+const { createServer } = require('net')
+
+const aedes = await Aedes.createBroker()
 const port = 1883
+const server = createServer(aedes.handle)
 
 server.listen(port, function () {
   console.log('server started and listening on port ', port)
@@ -21,7 +25,7 @@ import { createServer } from 'net'
 
 const port = 1883
 
-const aedes = new Aedes()
+const aedes = await Aedes.createBroker()
 const server = createServer(aedes.handle)
 
 server.listen(port, function () {
@@ -32,10 +36,11 @@ server.listen(port, function () {
 ## Simple plain MQTT server using server-factory
 
 ```js
-const aedes = require('aedes')()
+const { Aedes } = require('aedes')
 const { createServer } = require('aedes-server-factory')
 const port = 1883
 
+const aedes = await Aedes.createBroker()
 const server = createServer(aedes)
 
 server.listen(port, function () {
@@ -47,14 +52,14 @@ server.listen(port, function () {
 
 ```js
 const fs = require('fs')
-const aedes = require('aedes')()
+const { Aedes } = require('aedes')
 const port = 8883
 
 const options = {
   key: fs.readFileSync('YOUR_PRIVATE_KEY_FILE.pem'),
   cert: fs.readFileSync('YOUR_PUBLIC_CERT_FILE.pem')
 }
-
+const aedes = await Aedes.createBroker()
 const server = require('tls').createServer(options, aedes.handle)
 
 server.listen(port, function () {
@@ -65,11 +70,13 @@ server.listen(port, function () {
 ## MQTT server over WebSocket
 
 ```js
-const aedes = require('aedes')()
-const httpServer = require('http').createServer()
+const { Aedes } = require('aedes')
+const { createServer } require('http')
 const ws = require('ws')
 const port = 8888
 
+const aedes = await Aedes.createBroker()
+const httpServer = createServer()
 const wss = new ws.WebSocketServer({
   server:httpServer
 })
@@ -87,10 +94,11 @@ httpServer.listen(port, function () {
 ## MQTT server over WebSocket using server-factory
 
 ```js
-const aedes = require('aedes')()
+const { Aedes } = require('aedes')
 const { createServer } = require('aedes-server-factory')
 const port = 8888
 
+const aedes = await Aedes.createBroker()
 const httpServer = createServer(aedes, { ws: true })
 
 httpServer.listen(port, function () {

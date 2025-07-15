@@ -4,7 +4,6 @@ const duplexify = require('duplexify')
 const mqtt = require('mqtt-connection')
 const { through } = require('../lib/utils')
 const util = require('util')
-const aedes = require('../')
 
 const parseStream = mqtt.parseStream
 const generateStream = mqtt.generateStream
@@ -14,8 +13,6 @@ function setup (broker) {
   const inStream = generateStream()
   const outStream = parseStream()
   const conn = duplexify(outStream, inStream)
-
-  broker = broker || aedes()
 
   return {
     client: broker.handle(conn),
