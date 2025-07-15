@@ -4,12 +4,13 @@ import path from 'node:path'
 const gitBranch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
 const numCores = cpus().length
 const cpuType = cpus()[0].model.trim()
+const dirname = import.meta.dirname
 
 const scripts = {
-  server: path.join(__dirname, 'server.js'),
-  sender: path.join(__dirname, 'sender.js'),
-  receiver: path.join(__dirname, 'receiver.js'),
-  pingpong: path.join(__dirname, 'pingpong.js'),
+  server: path.join(dirname, 'server.js'),
+  sender: path.join(dirname, 'sender.js'),
+  receiver: path.join(dirname, 'receiver.js'),
+  pingpong: path.join(dirname, 'pingpong.js'),
 }
 
 function spawn (script, cmdArgs = [], msgType = 'rate', args = {}) {
