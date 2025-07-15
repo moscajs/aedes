@@ -1,0 +1,60 @@
+name: "Benchmark Report"
+
+description: "Runs benchmarks and posts or updates a sticky PR comment with the results."
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    env: 
+      nodeVersion: 20
+      mainRef: "main"
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.nodeVersion }}
+
+      # Run benchmark on main branch
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.mainRef }}
+          path: main-source
+
+      - name: Install dependencies (main)
+        run: npm install --ignore-scripts
+        working-directory: main-source
+
+      - name: Run benchmark on main
+        run: node benchmarks/runBenchmarks.js > ../results.main.csv
+        working-directory: main-source
+
+      # Run benchmark on PR branch
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          path: pr-source
+
+      - name: Install dependencies (PR)
+        run: npm install --ignore-scripts
+        working-directory: pr-source
+
+      - name: Run benchmark on PR branch
+        run: node benchmarks/runBenchmarks.js > ../results.branch.csv
+        working-directory: pr-source
+
+      # Generate the report
+      - name: Generate report
+        shell: bash
+        run: |
+          cat results.main.csv results.branch.csv | node main-source/benchmarks/report.js >> $GITHUB_STEP_SUMMARY
+
+     
