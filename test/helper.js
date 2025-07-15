@@ -1,15 +1,13 @@
-'use strict'
-
-const duplexify = require('duplexify')
-const mqtt = require('mqtt-connection')
-const { through } = require('../lib/utils')
-const util = require('util')
+import duplexify from 'duplexify'
+import mqtt from 'mqtt-connection'
+import { through } from '../lib/utils.js'
+import util from 'util'
 
 const parseStream = mqtt.parseStream
 const generateStream = mqtt.generateStream
 let clients = 0
 
-function setup (broker) {
+export function setup (broker) {
   const inStream = generateStream()
   const outStream = parseStream()
   const conn = duplexify(outStream, inStream)
@@ -23,7 +21,7 @@ function setup (broker) {
   }
 }
 
-function connect (s, opts, connected) {
+export function connect (s, opts, connected) {
   s = Object.create(s)
   s.outStream = s.outStream.pipe(through(filter))
 
@@ -57,7 +55,7 @@ function connect (s, opts, connected) {
   }
 }
 
-function noError (s, t) {
+export function noError (s, t) {
   s.broker.on('clientError', function (client, err) {
     if (err) throw err
     t.notOk(err, 'must not error')
@@ -66,7 +64,7 @@ function noError (s, t) {
   return s
 }
 
-function subscribe (t, subscriber, topic, qos, done) {
+export function subscribe (t, subscriber, topic, qos, done) {
   subscriber.inStream.write({
     cmd: 'subscribe',
     messageId: 24,
@@ -88,7 +86,7 @@ function subscribe (t, subscriber, topic, qos, done) {
 }
 
 // subs: [{topic:, qos:}]
-function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
+export function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
   subscriber.inStream.write({
     cmd: 'subscribe',
     messageId: 24,
@@ -106,11 +104,4 @@ function subscribeMultiple (t, subscriber, subs, expectedGranted, done) {
   })
 }
 
-module.exports = {
-  setup,
-  connect,
-  noError,
-  subscribe,
-  subscribeMultiple,
-  delay: util.promisify(setTimeout)
-}
+export const delay = util.promisify(setTimeout)

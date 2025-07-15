@@ -1,9 +1,7 @@
-'use strict'
-
-const { test } = require('tap')
-const { setup, connect, subscribe } = require('./helper')
-const { Aedes } = require('../')
-const { validateTopic } = require('../lib/utils')
+import { test } from 'tap'
+import { setup, connect, subscribe } from './helper.js'
+import { Aedes } from '../aedes.js'
+import { validateTopic } from '../lib/utils.js'
 
 test('validation of `null` topic', function (t) {
   // issue #780

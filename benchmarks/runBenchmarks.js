@@ -1,7 +1,6 @@
-const { fork, execSync } = require('node:child_process')
-const { cpus } = require('node:os')
-const path = require('node:path')
-
+import { fork, execSync } from 'node:child_process'
+import { cpus } from 'node:os'
+import path from 'node:path'
 const gitBranch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
 const numCores = cpus().length
 const cpuType = cpus()[0].model.trim()

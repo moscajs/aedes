@@ -1,7 +1,6 @@
 #! /usr/bin/env node
 
-const readline = require('readline')
-
+import readline from 'readline'
 // if any average is more than threshold% off we exit with 1
 const threshold = 10
 let failed = false

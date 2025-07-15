@@ -203,10 +203,11 @@ Emitted when server is closed.
 A connection listener that pipe stream to aedes.
 
 ```js
-const { Aedes } = require('/aedes')
-const aedes = await Aedes.createBroker()
+import { createServer } from 'node:net'
+import { Aedes } from 'aedes'
 
-const server = require('net').createServer(aedes.handle)
+const aedes = await Aedes.createBroker()
+const server = createServer(aedes.handle)
 ```
 
 ## aedes.subscribe (topic, deliverfunc, callback)

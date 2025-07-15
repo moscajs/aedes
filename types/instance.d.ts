@@ -1,6 +1,6 @@
 import { Duplex } from 'node:stream'
 import { Socket } from 'node:net'
-import { IncomingMessage } from 'http'
+import { IncomingMessage } from 'node:http'
 import { Client } from './client'
 import type {
   AedesPublishPacket,

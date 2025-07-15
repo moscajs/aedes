@@ -2,17 +2,21 @@
   "name": "aedes_clusters",
   "version": "1.0.0",
   "description": "Testing Aedes Broker with clusters",
-  "main": "index.js",
+  "type": "module",
+  "exports": "./index.js",
+  "engines": {
+		"node": ">=20"
+	},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "robertsLando",
   "license": "MIT",
   "dependencies": {
-    "aedes": "^0.48.1",
-    "aedes-persistence-mongodb": "^9.1.0",
-    "aedes-persistence-redis": "^9.0.1",
-    "mqemitter-mongodb": "^8.1.0",
-    "mqemitter-redis": "^5.0.0"
+    "aedes": "^0.51.3",
+    "aedes-persistence-mongodb": "^9.3.1",
+    "aedes-persistence-redis": "^11.2.1",
+    "mqemitter-mongodb": "^9.0.1",
+    "mqemitter-redis": "^7.1.0"
   }
 }

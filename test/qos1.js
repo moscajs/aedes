@@ -1,10 +1,10 @@
-'use strict'
+import { test } from 'tap'
+import concat from 'concat-stream'
+import { setup, connect, subscribe } from './helper.js'
+import Faketimers from '@sinonjs/fake-timers'
+import { Aedes } from '../aedes.js'
+import { through } from '../lib/utils.js'
 
-const { test } = require('tap')
-const concat = require('concat-stream')
-const { setup, connect, subscribe } = require('./helper')
-const Faketimers = require('@sinonjs/fake-timers')
-const { Aedes } = require('../')
 const noop = () => {}
 
 test('publish QoS 1', function (t) {
@@ -540,7 +540,6 @@ test('resend many publish on non-clean reconnect QoS 1', function (t) {
     const opts = { clean: false, clientId: 'abcde' }
     let subscriber = connect(setup(broker), opts)
     const publisher = connect(setup(broker))
-    const { through } = require('../lib/utils')
     const total = through().writableHighWaterMark * 2
 
     let received = 0

@@ -1,11 +1,9 @@
-'use strict'
-
-const { test } = require('tap')
-const eos = require('end-of-stream')
-const Faketimers = require('@sinonjs/fake-timers')
-const Client = require('../lib/client')
-const { setup, connect, noError, subscribe, subscribeMultiple } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import eos from 'end-of-stream'
+import Faketimers from '@sinonjs/fake-timers'
+import Client from '../lib/client.js'
+import { setup, connect, noError, subscribe, subscribeMultiple } from './helper.js'
+import { Aedes } from '../aedes.js'
 
 test('authenticate successfully a client with username and password', function (t) {
   t.plan(4)

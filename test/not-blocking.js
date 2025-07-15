@@ -1,11 +1,9 @@
-'use strict'
-
-const { test } = require('tap')
-const EventEmitter = require('events')
-const mqtt = require('mqtt')
-const net = require('net')
-const Faketimers = require('@sinonjs/fake-timers')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import EventEmitter from 'node:events'
+import mqtt from 'mqtt'
+import net from 'net'
+import Faketimers from '@sinonjs/fake-timers'
+import { Aedes } from '../aedes.js'
 
 test('connect 500 concurrent clients', function (t) {
   t.plan(3)

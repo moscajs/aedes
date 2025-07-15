@@ -1,11 +1,9 @@
-'use strict'
+import { Aedes } from '../aedes.js'
+import { createServer } from 'net'
 
 // To be used with cpuprofilify http://npm.im/cpuprofilify
-
-const { Aedes } = require('../')
-
 Aedes.createBroker().then(aedes => {
-  const server = require('net').createServer(aedes.handle)
+  const server = createServer(aedes.handle)
   const port = 1883
 
   server.listen(port, function () {

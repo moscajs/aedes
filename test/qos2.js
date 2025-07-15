@@ -1,9 +1,8 @@
-'use strict'
-
-const { test } = require('tap')
-const concat = require('concat-stream')
-const { setup, connect, subscribe } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import concat from 'concat-stream'
+import { setup, connect, subscribe } from './helper.js'
+import { Aedes } from '../aedes.js'
+import handle from '../lib/handlers/pubrec.js'
 
 function publish (t, s, packet, done) {
   const msgId = packet.messageId
@@ -154,8 +153,6 @@ test('pubrec handler calls done when outgoingUpdate fails (clean=false)', functi
   Aedes.createBroker().then((broker) => {
     const s = connect(setup(broker), { clean: false })
     t.teardown(s.broker.close.bind(s.broker))
-
-    const handle = require('../lib/handlers/pubrec.js')
 
     s.broker.persistence.outgoingUpdate = async () => {
       throw Error('throws error')

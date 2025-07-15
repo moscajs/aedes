@@ -1,10 +1,8 @@
-'use strict'
-
-const { test } = require('tap')
-const memory = require('aedes-persistence')
-const Faketimers = require('@sinonjs/fake-timers')
-const { setup, connect, noError, delay } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import memory from 'aedes-persistence'
+import Faketimers from '@sinonjs/fake-timers'
+import { setup, connect, noError, delay } from './helper.js'
+import { Aedes } from '../aedes.js'
 
 async function memorySetup (opts) {
   const persistence = memory()

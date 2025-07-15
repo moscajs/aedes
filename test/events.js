@@ -1,9 +1,9 @@
-'use strict'
-
-const { test } = require('tap')
-const mqemitter = require('mqemitter')
-const { setup, connect, subscribe } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import mqemitter from 'mqemitter'
+import { setup, connect, subscribe } from './helper.js'
+import { Aedes } from '../aedes.js'
+import mqtt from 'mqtt'
+import { createServer } from 'node:net'
 
 test('publishes an hearbeat', function (t) {
   t.plan(2)
@@ -203,8 +203,7 @@ test('Test backpressure aedes published function', function (t) {
       } else { done() }
     }
   }).then((broker) => {
-    const mqtt = require('mqtt')
-    const server = require('net').createServer(broker.handle)
+    const server = createServer(broker.handle)
 
     server.listen(0, function () {
       const port = server.address().port

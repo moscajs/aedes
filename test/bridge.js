@@ -1,8 +1,6 @@
-'use strict'
-
-const { test } = require('tap')
-const { setup, connect, subscribe } = require('./helper')
-const { Aedes } = require('../aedes.js')
+import { test } from 'tap'
+import { setup, connect, subscribe } from './helper.js'
+import { Aedes } from '../aedes.js'
 
 for (const qos of [0, 1, 2]) {
   const packet = {

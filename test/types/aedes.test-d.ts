@@ -5,8 +5,8 @@ import type {
   AuthenticateError,
   Client,
   Connection
-} from '../../aedes'
-import { Aedes } from '../../aedes'
+} from '../../aedes.js'
+import { Aedes } from '../../aedes.js'
 import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet'
 import { expectType } from 'tsd'
 
