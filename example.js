@@ -1,9 +1,7 @@
-'use strict'
-
-const net = require('node:net')
-const http = require('node:http')
-const { Aedes } = require('./aedes')
-const ws = require('ws')
+import net from 'node:net'
+import http from 'node:http'
+import { Aedes } from './aedes.js'
+import ws from 'ws'
 
 const port = 1883
 const wsPort = 8888

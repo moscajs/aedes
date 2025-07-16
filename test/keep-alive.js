@@ -1,10 +1,8 @@
-'use strict'
-
-const { test } = require('tap')
-const eos = require('end-of-stream')
-const Faketimers = require('@sinonjs/fake-timers')
-const { setup, connect, noError } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import eos from 'end-of-stream'
+import Faketimers from '@sinonjs/fake-timers'
+import { setup, connect, noError } from './helper.js'
+import { Aedes } from '../aedes.js'
 
 test('supports pingreq/pingresp', function (t) {
   t.plan(1)

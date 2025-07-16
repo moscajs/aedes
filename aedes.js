@@ -1,16 +1,15 @@
-'use strict'
-
-const EventEmitter = require('events')
-const parallel = require('fastparallel')
-const series = require('fastseries')
-const { v4: uuidv4 } = require('uuid')
-const reusify = require('reusify')
-const { pipeline } = require('stream')
-const Packet = require('aedes-packet')
-const memory = require('aedes-persistence')
-const mqemitter = require('mqemitter')
-const Client = require('./lib/client')
-const { $SYS_PREFIX, bulk } = require('./lib/utils')
+import EventEmitter from 'node:events'
+import parallel from 'fastparallel'
+import series from 'fastseries'
+import { v4 as uuidv4 } from 'uuid'
+import reusify from 'reusify'
+import { pipeline } from 'stream'
+import Packet from 'aedes-packet'
+import memory from 'aedes-persistence'
+import mqemitter from 'mqemitter'
+import Client from './lib/client.js'
+import { $SYS_PREFIX, bulk } from './lib/utils.js'
+import pkg from './package.json' with { type: 'json' }
 
 const defaultOptions = {
   concurrency: 100,
@@ -29,10 +28,9 @@ const defaultOptions = {
   maxClientsIdLength: 23,
   keepaliveLimit: 0
 }
+const version = pkg.version
 
-const version = require('./package.json').version
-
-class Aedes extends EventEmitter {
+export class Aedes extends EventEmitter {
   constructor (opts) {
     super()
     const that = this
@@ -412,6 +410,4 @@ function warnMigrate () {
  `)
 }
 
-module.exports = warnMigrate
-module.exports.createBroker = Aedes.createBroker
-module.exports.Aedes = Aedes
+export default warnMigrate

@@ -1,9 +1,7 @@
-'use strict'
-
-const { test } = require('tap')
-const Faketimers = require('@sinonjs/fake-timers')
-const { setup, connect, subscribe, noError } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import Faketimers from '@sinonjs/fake-timers'
+import { setup, connect, subscribe, noError } from './helper.js'
+import { Aedes } from '../aedes.js'
 
 // [MQTT-3.3.1-9]
 test('live retain packets', function (t) {

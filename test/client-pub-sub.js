@@ -1,8 +1,6 @@
-'use strict'
-
-const { test } = require('tap')
-const { setup, connect, subscribe, noError } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import { setup, connect, subscribe, noError } from './helper.js'
+import { Aedes } from '../aedes.js'
 
 test('publish direct to a single client QoS 0', function (t) {
   t.plan(2)

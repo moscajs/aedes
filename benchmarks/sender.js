@@ -1,8 +1,7 @@
 #! /usr/bin/env node
 
-const mqtt = require('mqtt')
-const { parseArgs } = require('node:util')
-
+import mqtt from 'mqtt'
+import { parseArgs } from 'node:util'
 const interval = 5000
 
 let sent = 0

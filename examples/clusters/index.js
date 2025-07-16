@@ -1,27 +1,32 @@
-const cluster = require('cluster')
-const { Aedes } = require('aedes')
-const { createServer } = require('net')
-const { cpus } = require('os')
+import cluster from 'node:cluster'
+import { createServer } from 'node:net'
+import { cpus } from 'node:os'
+import { Aedes } from '../../aedes.js'
 const MONGO_URL = 'mongodb://127.0.0.1/aedes-clusters'
 
-const mq = process.env.MQ === 'redis'
-  ? require('mqemitter-redis')({
-    port: process.env.REDIS_PORT || 6379
-  })
-  : require('mqemitter-mongodb')({
-    url: MONGO_URL
-  })
-
-const persistence = process.env.PERSISTENCE === 'redis'
-  ? require('aedes-persistence-redis')({
-    port: process.env.REDIS_PORT || 6379
-  })
-  : require('aedes-persistence-mongodb')({
-    url: MONGO_URL
-  })
+async function importAndCall (mod, params) {
+  const imported = await import(mod)
+  return imported.default(params)
+}
 
 async function startAedes () {
   const port = 1883
+
+  const mq = process.env.MQ === 'redis'
+    ? await importAndCall('mqemitter-redis', {
+      port: process.env.REDIS_PORT || 6379
+    })
+    : await importAndCall('mqemitter-mongodb', {
+      url: MONGO_URL
+    })
+
+  const persistence = process.env.PERSISTENCE === 'redis'
+    ? await importAndCall('aedes-persistence-redis', {
+      port: process.env.REDIS_PORT || 6379
+    })
+    : await importAndCall('aedes-persistence-mongodb', {
+      url: MONGO_URL
+    })
 
   const aedes = await Aedes.createBroker({
     id: 'BROKER_' + cluster.worker.id,
@@ -43,12 +48,12 @@ async function startAedes () {
 
   aedes.on('subscribe', function (subscriptions, client) {
     console.log('MQTT client \x1b[32m' + (client ? client.id : client) +
-            '\x1b[0m subscribed to topics: ' + subscriptions.map(s => s.topic).join('\n'), 'from broker', aedes.id)
+      '\x1b[0m subscribed to topics: ' + subscriptions.map(s => s.topic).join('\n'), 'from broker', aedes.id)
   })
 
   aedes.on('unsubscribe', function (subscriptions, client) {
     console.log('MQTT client \x1b[32m' + (client ? client.id : client) +
-            '\x1b[0m unsubscribed to topics: ' + subscriptions.join('\n'), 'from broker', aedes.id)
+      '\x1b[0m unsubscribed to topics: ' + subscriptions.join('\n'), 'from broker', aedes.id)
   })
 
   // fired when a client connects

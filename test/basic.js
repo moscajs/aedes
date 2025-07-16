@@ -1,11 +1,8 @@
-'use strict'
-
-const { test } = require('tap')
-const eos = require('end-of-stream')
-const { setup, connect, subscribe, subscribeMultiple, noError } = require('./helper')
-const { Aedes } = require('../')
-const defaultExport = require('../')
-const proxyquire = require('proxyquire')
+import { test } from 'tap'
+import eos from 'end-of-stream'
+import { setup, connect, subscribe, subscribeMultiple, noError } from './helper.js'
+import defaultExport, { Aedes } from '../aedes.js'
+import write from '../lib/write.js'
 
 test('test Aedes constructor', function (t) {
   t.plan(1)
@@ -193,17 +190,10 @@ test('publish to $SYS topic throws error', function (t) {
 test('return write errors to callback', function (t) {
   t.plan(1)
 
-  const write = proxyquire('../lib/write.js', {
-    'mqtt-packet': {
-      writeToStream: () => {
-        throw Error('error')
-      }
-    }
-  })
-
   const client = {
     conn: {
-      writable: true
+      writable: true,
+      write: () => { throw new Error('error') }
     },
     connecting: true
   }

@@ -1,9 +1,9 @@
-'use strict'
-
-const { test } = require('tap')
-const EventEmitter = require('events')
-const { setup, connect, subscribe } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import EventEmitter from 'node:events'
+import { setup, connect, subscribe } from './helper.js'
+import { Aedes } from '../aedes.js'
+import mqtt from 'mqtt'
+import { createServer } from 'node:net'
 
 test('aedes is closed before client authenticate returns', function (t) {
   t.plan(1)
@@ -127,8 +127,6 @@ test('close client when its socket is closed', function (t) {
 
 test('multiple clients subscribe same topic, and all clients still receive message except the closed one', function (t) {
   t.plan(5)
-
-  const mqtt = require('mqtt')
   Aedes.createBroker().then((broker) => {
     let client2
 
@@ -138,7 +136,7 @@ test('multiple clients subscribe same topic, and all clients still receive messa
       server.close()
     })
 
-    const server = require('net').createServer(broker.handle)
+    const server = createServer(broker.handle)
     const port = 1883
     server.listen(port)
     broker.on('clientError', function (client, err) {

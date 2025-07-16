@@ -4,12 +4,12 @@
 ## Simple plain MQTT server
 
 ```js
+import { createServer } from 'node:net'
+import Aedes from 'aedes'
 
-const { Aedes } = require('aedes')
-const { createServer } = require('net')
+const port = 1883
 
 const aedes = await Aedes.createBroker()
-const port = 1883
 const server = createServer(aedes.handle)
 
 server.listen(port, function () {
@@ -17,15 +17,14 @@ server.listen(port, function () {
 })
 ```
 
-## Typescript
+## CommonJS
 
-```ts
-import Aedes from 'aedes'
-import { createServer } from 'net'
-
-const port = 1883
+```js
+const { createServer } = require('node:net')
+const { Aedes } = require('aedes')
 
 const aedes = await Aedes.createBroker()
+const port = 1883
 const server = createServer(aedes.handle)
 
 server.listen(port, function () {
@@ -36,8 +35,8 @@ server.listen(port, function () {
 ## Simple plain MQTT server using server-factory
 
 ```js
-const { Aedes } = require('aedes')
-const { createServer } = require('aedes-server-factory')
+import { Aedes } from 'aedes'
+import { createServer } from 'aedes-server-factory'
 const port = 1883
 
 const aedes = await Aedes.createBroker()
@@ -51,16 +50,18 @@ server.listen(port, function () {
 ## MQTT over TLS / MQTTS
 
 ```js
-const fs = require('fs')
-const { Aedes } = require('aedes')
+import { createServer } from 'node:tls'
+import { readFileSync } from 'node:fs'
+import { Aedes } from 'aedes'
+
 const port = 8883
 
 const options = {
-  key: fs.readFileSync('YOUR_PRIVATE_KEY_FILE.pem'),
-  cert: fs.readFileSync('YOUR_PUBLIC_CERT_FILE.pem')
+  key: readFileSync('YOUR_PRIVATE_KEY_FILE.pem'),
+  cert: readFileSync('YOUR_PUBLIC_CERT_FILE.pem')
 }
 const aedes = await Aedes.createBroker()
-const server = require('tls').createServer(options, aedes.handle)
+const server = createServer(options, aedes.handle)
 
 server.listen(port, function () {
   console.log('server started and listening on port ', port)
@@ -70,19 +71,20 @@ server.listen(port, function () {
 ## MQTT server over WebSocket
 
 ```js
-const { Aedes } = require('aedes')
-const { createServer } require('http')
-const ws = require('ws')
+import { createServer } from 'node:http'
+import { Aedes } from 'aedes'
+import { WebSocketServer, createWebSocketStream } from 'ws'
+
 const port = 8888
 
 const aedes = await Aedes.createBroker()
 const httpServer = createServer()
-const wss = new ws.WebSocketServer({
+const wss = new WebSocketServer({
   server:httpServer
 })
 
 wss.on('connection', (websocket, req) => {
-  const stream = ws.createWebSocketStream(websocket)
+  const stream = createWebSocketStream(websocket)
   aedes.handle(stream, req)
 })
 
@@ -94,8 +96,8 @@ httpServer.listen(port, function () {
 ## MQTT server over WebSocket using server-factory
 
 ```js
-const { Aedes } = require('aedes')
-const { createServer } = require('aedes-server-factory')
+import { Aedes } from 'aedes'
+import { createServer } from 'aedes-server-factory'
 const port = 8888
 
 const aedes = await Aedes.createBroker()

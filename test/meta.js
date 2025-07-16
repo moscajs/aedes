@@ -1,8 +1,8 @@
-'use strict'
-
-const { test } = require('tap')
-const { setup, connect, subscribe, noError } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import { setup, connect, subscribe, noError } from './helper.js'
+import { Aedes } from '../aedes.js'
+import pkg from '../package.json' with { type: 'json' }
+const version = pkg.version
 
 test('count connected clients', function (t) {
   t.plan(4)
@@ -298,7 +298,7 @@ test('get aedes version', function (t) {
   Aedes.createBroker().then((broker) => {
     t.teardown(broker.close.bind(broker))
 
-    t.equal(broker.version, require('../package.json').version)
+    t.equal(broker.version, version)
   })
 })
 

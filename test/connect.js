@@ -1,11 +1,11 @@
-'use strict'
-
-const { test } = require('tap')
-const http = require('http')
-const ws = require('ws')
-const mqtt = require('mqtt')
-const { setup, connect, delay } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import http from 'node:http'
+import { WebSocketServer, createWebSocketStream } from 'ws'
+import mqtt from 'mqtt'
+import { setup, connect, delay } from './helper.js'
+import { Aedes } from '../aedes.js'
+import handleConnect from '../lib/handlers/connect.js'
+import handle from '../lib/handlers/index.js'
 
 ;[{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }].forEach(function (ele) {
   test('connect and connack (minimal)', function (t) {
@@ -492,9 +492,6 @@ test('connect handler calls done when preConnect throws error', function (t) {
     t.teardown(broker.close.bind(broker))
 
     const s = setup(broker)
-
-    const handleConnect = require('../lib/handlers/connect')
-
     handleConnect(s.client, {}, function done (err) {
       t.equal(err.message, 'error in preconnect', 'calls done with error')
     })
@@ -508,8 +505,6 @@ test('handler calls done when disconnect or unknown packet cmd is received', fun
     t.teardown(broker.close.bind(broker))
 
     const s = setup(broker)
-
-    const handle = require('../lib/handlers/index')
 
     handle(s.client, { cmd: 'disconnect' }, function done () {
       t.pass('calls done when disconnect cmd is received')
@@ -762,12 +757,12 @@ test('websocket clients have access to the request object', function (t) {
     })
 
     const server = http.createServer()
-    const wss = new ws.WebSocketServer({
+    const wss = new WebSocketServer({
       server
     })
     wss.on('connection', (websocket, req) => {
       // websocket is a WebSocket, but aedes expects a stream.
-      const stream = ws.createWebSocketStream(websocket)
+      const stream = createWebSocketStream(websocket)
       broker.handle(stream, req)
     })
 

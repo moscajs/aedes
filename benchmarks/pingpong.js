@@ -1,8 +1,7 @@
 #! /usr/bin/env node
-const { parseArgs } = require('node:util')
-const { hrtime } = require('node:process')
-const mqtt = require('mqtt')
-
+import { parseArgs } from 'node:util'
+import { hrtime } from 'node:process'
+import mqtt from 'mqtt'
 const interval = 5000
 
 function processsLatencies (latencies, counter) {

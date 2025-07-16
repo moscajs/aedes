@@ -1,8 +1,6 @@
-'use strict'
-
-const { test } = require('tap')
-const { setup, connect } = require('./helper')
-const { Aedes } = require('../')
+import { test } from 'tap'
+import { setup, connect } from './helper.js'
+import { Aedes } from '../aedes.js'
 
 test('after an error, outstanding packets are discarded', function (t) {
   t.plan(1)
