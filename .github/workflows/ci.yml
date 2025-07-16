@@ -59,20 +59,14 @@ jobs:
       - name: Run tests
         run: |
           npm run test:ci
-
-      - name: Coveralls Parallel
-        uses: coverallsapp/github-action@master
+      
+      - name: Upload coverage reports to Codecov
+        if: matrix.node-version == '20.x'
+        uses: codecov/codecov-action@v5
         with:
-          github-token: ${{ secrets.github_token }}
-          parallel: true
-          flag-name: run-${{ matrix.node-version }}-${{ matrix.os }}
-
-  coverage:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
+          directory: ./coverage/
+          fail_ci_if_error: true
+          flags: unittests
+          name: codecov-aedes
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
