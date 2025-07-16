@@ -61,7 +61,7 @@ jobs:
           npm run test:ci
       
       - name: Upload coverage reports to Codecov
-        if: matrix.node-version == '20.x'
+        if: matrix.node-version == 20
         uses: codecov/codecov-action@v5
         with:
           directory: ./coverage/
