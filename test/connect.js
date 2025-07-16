@@ -116,7 +116,6 @@ test('reject clients that exceed the keepalive limit', function (t) {
       keepalive: 150
     })
     s.outStream.on('data', function (packet) {
-      console.log(packet)
       t.same(packet, {
         cmd: 'connack',
         returnCode: 6,

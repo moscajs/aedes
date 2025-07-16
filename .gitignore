@@ -52,5 +52,8 @@ test/typescript/*.map
 # test tap report
 out.tap
 
+# tap folder
+.tap
+
 # aedes examples
 shared-mqemitter

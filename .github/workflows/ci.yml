@@ -61,10 +61,11 @@ jobs:
           npm run test:ci
       
       - name: Upload coverage reports to Codecov
-        if: matrix.node-version == 20 && matrix.os == 'ubuntu-latest'
+        # only let the first job upload coverage info
+        if: strategy.job-index == 0
         uses: codecov/codecov-action@v5
         with:
-          directory: ./coverage/
+          directory: .tap/report
           fail_ci_if_error: true
           flags: unittests
           name: codecov-aedes
