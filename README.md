@@ -5,7 +5,7 @@
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/moscajs/aedes/graphs/commit-activity)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/moscajs/aedes/pulls)\
-[![Coverage Status](https://coveralls.io/repos/moscajs/aedes/badge.svg?branch=main&service=github)](https://coveralls.io/github/moscajs/aedes?branch=main)
+[![codecov](https://codecov.io/gh/moscajs/aedes/graph/badge.svg?token=6SdoJIgIjg)](https://codecov.io/gh/moscajs/aedes)
 [![Known Vulnerabilities](https://snyk.io/test/github/moscajs/aedes/badge.svg)](https://snyk.io/test/github/moscajs/aedes)\
 ![node](https://img.shields.io/node/v/aedes)
 [![NPM version](https://img.shields.io/npm/v/aedes.svg?style=flat)](https://www.npmjs.com/aedes)
@@ -22,6 +22,7 @@ Barebone MQTT server that can run on any stream servers
   - [Features](#features)
   - [Examples](#examples)
   - [Clusters](#clusters)
+  - [Bridge connections](#bridge-connections)
   - [Extensions](#extensions)
   - [Middleware Plugins](#middleware-plugins)
     - [Persistence](#persistence)
@@ -37,6 +38,7 @@ Barebone MQTT server that can run on any stream servers
   - [Made with Aedes](#made-with-aedes)
   - [Collaborators](#collaborators)
   - [Contribution](#contribution)
+  - [Security notice](#security-notice)
   - [Support](#support)
     - [Backers](#backers)
     - [Sponsors](#sponsors)
