@@ -1,6 +1,15 @@
-ts: false
-jsx: false
-flow: false
-coverage: true
-strict: true
-check-coverage: false
+# vim: set filetype=yaml :
+coverage-report:
+  - text
+allow-incomplete-coverage: true
+browser: false
+timeout: 60
+include:
+  - "**/@(test?(s)|__test?(s)__)/**/*.@(js|cjs|mjs|tap|cts|jsx|mts|ts|tsx)"
+  - "**/*.@(test?(s)|spec).@(js|cjs|mjs|tap|cts|jsx|mts|ts|tsx)"
+  - "**/test?(s).@(js|cjs|mjs|tap|cts|jsx|mts|ts|tsx)"
+exclude:
+  - "**/@(fixture*(s)|dist)/**"
+snapshot-clean-cwd: true
+color: true
+reporter: tap

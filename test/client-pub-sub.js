@@ -53,7 +53,7 @@ test('publish direct to a single client throws error', function (t) {
         qos: 1,
         retain: false
       }, function (err) {
-        t.pass('Throws error', err.message, 'throws error')
+        t.equal('Throws error', err.message, 'throws error')
       })
     })
 
@@ -80,7 +80,7 @@ test('publish direct to a single client throws error 2', function (t) {
       }, () => {})
 
       client.once('error', function (err) {
-        t.pass('Throws error', err.message, 'throws error')
+        t.equal('Throws error', err.message, 'throws error')
       })
     })
 
@@ -928,8 +928,8 @@ test('should not receive a message on negated subscription', function (t) {
     })
 
     broker.on('subscribe', function (subs) {
-      t.pass(subs.length, 1, 'Should dedupe subs')
-      t.pass(subs[0].qos, 128, 'Qos should be 128 (Fail)')
+      t.equal(subs.length, 1, 'Should dedupe subs')
+      t.equal(subs[0].qos, 128, 'Qos should be 128 (Fail)')
     })
 
     const s = connect(setup(broker))
