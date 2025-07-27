@@ -104,7 +104,7 @@ export async function createAndConnect (t, opts = {}) {
  * @returns {Object} Connection state with error handling
  */
 export function noError (s, t) {
-  s.broker.on('clientError', function (client, err) {
+  s.broker.on('clientError', (client, err) => {
     if (err) throw err
     t.assert.equal(err, undefined, 'must not error')
   })
