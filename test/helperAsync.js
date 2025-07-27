@@ -58,7 +58,9 @@ export async function connect (s, opts = {}) {
   connect.password = connect.password || 'my pass'
   connect.keepalive = connect.keepalive || 0
   const expectedReturnCode = opts.expectedReturnCode || 0
-  const verifyReturnedOk = opts.verifyReturnedOk !== false
+  const verifyIsConnack = opts.verifyIsConnack !== false
+  const verifyReturnedOk = verifyIsConnack ? opts.verifyReturnedOk !== false : false
+
   if (opts.autoClientId) {
     connect.clientId = 'my-client-' + clients++
   }
@@ -73,7 +75,7 @@ export async function connect (s, opts = {}) {
 
   s.inStream.write(connect)
   const { value: connack } = await s.outStream.next()
-  if (connack.cmd !== 'connack') {
+  if (verifyIsConnack && connack?.cmd !== 'connack') {
     throw new Error('Expected connack')
   }
   if (verifyReturnedOk && (connack.returnCode !== expectedReturnCode)) {
