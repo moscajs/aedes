@@ -69,7 +69,7 @@ test('publish QoS 0', async (t) => {
   }
 
   await new Promise(resolve => {
-    s.broker.mq.on('hello', function (packet, cb) {
+    s.broker.mq.on('hello', (packet, cb) => {
       expected.brokerId = s.broker.id
       expected.brokerCounter = s.broker.counter
       t.assert.equal(packet.messageId, undefined, 'MUST not contain a packet identifier in QoS 0')
@@ -217,7 +217,7 @@ test('return write errors to callback', async (t) => {
     connecting: true
   }
   await new Promise(resolve => {
-    write(client, {}, function (err) {
+    write(client, {}, err => {
       t.assert.equal(err.message, 'packet received not valid', 'should return the error to callback')
       resolve()
     })
@@ -368,7 +368,7 @@ test('unsubscribe', async (t) => {
       cmd: 'publish',
       topic: 'hello',
       payload: 'world'
-    }, function () {
+    }, () => {
       t.assert.ok(true, 'publish finished')
       resolve()
     })
