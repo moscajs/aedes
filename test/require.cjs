@@ -1,24 +1,22 @@
 // a test to see if CJS require still works
-
+const { test } = require('node:test')
 const { Aedes } = require('../aedes.js')
 const defaultExport = require('../aedes.js')
-const { test } = require('tap')
 
-test('test Aedes constructor', function (t) {
+test('test Aedes constructor', (t) => {
   t.plan(1)
   const aedes = new Aedes()
-  t.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
+  t.assert.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
 })
 
-test('test warning on default export', function (t) {
+test('test warning on default export', (t) => {
   t.plan(1)
-  t.throws(defaultExport, 'received expected error')
+  t.assert.throws(() => defaultExport(), 'received expected error')
 })
 
-test('test aedes.createBroker', (t) => {
+test('test aedes.createBroker', async (t) => {
   t.plan(1)
-  Aedes.createBroker().then((broker) => {
-    t.teardown(broker.close.bind(broker))
-    t.pass('Aedes.createBroker works')
-  })
+  const broker = await Aedes.createBroker()
+  t.after(() => broker.close())
+  t.assert.ok(true, 'Aedes.createBroker works')
 })
