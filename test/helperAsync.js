@@ -177,7 +177,7 @@ export async function subscribeMultiple (t, subscriber, subs, expectedGranted) {
  * @returns {Promise} Promise that rejects if timeout occurs
  */
 export async function withTimeout (promise, timeoutMs, timeoutResult) {
-  const timeoutPromise = delay(timeoutMs, timeoutResult, { ref: false })
+  const timeoutPromise = delay(timeoutMs, timeoutResult)
   return Promise.race([promise, timeoutPromise])
 }
 
