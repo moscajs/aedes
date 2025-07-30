@@ -5,12 +5,12 @@ import { Aedes } from '../aedes.js'
 
 let clients = 0
 
-export function setup (broker) {
+export function setup(broker) {
   const [client, server] = duplexPair()
   const inStream = new Transform(
     {
       objectMode: true,
-      transform (chunk, enc, callback) {
+      transform(chunk, enc, callback) {
         this.push(mqtt.generate(chunk))
         callback()
       }
@@ -47,7 +47,7 @@ export function setup (broker) {
  * @returns {Object} the connack packet
  */
 
-export async function connect (s, opts = {}) {
+export async function connect(s, opts = {}) {
   const connect = opts.connect || {}
   connect.cmd = 'connect'
   connect.protocolId = connect.protocolId || 'MQTT'
@@ -89,7 +89,7 @@ export async function connect (s, opts = {}) {
  * @param {Object} t - Test assertion object
  * @returns {Object} Connection state
  */
-export async function createAndConnect (t, opts = {}) {
+export async function createAndConnect(t, opts = {}) {
   const broker = await Aedes.createBroker(opts.broker)
   t.after(() => broker.close())
   const s = setup(broker)
@@ -103,7 +103,7 @@ export async function createAndConnect (t, opts = {}) {
  * @param {Object} t - Test assertion object
  * @returns {Object} Connection state with error handling
  */
-export function noError (s, t) {
+export function noError(s, t) {
   s.broker.on('clientError', (client, err) => {
     if (err) throw err
     t.assert.equal(err, undefined, 'must not error')
@@ -116,7 +116,7 @@ export function noError (s, t) {
  * @param {Object} packet - The packet to publish
  * @returns {Promise}     - Promise that resolves when the packet is published
  */
-export async function brokerPublish (s, packet) {
+export async function brokerPublish(s, packet) {
   return new Promise((resolve) => {
     s.broker.publish(packet, () => {
       setImmediate(resolve)
@@ -131,7 +131,7 @@ export async function brokerPublish (s, packet) {
  * @param {string} topic - Topic to subscribe to
  * @param {number} qos - Quality of Service level
  */
-export async function subscribe (t, subscriber, topic, qos) {
+export async function subscribe(t, subscriber, topic, qos) {
   subscriber.inStream.write({
     cmd: 'subscribe',
     messageId: 24,
@@ -155,7 +155,7 @@ export async function subscribe (t, subscriber, topic, qos) {
  * @param {Array<Object>} subs - Array of subscription objects with topic and qos
  * @param {Array<number>} expectedGranted - Expected QoS levels granted
  */
-export async function subscribeMultiple (t, subscriber, subs, expectedGranted) {
+export async function subscribeMultiple(t, subscriber, subs, expectedGranted) {
   subscriber.inStream.write({
     cmd: 'subscribe',
     messageId: 24,
@@ -176,7 +176,7 @@ export async function subscribeMultiple (t, subscriber, subs, expectedGranted) {
  * @param {Error} err - Error to throw on timeout
  * @returns {Promise} Promise that rejects if timeout occurs
  */
-export async function withTimeout (promise, timeoutMs, timeoutResult) {
+export async function withTimeout(promise, timeoutMs, timeoutResult) {
   const timeoutPromise = delay(timeoutMs, timeoutResult)
   return Promise.race([promise, timeoutPromise])
 }
@@ -187,7 +187,7 @@ export async function withTimeout (promise, timeoutMs, timeoutResult) {
  * @param {Object} opts - low and high water mark
  * @returns {AsyncGenerator} An async generator that yields MQTT packets
  */
-async function * packetGenerator (parser, sourceStream, opts = {
+async function* packetGenerator(parser, sourceStream, opts = {
   highWaterMark: 2,
   lowWaterMark: 0
 }) {
@@ -199,11 +199,11 @@ async function * packetGenerator (parser, sourceStream, opts = {
     throw new Error('lowWaterMark must be a non-negative integer')
   }
   if (lowWaterMark >= highWaterMark) {
-    throw new Error('lowWaterMark must be less than or equal to highWaterMark')
+    throw new Error('lowWaterMark must be less than highWaterMark')
   }
   const queue = []
   let waiting = null
-  const done = null
+  let done = false
 
   const onPacket = packet => {
     if (waiting) {
@@ -228,6 +228,7 @@ async function * packetGenerator (parser, sourceStream, opts = {
     if (value) {
       queue.push(value)
     }
+    done = true
   }
   sourceStream.on('error', (err) => endGeneration(err))
   sourceStream.on('end', () => endGeneration(null))
@@ -258,13 +259,39 @@ async function * packetGenerator (parser, sourceStream, opts = {
   }
 }
 
-export async function nextPacket (s) {
+/**
+ * Reads next packet from subscriber
+ * @param {Object} s - The connection state object
+ * @returns 
+ */
+export async function nextPacket(s) {
   const { value: packet } = await s.outStream.next()
   return packet
 }
 
-export async function nextPacketWithTimeOut (s, timeoutMs) {
+/**
+ * Reads next packet from subscriber with timeout
+ * @param {Object} s - The connection state object
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns
+ */
+export async function nextPacketWithTimeOut(s, timeoutMs) {
   return withTimeout(nextPacket(s), timeoutMs, null)
 }
 
+/**
+ * Checks if there is no packet received within the specified timeout
+ * @param {Object} t - Test assertion object
+ * @param {Object} s - s The connection state object
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @returns
+ */
+export async function checkNoPacket(t, s, timeoutMs = 10) {
+  const result = await nextPacketWithTimeOut(s, timeoutMs)
+  t.assert.equal(result, null, 'no packet received')
+}
+
+/**
+ * sleep
+ */
 export { delay }

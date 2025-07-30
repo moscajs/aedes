@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import {
   createAndConnect,
   subscribe,
-  // nextPacketWithTimeOut
+  checkNoPacket
 } from './helperAsync.js'
 
 for (const qos of [0, 1, 2]) {
@@ -33,6 +33,7 @@ for (const qos of [0, 1, 2]) {
   })
 
   // the next test will only work once mqtt-packet/writeToStream.js supports protocolVersion: 128 + 4
+  // TODO: fix mqtt-packet/writeToStream.js and then enable this test
 
   // test('bridge client sends a publish message but shall not receive it back, qos = ' + qos, async (t) => {
   //   t.plan(4)
@@ -41,7 +42,6 @@ for (const qos of [0, 1, 2]) {
   //   const s = await createAndConnect(t, { connect: { clientId: 'my-client-bridge-1', protocolVersion: 128 + 4 } })
   //   await subscribe(t, s, 'hello', qos)
   //   s.inStream.write(packet)
-  //   const result = await nextPacketWithTimeOut(s, 10)
-  //   t.assert.equal(result, null, 'did not receive publish packet')
+  //   await checkNoPacket(t,s)
   // })
 }

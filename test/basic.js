@@ -436,7 +436,7 @@ test('unsubscribe on disconnect for a clean=true client', async (t) => {
 test('unsubscribe on disconnect for a clean=false client', async (t) => {
   t.plan(7)
 
-  const opts = { connect: { clean: true } }
+  const opts = { connect: { clean: false } }
   const s = await createAndConnect(t, opts)
 
   await subscribe(t, s, 'hello', 0)
@@ -664,7 +664,7 @@ test('publish to $SYS/broker/new/clients', async (t) => {
   ])
 })
 
-test('publish to $SYS/broker/new/subsribers and $SYS/broker/new/unsubscribers', async (t) => {
+test('publish to $SYS/broker/new/subscribers and $SYS/broker/new/unsubscribers', async (t) => {
   t.plan(7)
 
   const subscriber = await createAndConnect(t, { connect: { clean: false, clientId: 'abcde' } })
