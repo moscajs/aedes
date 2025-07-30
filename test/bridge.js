@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import {
   createAndConnect,
   subscribe,
-  checkNoPacket
+  // checkNoPacket
 } from './helperAsync.js'
 
 for (const qos of [0, 1, 2]) {
