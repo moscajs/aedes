@@ -3,11 +3,11 @@ import { once } from 'node:events'
 import { Duplex } from 'node:stream'
 import {
   brokerPublish,
+  checkNoPacket,
   connect,
   createAndConnect,
   delay,
   nextPacket,
-  nextPacketWithTimeOut,
   setup,
   subscribe,
   subscribeMultiple,
@@ -373,8 +373,7 @@ test('unsubscribe', async (t) => {
       resolve()
     })
   })
-  const noPacket = await nextPacketWithTimeOut(s, 10)
-  t.assert.ok(!noPacket, 'expected no packet')
+  await checkNoPacket(t, s)
 })
 
 test('unsubscribe without subscribe', async (t) => {
@@ -411,11 +410,6 @@ test('unsubscribe on disconnect for a clean=true client', async (t) => {
   s.conn.destroy(null)
   t.assert.equal(s.conn.destroyed, true, 'closed streams')
 
-  const noPacket = async () => {
-    const packet = await nextPacketWithTimeOut(s, 10)
-    t.assert.ok(!packet, 'should not receive any more messages')
-  }
-
   const emittedUnsubscribe = async () => {
     await once(s.broker, 'unsubscribe')
     t.assert.ok(true, 'should emit unsubscribe')
@@ -430,7 +424,7 @@ test('unsubscribe on disconnect for a clean=true client', async (t) => {
     t.assert.ok(true, 'calls the callback')
   }
   // run parallel
-  await Promise.all([noPacket(), emittedUnsubscribe(), publishPacket()])
+  await Promise.all([checkNoPacket(t, s), emittedUnsubscribe(), publishPacket()])
 })
 
 test('unsubscribe on disconnect for a clean=false client', async (t) => {
@@ -443,14 +437,10 @@ test('unsubscribe on disconnect for a clean=false client', async (t) => {
   s.conn.destroy(null, () => {
     t.assert.ok(true, 'closed streams')
   })
-  const noPacket = async () => {
-    const packet = await nextPacketWithTimeOut(s, 10)
-    t.assert.ok(!packet, 'should not receive any more messages')
-  }
 
-  const emittedUnsubscribe = async () => {
-    await once(s.broker, 'unsubscribe')
-    t.assert.ok(true, 'should emit unsubscribe')
+  const emittedNoUnsubscribe = async () => {
+    const result = await withTimeout(once(s.broker, 'unsubscribe'), 10, null)
+    t.assert.equal(result, null, 'should not emit unsubscribe')
   }
   const publishPacket = async () => {
     await brokerPublish(s, {
@@ -461,7 +451,7 @@ test('unsubscribe on disconnect for a clean=false client', async (t) => {
     t.assert.ok(true, 'calls the callback')
   }
   // run parallel
-  await Promise.all([noPacket(), emittedUnsubscribe(), publishPacket()])
+  await Promise.all([checkNoPacket(t, s), emittedNoUnsubscribe(), publishPacket()])
 })
 
 test('disconnect', async (t) => {
@@ -770,8 +760,7 @@ test('do not restore QoS 0 subscriptions when clean', async (t) => {
     payload: 'world',
     qos: 0
   })
-  const packet = await nextPacketWithTimeOut(subscriber2, 10)
-  t.assert.ok(!packet, 'no packet received')
+  await checkNoPacket(t, subscriber2)
 })
 
 test('double sub does not double deliver', async (t) => {
@@ -799,8 +788,7 @@ test('double sub does not double deliver', async (t) => {
 
   const packet = await nextPacket(s)
   t.assert.deepEqual(structuredClone(packet), expected, 'packet matches')
-  const noPacket = await nextPacketWithTimeOut(s, 10)
-  t.assert.ok(!noPacket, 'no packet received')
+  await checkNoPacket(t, s)
 })
 
 test('overlapping sub does not double deliver', async (t) => {
@@ -827,8 +815,7 @@ test('overlapping sub does not double deliver', async (t) => {
 
   const packet = await nextPacket(s)
   t.assert.deepEqual(structuredClone(packet), expected, 'packet matches')
-  const noPacket = await nextPacketWithTimeOut(s, 10)
-  t.assert.ok(!noPacket, 'no packet received')
+  await checkNoPacket(t, s)
 })
 
 test('clear drain', async (t) => {
