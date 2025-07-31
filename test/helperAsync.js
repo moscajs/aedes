@@ -292,6 +292,15 @@ export async function checkNoPacket (t, s, timeoutMs = 10) {
 }
 
 /**
+ *
+ * @param {Object} s - s The connection state object
+ * @param {string} rawPacket - space separated string of hex values
+ * @example rawWrite(s, "10 0C 00 04 4D 51 54 54 04 00 00 00 00 00")
+ */
+export function rawWrite (s, rawPacket) {
+  s.conn.write(Buffer.from(rawPacket.replace(/ /g, ''), 'hex'))
+}
+/**
  * sleep
  */
 export { delay }
