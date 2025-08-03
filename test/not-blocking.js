@@ -1,232 +1,147 @@
-import { test } from 'tap'
-import EventEmitter from 'node:events'
+import { test } from 'node:test'
+import { createServer } from 'node:net'
 import mqtt from 'mqtt'
-import net from 'net'
-import Faketimers from '@sinonjs/fake-timers'
 import { Aedes } from '../aedes.js'
 
-test('connect 500 concurrent clients', function (t) {
+test('connect 500 concurrent clients', async (t) => {
   t.plan(3)
 
-  Aedes.createBroker().then((broker) => {
-    const evt = new EventEmitter()
-    const server = net.createServer(broker.handle)
-    const total = 500
+  const broker = await Aedes.createBroker()
+  const server = createServer(broker.handle)
+  t.after(() => {
+    broker.close()
+    server.close()
+  })
+  const total = 500
 
-    server.listen(0, function (err) {
-      t.error(err, 'no error')
-
-      const clock = Faketimers.createClock()
-      t.teardown(clock.reset.bind(clock))
-
+  await new Promise(resolve => {
+    server.listen(0, (err) => {
+      t.assert.ok(!err, 'no error')
       const port = server.address().port
 
       let connected = 0
       const clients = []
-      clock.setTimeout(function () {
-        t.equal(clients.length, total)
-        t.equal(connected, total)
-        while (clients.length) {
-          clients.shift().end()
-        }
-      }, total)
 
-      evt.on('finish', function () {
-        if (clients.length === 0) {
-          broker.close()
-          server.close()
+      const registerClient = (client) => {
+        clients.push(client)
+        connected++
+        if ((connected % (total / 10)) === 0) {
+          console.log('connected', connected)
         }
-      })
+        if (clients.length === total) {
+          t.assert.equal(clients.length, total)
+          t.assert.equal(connected, total)
+          while (clients.length) {
+            clients.shift().end()
+          }
+        }
+      }
+
+      const deRegisterClient = () => {
+        connected--
+        if (connected === 0) {
+          resolve()
+        }
+      }
+
+      const doConnect = () => {
+        const client = mqtt.connect({
+          port,
+          keepalive: 0
+        })
+        client.on('connect', () => {
+          registerClient(client)
+        })
+        client.on('error', err => {
+          throw (err)
+        })
+        client.on('close', () => {
+          deRegisterClient()
+        })
+      }
 
       for (let i = 0; i < total; i++) {
-        clients[i] = mqtt.connect({
-          port,
-          keepalive: 0,
-          reconnectPeriod: 100
-        }).on('connect', function () {
-          connected++
-          if ((connected % (total / 10)) === 0) {
-            console.log('connected', connected)
-          }
-          clock.tick(1)
-        }).on('close', function () {
-          evt.emit('finish')
-        })
+        doConnect()
       }
     })
   })
 })
 
-test('do not block after a subscription', function (t) {
-  t.plan(3)
+for (const [title, brokerOpts, subscription] of
+  [
+    ['after a subscription', {}, 'test'],
+    ['with overlapping subscription', { concurrency: 15 }, ['#', 'test']]
+  ]) {
+  test(`do not block ${title}`, async (t) => {
+    t.plan(3)
 
-  Aedes.createBroker().then((broker) => {
-    const evt = new EventEmitter()
-    const server = net.createServer(broker.handle)
-    const total = 10000
-    let sent = 0
-    let received = 0
-
-    server.listen(0, function (err) {
-      t.error(err, 'no error')
-
-      const clock = Faketimers.createClock()
-      t.teardown(clock.reset.bind(clock))
-
-      const clockId = clock.setTimeout(finish, total)
-
-      const port = server.address().port
-
-      const publisher = mqtt.connect({
-        port,
-        keepalive: 0
-      }).on('error', function (err) {
-        clock.clearTimeout(clockId)
-        t.fail(err)
-      })
-
-      let subscriber
-
-      function immediatePublish () {
-        setImmediate(publish)
-      }
-
-      function publish () {
-        if (sent === total) {
-          publisher.end()
-        } else {
-          sent++
-          publisher.publish('test', 'payload', immediatePublish)
-        }
-      }
-
-      function startSubscriber () {
-        subscriber = mqtt.connect({
-          port,
-          keepalive: 0
-        }).on('error', function (err) {
-          clock.clearTimeout(clockId)
-          t.fail(err)
-        })
-
-        subscriber.subscribe('test', publish)
-
-        subscriber.on('message', function () {
-          if (received % (total / 10) === 0) {
-            console.log('sent / received', sent, received)
-          }
-          received++
-          clock.tick(1)
-        })
-        subscriber.on('close', function () {
-          evt.emit('finish')
-        })
-      }
-
-      publisher.on('connect', startSubscriber)
-      publisher.on('close', function () {
-        evt.emit('finish')
-      })
-      evt.on('finish', function () {
-        if (publisher.connected || subscriber.connected) { return }
-        broker.close()
-        server.close()
-        t.equal(total, sent, 'messages sent')
-        t.equal(total, received, 'messages received')
-      })
-      function finish () {
-        subscriber.end()
-        publisher.end()
-      }
+    const broker = await Aedes.createBroker(brokerOpts)
+    const server = createServer(broker.handle)
+    t.after(() => {
+      broker.close()
+      server.close()
     })
-  })
-})
-
-test('do not block with overlapping subscription', function (t) {
-  t.plan(3)
-
-  Aedes.createBroker({ concurrency: 15 }).then((broker) => {
-    const evt = new EventEmitter()
-    const server = net.createServer(broker.handle)
     const total = 10000
     let sent = 0
     let received = 0
 
-    server.listen(0, function (err) {
-      t.error(err, 'no error')
+    await new Promise(resolve => {
+      server.listen(0, err => {
+        t.assert.ok(!err, 'no error')
 
-      const clock = Faketimers.createClock()
-      t.teardown(clock.reset.bind(clock))
+        const port = server.address().port
 
-      const clockId = clock.setTimeout(finish, total)
+        let publisher
 
-      const port = server.address().port
-
-      const publisher = mqtt.connect({
-        port,
-        keepalive: 0
-      }).on('error', function (err) {
-        clock.clearTimeout(clockId)
-        t.fail(err)
-      })
-
-      let subscriber
-
-      function immediatePublish (e) {
-        setImmediate(publish)
-      }
-
-      function publish () {
-        if (sent === total) {
-          publisher.end()
-        } else {
-          sent++
-          publisher.publish('test', 'payload', immediatePublish)
+        const finish = () => {
+          if (publisher.connected || subscriber.connected) { return }
+          t.assert.equal(total, sent, 'messages sent')
+          t.assert.equal(total, received, 'messages received')
+          resolve()
         }
-      }
 
-      function startSubscriber () {
-        subscriber = mqtt.connect({
-          port,
-          keepalive: 0
-        }).on('error', function (err) {
-          clock.clearTimeout(clockId)
-          t.fail(err)
-        })
+        const publish = () => {
+          if (sent === total) {
+            publisher.end()
+          } else {
+            sent++
+            publisher.publish('test', 'payload', () => setImmediate(publish))
+          }
+        }
 
-        subscriber.subscribe('#', function () {
-          subscriber.subscribe('test', function () {
-            immediatePublish()
+        const startPublisher = () => {
+          publisher = mqtt.connect({
+            port,
+            keepalive: 0
           })
-        })
+          publisher.on('error', err => {
+            t.assert.fail(err)
+          })
+          publisher.on('close', () => {
+            subscriber.end()
+          })
+          publisher.on('connect', publish)
+        }
 
-        subscriber.on('message', function () {
-          if (received % (total / 10) === 0) {
-            console.log('sent / received', sent, received)
-          }
-          received++
-          clock.tick(1)
+        const subscriber = mqtt.connect({
+          port,
+          keepalive: 0
+        }).on('error', err => {
+          t.assert.fail(err)
         })
-        subscriber.on('close', function () {
-          evt.emit('finish')
+        subscriber.on('connect', () => {
+          subscriber.on('message', () => {
+            if (received % (total / 10) === 0) {
+              console.log('sent / received', sent, received)
+            }
+            received++
+          })
+          subscriber.subscribe(subscription, startPublisher)
         })
-      }
-
-      publisher.on('connect', startSubscriber)
-      publisher.on('close', function () {
-        evt.emit('finish')
+        subscriber.on('close', () => {
+          finish()
+        })
       })
-      evt.on('finish', function () {
-        if (publisher.connected || subscriber.connected) { return }
-        broker.close()
-        server.close()
-        t.equal(total, sent, 'messages sent')
-        t.equal(total, received, 'messages received')
-      })
-      function finish () {
-        subscriber.end()
-        publisher.end()
-      }
     })
   })
-})
+}
