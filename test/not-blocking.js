@@ -14,57 +14,41 @@ test('connect 500 concurrent clients', async (t) => {
   })
   const total = 500
 
+  server.on('error', (err) => {
+    console.log('server error', err)
+  })
   await new Promise(resolve => {
     server.listen(0, (err) => {
       t.assert.ok(!err, 'no error')
-      const port = server.address().port
-
-      let connected = 0
-      const clients = []
-
-      const registerClient = (client) => {
-        clients.push(client)
-        connected++
-        if ((connected % (total / 10)) === 0) {
-          console.log('connected', connected)
-        }
-        if (clients.length === total) {
-          t.assert.equal(clients.length, total)
-          t.assert.equal(connected, total)
-          while (clients.length) {
-            clients.shift().end()
-          }
-        }
-      }
-
-      const deRegisterClient = () => {
-        connected--
-        if (connected === 0) {
-          resolve()
-        }
-      }
-
-      const doConnect = () => {
-        const client = mqtt.connect({
-          port,
-          keepalive: 0
-        })
-        client.on('connect', () => {
-          registerClient(client)
-        })
-        client.on('error', err => {
-          throw (err)
-        })
-        client.on('close', () => {
-          deRegisterClient()
-        })
-      }
-
-      for (let i = 0; i < total; i++) {
-        doConnect()
-      }
+      resolve()
     })
   })
+
+  const port = server.address().port
+
+  let connected = 0
+  const clients = []
+
+  // start at 1 to see the total in the console.log
+  for (let i = 1; i <= total; i++) {
+    clients[i] = await mqtt.connectAsync({
+      port,
+      keepalive: 0
+    })
+    if ((i % (total / 10)) === 0) {
+      console.log('connected', i)
+    }
+  }
+  // check to see if they are all still alive
+  // and end them
+  for (let i = 1; i <= total; i++) {
+    if (clients[i].connected) {
+      connected++
+    }
+    await clients[i].endAsync(true)
+  }
+  t.assert.equal(clients.length, total + 1) // because we start at 1
+  t.assert.equal(connected, total)
 })
 
 for (const [title, brokerOpts, subscription] of
