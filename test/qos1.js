@@ -45,7 +45,7 @@ test('publish QoS 1 throws error', async (t) => {
 
   const s = await createAndConnect(t)
 
-  s.broker.persistence.subscriptionsByTopic = async _packet => {
+  s.broker.persistence.subscriptionsByTopic = async () => {
     throw new Error('Throws error')
   }
 

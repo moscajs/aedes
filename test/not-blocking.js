@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import { createServer } from 'node:net'
+import { once } from 'node:events'
 import mqtt from 'mqtt'
 import { Aedes } from '../aedes.js'
 
@@ -72,60 +73,52 @@ for (const [title, brokerOpts, subscription] of
     await new Promise(resolve => {
       server.listen(0, err => {
         t.assert.ok(!err, 'no error')
-
-        const port = server.address().port
-
-        let publisher
-
-        const finish = () => {
-          if (publisher.connected || subscriber.connected) { return }
-          t.assert.equal(total, sent, 'messages sent')
-          t.assert.equal(total, received, 'messages received')
-          resolve()
-        }
-
-        const publish = () => {
-          if (sent === total) {
-            publisher.end()
-          } else {
-            sent++
-            publisher.publish('test', 'payload', () => setImmediate(publish))
-          }
-        }
-
-        const startPublisher = () => {
-          publisher = mqtt.connect({
-            port,
-            keepalive: 0
-          })
-          publisher.on('error', err => {
-            t.assert.fail(err)
-          })
-          publisher.on('close', () => {
-            subscriber.end()
-          })
-          publisher.on('connect', publish)
-        }
-
-        const subscriber = mqtt.connect({
-          port,
-          keepalive: 0
-        }).on('error', err => {
-          t.assert.fail(err)
-        })
-        subscriber.on('connect', () => {
-          subscriber.on('message', () => {
-            if (received % (total / 10) === 0) {
-              console.log('sent / received', sent, received)
-            }
-            received++
-          })
-          subscriber.subscribe(subscription, startPublisher)
-        })
-        subscriber.on('close', () => {
-          finish()
-        })
+        resolve()
       })
     })
+    const port = server.address().port
+    let publisher = null
+
+    const publish = () => {
+      if (sent === total) {
+        publisher.end(true)
+        subscriber.end()
+      } else {
+        sent++
+        publisher.publish('test', 'payload', () => setImmediate(publish))
+      }
+    }
+
+    const subscriber = await mqtt.connectAsync({
+      port,
+      keepalive: 0,
+      clientId: 'subscriber'
+    })
+
+    subscriber.on('error', err => {
+      t.assert.fail(err)
+    })
+
+    subscriber.on('message', () => {
+      if (received % (total / 10) === 0) {
+        console.log('sent / received', sent, received)
+      }
+      received++
+    })
+    subscriber.subscribeAsync(subscription)
+
+    publisher = await mqtt.connectAsync({
+      port,
+      keepalive: 0,
+      clientId: 'publisher'
+    })
+    publisher.on('error', err => {
+      t.assert.fail(err)
+    })
+    publish()
+
+    await once(subscriber, 'close')
+    t.assert.equal(total, sent, 'messages sent')
+    t.assert.equal(total, received, 'messages received')
   })
 }
