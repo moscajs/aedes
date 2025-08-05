@@ -107,8 +107,8 @@ export async function createAndConnect (t, opts = {}) {
  * @returns {Object} Connection state { broker, publisher, subscriber }
  */
 export async function createPubSub (t, opts = {}) {
-  const publisherOpts = opts.publisher || { clientId: 'publisher' }
-  const subscriberOpts = opts.subscriber || { clientId: 'subscriber' }
+  const publisherOpts = { clientId: 'publisher', ...opts.publisher }
+  const subscriberOpts = { clientId: 'subscriber', ...opts.subscriber }
 
   const broker = await Aedes.createBroker()
   t.after(() => broker.close())
@@ -156,6 +156,7 @@ export async function brokerPublish (s, packet) {
  */
 export async function publish (t, s, packet) {
   s.inStream.write(packet)
+  const msgId = packet.messageId
   if (packet.qos === 1) {
     const { value: puback } = await s.outStream.next()
     t.assert.equal(puback.cmd, 'puback')
@@ -163,13 +164,31 @@ export async function publish (t, s, packet) {
   }
   if (packet.qos === 2) {
     const { value: pubrec } = await s.outStream.next()
-    t.assert.equal(pubrec.cmd, 'pubrec')
+    t.assert.deepStrictEqual(structuredClone(pubrec), {
+      cmd: 'pubrec',
+      messageId: msgId,
+      length: 2,
+      dup: false,
+      retain: false,
+      qos: 0,
+      payload: null,
+      topic: null
+    }, 'pubrec must match')
     s.inStream.write({
       cmd: 'pubrel',
       messageId: pubrec.messageId
     })
     const { value: pubcomp } = await s.outStream.next()
-    t.assert.equal(pubcomp.cmd, 'pubcomp')
+    t.assert.deepEqual(structuredClone(pubcomp), {
+      cmd: 'pubcomp',
+      messageId: msgId,
+      length: 2,
+      dup: false,
+      retain: false,
+      qos: 0,
+      payload: null,
+      topic: null
+    }, 'pubcomp must match')
     return pubcomp
   }
   return null
@@ -265,7 +284,7 @@ async function * packetGenerator (parser, sourceStream, opts = {
       queue.push(packet)
     }
     // Pause source if queue is full
-    if (queue.length > highWaterMark) {
+    if (queue.length >= highWaterMark) {
       sourceStream.pause()
     }
   }
