@@ -81,7 +81,7 @@ for (const [title, brokerOpts, subscription] of
 
     const publish = () => {
       if (sent === total) {
-        publisher.end(true)
+        publisher.end()
         subscriber.end()
       } else {
         sent++
