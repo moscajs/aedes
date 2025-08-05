@@ -82,7 +82,9 @@ for (const [title, brokerOpts, subscription] of
     const publish = () => {
       if (sent === total) {
         publisher.end()
-        subscriber.end()
+        // Node 20 on Mac needs more time to complete
+        // hence the setImmediate
+        setImmediate(() => subscriber.end())
       } else {
         sent++
         publisher.publish('test', 'payload', () => setImmediate(publish))
