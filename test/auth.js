@@ -9,7 +9,7 @@ import {
   setup,
   subscribe,
   subscribeMultiple,
-} from './helperAsync.js'
+} from './helper.js'
 import { Aedes } from '../aedes.js'
 
 async function testAuthenticationError (t, errObject, expectedReturnCode) {

@@ -8,7 +8,7 @@ import {
   rawWrite,
   setup,
   withTimeout
-} from './helperAsync.js'
+} from './helper.js'
 import http from 'node:http'
 import { WebSocketServer, createWebSocketStream } from 'ws'
 import mqtt from 'mqtt'

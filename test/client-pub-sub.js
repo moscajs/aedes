@@ -7,7 +7,7 @@ import {
   nextPacketWithTimeOut,
   setup,
   subscribe,
-} from './helperAsync.js'
+} from './helper.js'
 
 test('publish direct to a single client QoS 0', async (t) => {
   t.plan(2)

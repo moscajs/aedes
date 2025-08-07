@@ -6,7 +6,7 @@ import {
   delay,
   nextPacket,
   setup,
-} from './helperAsync.js'
+} from './helper.js'
 
 test('supports pingreq/pingresp', async (t) => {
   t.plan(1)

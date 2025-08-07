@@ -10,7 +10,7 @@ import {
   publish,
   setup,
   subscribe,
-} from './helperAsync.js'
+} from './helper.js'
 import { Aedes } from '../aedes.js'
 
 test('publish QoS 1', async (t) => {

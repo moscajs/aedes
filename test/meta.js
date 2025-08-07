@@ -8,7 +8,7 @@ import {
   setup,
   subscribe,
   withTimeout
-} from './helperAsync.js'
+} from './helper.js'
 import { Aedes } from '../aedes.js'
 import pkg from '../package.json' with { type: 'json' }
 const version = pkg.version

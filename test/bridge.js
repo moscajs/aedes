@@ -4,7 +4,7 @@ import {
   subscribe,
   checkNoPacket,
   nextPacket
-} from './helperAsync.js'
+} from './helper.js'
 
 for (const qos of [0, 1, 2]) {
   const packet = {

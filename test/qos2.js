@@ -9,7 +9,7 @@ import {
   publish,
   setup,
   subscribe,
-} from './helperAsync.js'
+} from './helper.js'
 import { Aedes } from '../aedes.js'
 import handle from '../lib/handlers/pubrec.js'
 

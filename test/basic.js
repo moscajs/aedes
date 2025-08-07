@@ -12,7 +12,7 @@ import {
   subscribe,
   subscribeMultiple,
   withTimeout
-} from './helperAsync.js'
+} from './helper.js'
 import defaultExport, { Aedes } from '../aedes.js'
 import write from '../lib/write.js'
 

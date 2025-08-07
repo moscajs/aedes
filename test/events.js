@@ -11,7 +11,7 @@ import {
   setup,
   subscribe,
   withTimeout
-} from './helperAsync.js'
+} from './helper.js'
 import { Aedes } from '../aedes.js'
 import mqtt from 'mqtt'
 

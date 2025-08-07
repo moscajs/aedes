@@ -11,7 +11,7 @@ import {
   publish,
   setup,
   subscribe,
-} from './helperAsync.js'
+} from './helper.js'
 import { Aedes } from '../aedes.js'
 
 // [MQTT-3.3.1-9]
@@ -466,7 +466,7 @@ test('deliver QoS 1 retained messages to new subscriptions', async (t) => {
     retain: true
   })
 
-  await delay(0) // give Aedes some time to process the publish
+  await delay(10) // give Aedes some time to process the publish
   await subscribe(t, subscriber, 'hello', 1)
   const packet = await nextPacket(subscriber)
   delete packet.messageId

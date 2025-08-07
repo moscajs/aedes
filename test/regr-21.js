@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import {
   createAndConnect,
   withTimeout
-} from './helperAsync.js'
+} from './helper.js'
 
 test('after an error, outstanding packets are discarded', async (t) => {
   t.plan(2)

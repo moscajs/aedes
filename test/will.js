@@ -5,7 +5,7 @@ import {
   createAndConnect,
   delay,
   setup,
-} from './helperAsync.js'
+} from './helper.js'
 import memory from 'aedes-persistence'
 import { Aedes } from '../aedes.js'
 

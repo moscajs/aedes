@@ -6,7 +6,7 @@ import {
   createPubSub,
   nextPacket,
   subscribe,
-} from './helperAsync.js'
+} from './helper.js'
 import { validateTopic } from '../lib/utils.js'
 
 test('validation of `null` topic', (t) => {
