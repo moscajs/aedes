@@ -5,6 +5,7 @@
 // "unit:v20win32": "node --test --test-timeout=180000",
 // "unit:other": "node --test --test-timeout=180000 test/*.js test/*.cjs",
 
+/* c8 ignore start */
 import { platform, version, exit } from 'node:process'
 
 const major = version.split('.')[0]
@@ -16,3 +17,4 @@ if ((major === 'v20') && platform === 'win32') {
 // all the others 1
 console.log(`Running ${major} on ${platform} returning exitCode ${exitCode}`)
 exit(exitCode)
+/* c8 ignore stop */
