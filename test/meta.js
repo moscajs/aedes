@@ -264,7 +264,6 @@ test('dont emit unsubscribe event on client close', { skip: true }, async (t) =>
 
   const checkUnsubscribe = async () => {
     const [result] = await withTimeout(once(s.broker, 'unsubscribe'), 100, ['timeout'])
-    console.log(result)
     t.assert.deepEqual(result, 'timeout', 'unsubscribe should not be emitted')
   }
 

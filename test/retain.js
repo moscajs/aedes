@@ -581,7 +581,6 @@ test('disconnect and retain messages with QoS 1 [clean=false]', async (t) => {
 
   const subscriber2 = setup(broker)
   const connack = await connect(subscriber2, { connect: { clean: false, clientId: 'abcde' } })
-  console.log('connack', connack)
   t.assert.equal(connack.sessionPresent, true, 'session present is set to true')
 
   const packet = await nextPacket(subscriber2)

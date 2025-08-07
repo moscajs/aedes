@@ -335,9 +335,7 @@ test('subscribe QoS 1, but publish QoS 2', async (t) => {
   t.assert.deepEqual(structuredClone(packet), expected, 'packet must match')
 })
 
-// TODO: receive() receives two publish packets instead of publish + pubrel
-// when fixed remove {skip:true}
-test('restore QoS 2 subscriptions not clean', { skip: true }, async (t) => {
+test('restore QoS 2 subscriptions not clean', async (t) => {
   t.plan(9)
 
   const opts = { clean: false, clientId: 'abcde' }
@@ -362,7 +360,8 @@ test('restore QoS 2 subscriptions not clean', { skip: true }, async (t) => {
   const subscriber2 = setup(broker)
   const connack = await connect(subscriber2, { connect: opts })
   t.assert.equal(connack.sessionPresent, true, 'session present is set to true')
-
+  // getting a connack does not mean that the client setup has completed in Aedes
+  await once(broker, 'clientReady')
   await publish(t, publisher, expected)
   await receive(t, subscriber2, expected)
 })

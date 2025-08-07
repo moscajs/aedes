@@ -110,7 +110,7 @@ test('reject clients that exceed the keepalive limit', async (t) => {
 })
 
 // TODO: test fails because Aedes does not reject this
-// once fixed remove {skip:true}
+// remove { skip: true} once this is fixed
 // Guarded in mqtt-packet
 test('reject clients with no clientId running on MQTT 3.1.0', { skip: true }, async (t) => {
   t.plan(3)
@@ -143,7 +143,7 @@ test('reject clients with no clientId running on MQTT 3.1.0', { skip: true }, as
 })
 
 // TODO: test fails because Aedes does not reject this
-// once fixed remove {skip:true}
+// remove { skip: true} once this is fixed
 // [MQTT-3.1.3-7], Guarded in mqtt-packet
 test('reject clients without clientid and clean=false on MQTT 3.1.1', { skip: true }, async (t) => {
   t.plan(2)
@@ -520,7 +520,7 @@ test('reject clients with wrong protocol name', async (t) => {
 })
 
 // TODO this test only reports a queue of 2 instead of 50
-// once fixed remove {skip:true}
+// remove { skip: true} once this is fixed
 test('After first CONNECT Packet, others are queued until \'connect\' event', { skip: true }, async (t) => {
   t.plan(2)
 
@@ -574,7 +574,7 @@ test('After first CONNECT Packet, others are queued until \'connect\' event', { 
 })
 
 // TODO since the queue limit of 50 is not reached the test does not end
-// once fixed remove {skip:true}
+// remove { skip: true} once this is fixed
 test('Test queue limit', { skip: true }, async (t) => {
   t.plan(1)
 
