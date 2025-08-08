@@ -306,7 +306,7 @@ test('connect clients with > 23 clientId length using aedes maxClientsIdLength o
 
   const s = await createAndConnect(t, {
     connect: {
-      protocolId: 'MQTT',
+      protocolId: 'MQIsdp', 
       protocolVersion: 3,
       clean: true,
       clientId: 'abcdefghijklmnopqrstuvwxyz',
