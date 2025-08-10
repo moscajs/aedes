@@ -499,11 +499,11 @@ test('client closes', async (t) => {
     setImmediate(() => {
       brokerClient.close(() => {
         t.assert.equal(broker.clients.abcde, undefined, 'client instance is removed')
-      })
-      t.assert.equal(brokerClient.connected, false, 'client disconnected')
-      broker.close((err) => {
-        t.assert.ok(!err, 'no error')
-        resolve()
+        t.assert.equal(brokerClient.connected, false, 'client disconnected')
+        broker.close((err) => {
+          t.assert.ok(!err, 'no error')
+          resolve()
+        })
       })
     })
   })
