@@ -253,10 +253,18 @@ export async function withTimeout (promise, timeoutMs, timeoutResult) {
 }
 
 /**
- * @param {Object} parser - The emitter object
- * @param {Readable} sourceStream - The source stream to read MQTT packets from
- * @param {Object} opts - low and high water mark
- * @returns {AsyncGenerator} An async generator that yields MQTT packets
+ * Asynchronously yields MQTT packets parsed from a source stream, with backpressure management.
+ *
+ * Backpressure is controlled using a queue and the `highWaterMark`/`lowWaterMark` parameters:
+ * - When the number of buffered packets in the queue reaches `highWaterMark`, the source stream is paused to prevent overload.
+ * - When the queue size drops to or below `lowWaterMark`, the source stream is resumed to allow more data to flow.
+ *
+ * @param {Object} parser - The emitter object that parses MQTT packets and emits 'packet' events.
+ * @param {Readable} sourceStream - The source stream to read MQTT packets from.
+ * @param {Object} [opts] - Options for backpressure control.
+ * @param {number} [opts.highWaterMark=2] - Maximum number of packets to buffer before pausing the source stream.
+ * @param {number} [opts.lowWaterMark=0] - Minimum number of packets in the buffer to resume the source stream.
+ * @returns {AsyncGenerator<Object|null, void, unknown>} An async generator that yields MQTT packets, or null when done.
  */
 async function * packetGenerator (parser, sourceStream, opts = {
   highWaterMark: 2,

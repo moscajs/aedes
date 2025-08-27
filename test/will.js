@@ -55,7 +55,7 @@ test('delivers a will', async (t) => {
 
   const { packet } = await oneWillFromBroker(s.broker)
   t.assert.equal(packet.topic, opts.will.topic, 'topic matches')
-  t.assert.deepEqual(structuredClone(packet).payload, opts.will.payload, 'payload matches')
+  t.assert.deepEqual(packet.payload, opts.will.payload, 'payload matches')
   t.assert.equal(packet.qos, opts.will.qos, 'qos matches')
   t.assert.equal(packet.retain, opts.will.retain, 'retain matches')
 })
@@ -109,7 +109,7 @@ test('delivers old will in case of a crash', async (t) => {
   const { packet, received } = await oneWillFromBroker(broker)
   t.assert.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
   t.assert.equal(packet.topic, will.topic, 'topic matches')
-  t.assert.deepEqual(structuredClone(packet).payload, will.payload, 'payload matches')
+  t.assert.deepEqual(packet.payload, will.payload, 'payload matches')
   t.assert.equal(packet.qos, will.qos, 'qos matches')
   t.assert.equal(packet.retain, will.retain, 'retain matches')
   t.assert.equal(authorized, true, 'authorization called')
