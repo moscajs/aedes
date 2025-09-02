@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
         - name: Checkout repository
-          uses: actions/checkout@v4
+          uses: actions/checkout@v5
           with:
             persist-credentials: false
 
@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
 
