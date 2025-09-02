@@ -1,14 +1,11 @@
 import EventEmitter from 'node:events'
-import parallel from 'fastparallel'
-import series from 'fastseries'
-import { v4 as uuidv4 } from 'uuid'
-import reusify from 'reusify'
+import { randomUUID } from 'node:crypto'
 import { pipeline } from 'stream'
 import Packet from 'aedes-packet'
 import memory from 'aedes-persistence'
 import mqemitter from 'mqemitter'
 import Client from './lib/client.js'
-import { $SYS_PREFIX, bulk } from './lib/utils.js'
+import { $SYS_PREFIX, bulk, ObjectPool } from './lib/utils.js'
 import pkg from './package.json' with { type: 'json' }
 
 const defaultOptions = {
@@ -37,7 +34,7 @@ export class Aedes extends EventEmitter {
 
     opts = Object.assign({}, defaultOptions, opts)
     this.opts = opts
-    this.id = opts.id || uuidv4()
+    this.id = opts.id || randomUUID()
     // +1 when construct a new aedes-packet
     // internal track for last brokerCounter
     this.counter = 0
@@ -56,9 +53,8 @@ export class Aedes extends EventEmitter {
       return new Client(that, conn, req)
     }
 
-    this._parallel = parallel()
-    this._series = series()
-    this._enqueuers = reusify(DoEnqueues)
+    this._series = runSeries
+    this._enqueuers = new ObjectPool(DoEnqueues)
 
     this.preConnect = opts.preConnect
     this.authenticate = opts.authenticate
@@ -131,8 +127,18 @@ export class Aedes extends EventEmitter {
       )
     }, opts.heartbeatInterval * 4)
 
-    function receiveWills (chunks, done) {
-      that._parallel(that, checkAndPublish, chunks, done)
+    async function receiveWills (chunks, done) {
+      try {
+        await Promise.all(chunks.map(chunk => new Promise((resolve, reject) => {
+          checkAndPublish(chunk, (err) => {
+            if (err) reject(err)
+            else resolve()
+          })
+        })))
+        done()
+      } catch (err) {
+        done(err)
+      }
     }
 
     function checkAndPublish (will, done) {
@@ -142,7 +148,7 @@ export class Aedes extends EventEmitter {
 
       // randomize this, so that multiple brokers
       // do not publish the same wills at the same time
-      this.authorizePublish(that.clients[will.clientId] || null, will, function (err) {
+      that.authorizePublish(that.clients[will.clientId] || null, will, function (err) {
         if (err) { return doneWill() }
         that.publish(will, doneWill)
 
@@ -265,11 +271,14 @@ export class Aedes extends EventEmitter {
     this.closed = true
     clearInterval(this._heartbeatInterval)
     clearInterval(this._clearWillInterval)
-    this._parallel(this, closeClient, Object.keys(this.clients), doneClose)
-    function doneClose () {
+    const promises = []
+    for (const clientId of Object.keys(this.clients)) {
+      promises.push(closeClient(this.clients[clientId]))
+    }
+    Promise.all(promises).then(() => {
       that.emit('closed')
       that.mq.close(cb)
-    }
+    })
   }
 }
 
@@ -361,8 +370,21 @@ const publishFuncsQoS = [
   callPublished
 ]
 
-function closeClient (client, cb) {
-  this.clients[client].close(cb)
+// runSeries runs functions in fastseries style
+function runSeries (state, actions, packet, done) {
+  done = (done || noop).bind(state)
+  let i = 0
+  function next (err) {
+    if (err || i === actions.length) return done(err)
+    actions[i++].call(state, packet, next)
+  }
+  next()
+}
+
+async function closeClient (client) {
+  return new Promise((resolve) => {
+    client.close(resolve)
+  })
 }
 
 function defaultPreConnect (client, packet, callback) {
@@ -400,11 +422,11 @@ class PublishState {
   }
 }
 
-function noop () {}
+function noop () { }
 
 function warnMigrate () {
   throw new Error(
-` Aedes default export has been removed.
+    ` Aedes default export has been removed.
  Use 'const aedes = await Aedes.createBroker()' instead.
  See: https://github.com/moscajs/aedes/docs/MIGRATION.MD
  `)
