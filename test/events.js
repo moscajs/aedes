@@ -1,28 +1,46 @@
-import { test } from 'tap'
+import { test } from 'node:test'
+import { createServer } from 'node:net'
+import { once } from 'node:events'
 import mqemitter from 'mqemitter'
-import { setup, connect, subscribe } from './helper.js'
+import {
+  brokerPublish,
+  connect,
+  createAndConnect,
+  delay,
+  nextPacketWithTimeOut,
+  setup,
+  subscribe,
+  withTimeout
+} from './helper.js'
 import { Aedes } from '../aedes.js'
 import mqtt from 'mqtt'
-import { createServer } from 'node:net'
 
-test('publishes an hearbeat', function (t) {
+async function brokerClose (broker) {
+  return new Promise((resolve) => {
+    broker.close(resolve)
+  })
+}
+
+test('publishes an hearbeat', async (t) => {
   t.plan(2)
 
-  Aedes.createBroker({
+  const broker = await Aedes.createBroker({
     heartbeatInterval: 10 // ms
-  }).then((broker) => {
-    t.teardown(broker.close.bind(broker))
+  })
+  t.after(() => broker.close())
 
-    broker.subscribe('$SYS/+/heartbeat', function (message, cb) {
+  await new Promise((resolve) => {
+    broker.subscribe('$SYS/+/heartbeat', (message, cb) => {
       const id = message.topic.match(/\$SYS\/([^/]+)\/heartbeat/)[1]
-      t.equal(id, broker.id, 'broker id matches')
-      t.same(message.payload.toString(), id, 'message has id as the payload')
+      t.assert.equal(id, broker.id, 'broker id matches')
+      t.assert.deepEqual(message.payload.toString(), id, 'message has id as the payload')
       cb()
+      resolve()
     })
   })
 })
 
-test('publishes birth', function (t) {
+test('publishes birth', async (t) => {
   t.plan(4)
 
   const mq = mqemitter()
@@ -31,168 +49,167 @@ test('publishes birth', function (t) {
   const clientId = 'test-client'
 
   mq.on(`$SYS/${brokerId}/birth`, (message, cb) => {
-    t.pass('broker birth received')
-    t.same(message.payload.toString(), brokerId, 'message has id as the payload')
+    t.assert.ok(true, 'broker birth received')
+    t.assert.deepEqual(message.payload.toString(), brokerId, 'message has id as the payload')
     cb()
   })
 
-  Aedes.createBroker({
-    id: brokerId,
-    mq
-  }).then((broker) => {
-    broker.on('client', (client) => {
-      t.equal(client.id, clientId, 'client connected')
-      // set a fake counter on a fake broker
-      process.nextTick(() => {
-        broker.clients[clientId].duplicates[fakeBroker] = 42
-        mq.emit({ topic: `$SYS/${fakeBroker}/birth`, payload: Buffer.from(fakeBroker) })
-      })
+  const s = await createAndConnect(t, {
+    broker: {
+      id: brokerId,
+      mq
+    },
+    connect: {
+      clientId
+    }
+  })
+
+  t.assert.equal(s.client.id, clientId, 'client connected')
+
+  await new Promise(resolve => {
+    // set a fake counter on a fake broker
+    process.nextTick(() => {
+      s.broker.clients[clientId].duplicates[fakeBroker] = 42
+      mq.emit({ topic: `$SYS/${fakeBroker}/birth`, payload: Buffer.from(fakeBroker) })
     })
 
     mq.on(`$SYS/${fakeBroker}/birth`, (message, cb) => {
       process.nextTick(() => {
-        t.equal(!!broker.clients[clientId].duplicates[fakeBroker], false, 'client duplicates has been resetted')
+        t.assert.equal(!!s.broker.clients[clientId].duplicates[fakeBroker], false, 'client duplicates has been resetted')
+        resolve()
         cb()
       })
     })
-
-    const s = connect(setup(broker), { clientId })
-    t.teardown(s.broker.close.bind(s.broker))
   })
 })
 
-;['$mcollina', '$SYS'].forEach(function (topic) {
-  test('does not forward $ prefixed topics to # subscription - ' + topic, function (t) {
-    t.plan(4)
+for (const topic of ['$mcollina', '$SYS']) {
+  test(`does not forward $ prefixed topics to # subscription - ${topic}`, async (t) => {
+    t.plan(5)
 
-    Aedes.createBroker().then((broker) => {
-      const s = connect(setup(broker))
-      t.teardown(s.broker.close.bind(s.broker))
+    const s = await createAndConnect(t)
+    await subscribe(t, s, '#', 0)
 
-      subscribe(t, s, '#', 0, function () {
-        s.outStream.once('data', function (packet) {
-          t.fail('no packet should be received')
-        })
-
-        s.broker.mq.emit({
-          cmd: 'publish',
-          topic: topic + '/hello',
-          payload: 'world'
-        }, function () {
-          t.pass('nothing happened')
-        })
-      })
-    })
-  })
-
-  test('does not forward $ prefixed topics to +/# subscription - ' + topic, function (t) {
-    t.plan(4)
-    Aedes.createBroker().then((broker) => {
-      const s = connect(setup(broker))
-      t.teardown(s.broker.close.bind(s.broker))
-
-      subscribe(t, s, '+/#', 0, function () {
-        s.outStream.once('data', function (packet) {
-          t.fail('no packet should be received')
-        })
-
-        s.broker.mq.emit({
-          cmd: 'publish',
-          topic: topic + '/hello',
-          payload: 'world'
-        }, function () {
-          t.pass('nothing happened')
-        })
-      })
-    })
-  })
-})
-
-test('does not store $SYS topics to QoS 1 # subscription', function (t) {
-  t.plan(3)
-
-  Aedes.createBroker().then((broker) => {
-    t.teardown(broker.close.bind(broker))
-
-    const opts = { clean: false, clientId: 'abcde' }
-    let s = connect(setup(broker), opts)
-
-    subscribe(t, s, '#', 1, function () {
-      s.inStream.end()
-
-      s.broker.publish({
+    await new Promise(resolve => {
+      s.broker.mq.emit({
         cmd: 'publish',
-        topic: '$SYS/hello',
-        payload: 'world',
-        qos: 1
-      }, function () {
-        s = connect(setup(broker), { clean: false, clientId: 'abcde' })
-
-        s.outStream.once('data', function (packet) {
-          t.fail('no packet should be received')
-        })
+        topic: topic + '/hello',
+        payload: 'world'
+      }, () => {
+        t.assert.ok(true, 'nothing happened')
+        resolve()
       })
     })
+    const packet = await nextPacketWithTimeOut(s, 10)
+    t.assert.equal(packet, null, 'no packet should be received')
   })
-})
 
-test('Emit event when receives a ping', { timeout: 2000 }, function (t) {
-  t.plan(5)
+  test('does not forward $ prefixed topics to +/# subscription - ' + topic, async (t) => {
+    t.plan(5)
 
-  Aedes.createBroker().then((broker) => {
-    t.teardown(broker.close.bind(broker))
+    const s = await createAndConnect(t)
 
-    broker.on('ping', function (packet, client) {
-      if (client && client) {
-        t.equal(client.id, 'abcde')
-        t.equal(packet.cmd, 'pingreq')
-        t.equal(packet.payload, null)
-        t.equal(packet.topic, null)
-        t.equal(packet.length, 0)
-      }
+    await subscribe(t, s, '+/#', 0)
+    await new Promise(resolve => {
+      s.broker.mq.emit({
+        cmd: 'publish',
+        topic: topic + '/hello',
+        payload: 'world'
+      }, () => {
+        t.assert.ok(true, 'nothing happened')
+        resolve()
+      })
     })
-
-    const s = connect(setup(broker), { clientId: 'abcde' })
-
-    s.inStream.write({
-      cmd: 'pingreq'
-    })
+    const packet = await nextPacketWithTimeOut(s, 10)
+    t.assert.equal(packet, null, 'no packet should be received')
   })
-})
+}
 
-test('Emit event when broker closed', function (t) {
-  t.plan(1)
-
-  Aedes.createBroker().then((broker) => {
-    broker.once('closed', function () {
-      t.ok(true)
-    })
-    broker.close()
-  })
-})
-
-test('Emit closed event one only when double broker.close()', function (t) {
+test('does not store $SYS topics to QoS 1 # subscription', async (t) => {
   t.plan(4)
 
-  Aedes.createBroker().then((broker) => {
-    broker.on('closed', function () {
-      t.pass('closed')
-    })
-    t.notOk(broker.closed)
-    broker.close()
-    t.ok(broker.closed)
-    broker.close()
-    t.ok(broker.closed)
+  const opts = { connect: { clean: false, clientId: 'abcde' } }
+  const s1 = await createAndConnect(t, opts)
+
+  await subscribe(t, s1, '#', 1)
+  s1.inStream.end()
+
+  await once(s1.conn, 'close')
+
+  await brokerPublish(s1, {
+    cmd: 'publish',
+    topic: '$SYS/hello',
+    payload: 'world',
+    qos: 1
   })
+
+  const s2 = setup(s1.broker)
+  await connect(s2, opts)
+
+  const packet = await nextPacketWithTimeOut(s2, 10)
+  t.assert.equal(packet, null, 'no packet should be received from client 2')
 })
 
-test('Test backpressure aedes published function', function (t) {
+test('Emit event when receives a ping', async (t) => {
+  t.plan(5)
+
+  const clientId = 'abcde'
+  const s = await createAndConnect(t, { connect: { keepalive: 1, clientId } })
+  await delay(1)
+  s.inStream.write({
+    cmd: 'pingreq'
+  })
+
+  const [packet, client] = await once(s.broker, 'ping')
+
+  t.assert.equal(client?.id, clientId)
+  t.assert.equal(packet?.cmd, 'pingreq')
+  t.assert.equal(packet?.payload, null)
+  t.assert.equal(packet?.topic, null)
+  t.assert.equal(packet?.length, 0)
+})
+
+test('Emit event when broker closed', async (t) => {
+  t.plan(1)
+
+  const broker = await Aedes.createBroker()
+  // run parallel
+  await Promise.all([
+    once(broker, 'closed'),
+    brokerClose(broker)
+  ])
+  t.assert.ok(true, 'closed event fired')
+})
+
+test('Emit closed event only once when double broker.close()', async (t) => {
+  t.plan(4)
+
+  const broker = await Aedes.createBroker()
+  t.assert.ok(!broker.closed, 'broker not closed')
+
+  const closedEvent = async (expected) => {
+    const [result] = await withTimeout(once(broker, 'closed'), 10, ['timeout'])
+    t.assert.equal(result, expected, `closed event ${expected || ''}`)
+  }
+
+  await Promise.all([
+    closedEvent(undefined),
+    broker.close()
+  ])
+  t.assert.ok(broker.closed, 'broker closed')
+  await Promise.all([
+    closedEvent('timeout'),
+    broker.close()
+  ])
+})
+
+test('Test backpressure aedes published function', async (t) => {
   t.plan(2)
 
   let publishCount = 10
   let count = 0
   let publisher
-  Aedes.createBroker({
+  const broker = await Aedes.createBroker({
     published: function (packet, client, done) {
       if (client) {
         count++
@@ -202,10 +219,15 @@ test('Test backpressure aedes published function', function (t) {
         })
       } else { done() }
     }
-  }).then((broker) => {
-    const server = createServer(broker.handle)
+  })
+  t.after(() => {
+    broker.close()
+    server.close()
+  })
+  const server = createServer(broker.handle)
 
-    server.listen(0, function () {
+  await new Promise(resolve => {
+    server.listen(0, () => {
       const port = server.address().port
       publisher = mqtt.connect({ port, host: 'localhost', clean: true, keepalive: 30 })
 
@@ -218,30 +240,31 @@ test('Test backpressure aedes published function', function (t) {
       }
 
       publisher.on('connect', publish)
-      publisher.on('end', function () {
-        t.ok(count > publishCount)
-        t.equal(publishCount, 0)
-        broker.close()
-        server.close()
+      publisher.on('end', () => {
+        t.assert.ok(count > publishCount)
+        t.assert.equal(publishCount, 0)
+        resolve()
       })
     })
   })
 })
 
-test('clear closed clients when the same clientId is managed by another broker', function (t) {
+test('clear closed clients when the same clientId is managed by another broker', async (t) => {
   t.plan(2)
 
   const clientId = 'closed-client'
-  Aedes.createBroker().then((aedesBroker) => {
-    t.teardown(aedesBroker.close.bind(aedesBroker))
-    // simulate a closed client on the broker
-    aedesBroker.clients[clientId] = { closed: true, broker: aedesBroker }
-    aedesBroker.connectedClients = 1
+  const broker = await Aedes.createBroker()
+  t.after(() => broker.close())
+  // simulate a closed client on the broker
+  broker.clients[clientId] = { closed: true, broker }
+  broker.connectedClients = 1
 
+  await new Promise(resolve => {
     // simulate the creation of the same client on another broker of the cluster
-    aedesBroker.publish({ topic: '$SYS/anotherbroker/new/clients', payload: clientId }, () => {
-      t.equal(aedesBroker.clients[clientId], undefined) // check that the closed client was removed
-      t.equal(aedesBroker.connectedClients, 0)
+    broker.publish({ topic: '$SYS/anotherbroker/new/clients', payload: clientId }, () => {
+      t.assert.equal(broker.clients[clientId], undefined) // check that the closed client was removed
+      t.assert.equal(broker.connectedClients, 0)
+      resolve()
     })
   })
 })

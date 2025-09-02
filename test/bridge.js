@@ -1,6 +1,10 @@
-import { test } from 'tap'
-import { setup, connect, subscribe } from './helper.js'
-import { Aedes } from '../aedes.js'
+import { test } from 'node:test'
+import {
+  createAndConnect,
+  subscribe,
+  checkNoPacket,
+  nextPacket
+} from './helper.js'
 
 for (const qos of [0, 1, 2]) {
   const packet = {
@@ -12,49 +16,46 @@ for (const qos of [0, 1, 2]) {
 
   if (qos > 0) packet.messageId = 42
 
-  test('normal client sends a publish message and shall receive it back, qos = ' + qos, function (t) {
-    Aedes.createBroker().then((broker) => {
-      const s = connect(setup(broker))
-      t.teardown(s.broker.close.bind(s.broker))
+  test(`normal client sends a publish message and shall receive it back, qos = ${qos}`, async (t) => {
+    t.plan(4)
+    const s = await createAndConnect(t)
+    await subscribe(t, s, 'hello', qos)
 
-      const handle = setTimeout(() => {
-        t.fail('did not receive packet back')
-        t.end()
-      }, 1000)
-
-      subscribe(t, s, 'hello', qos, function () {
-        s.outStream.on('data', (packet) => {
-          if (packet.cmd === 'publish') {
-            clearTimeout(handle)
-            t.end()
-          } else if (packet.cmd === 'pubrec') {
-            s.inStream.write({ cmd: 'pubrel', messageId: 42 })
-          }
-        })
-
-        s.inStream.write(packet)
-      })
-    })
+    s.inStream.write(packet)
+    for await (const packet of s.outStream) {
+      if (packet.cmd === 'publish') {
+        t.assert.ok(true, 'got publish packet')
+        break
+      }
+      if (packet.cmd === 'pubrec') {
+        s.inStream.write({ cmd: 'pubrel', messageId: 42 })
+      }
+    }
   })
 
-  test('bridge client sends a publish message but shall not receive it back, qos = ' + qos, function (t) {
+  test(`bridge client sends a publish message but shall not receive it back, qos = ${qos}`, async (t) => {
+    t.plan(6)
     // protocolVersion 128 + 4 means mqtt 3.1.1 with bridgeMode enabled
     // https://github.com/mqttjs/mqtt-packet/blob/7f7c2ed8bcb4b2c582851d120a94e0b4a731f661/parser.js#L171
-    Aedes.createBroker().then((broker) => {
-      const s = connect(setup(broker), { clientId: 'my-client-bridge-1', protocolVersion: 128 + 4 })
-      t.teardown(s.broker.close.bind(s.broker))
-
-      const handle = setTimeout(() => t.end(), 1000)
-
-      subscribe(t, s, 'hello', qos, function () {
-        s.outStream.on('data', function () {
-          clearTimeout(handle)
-          t.fail('should not receive packet back')
-          t.end()
-        })
-
-        s.inStream.write(packet)
-      })
-    })
+    const s = await createAndConnect(t, { connect: { clientId: 'my-client-bridge-1', bridgeMode: true } })
+    await subscribe(t, s, 'hello', qos)
+    s.inStream.write(packet)
+    if (qos === 0) {
+      t.assert.ok(true) // need two extra asserts to match QoS2
+      t.assert.ok(true) // need two extra asserts to match QoS2
+    }
+    if (qos === 1) {
+      const pkt = await nextPacket(s)
+      t.assert.equal(pkt.cmd, 'puback', 'received QoS1 puback')
+      t.assert.ok(true) // need an extra assert to match QoS2
+    }
+    if (qos === 2) {
+      const pkt = await nextPacket(s)
+      t.assert.equal(pkt.cmd, 'pubrec', 'received QoS2 pubRec')
+      s.inStream.write({ cmd: 'pubrel', messageId: 42 })
+      const pkt2 = await nextPacket(s)
+      t.assert.equal(pkt2.cmd, 'pubcomp', 'received QoS2 pubcomp')
+    }
+    await checkNoPacket(t, s)
   })
 }

@@ -1,34 +1,52 @@
-import { test } from 'tap'
-import { setup, connect } from './helper.js'
-import { Aedes } from '../aedes.js'
+import { test } from 'node:test'
+import {
+  createAndConnect,
+  withTimeout
+} from './helper.js'
 
-test('after an error, outstanding packets are discarded', function (t) {
-  t.plan(1)
-  Aedes.createBroker().then((broker) => {
-    const s = connect(setup(broker), {
-      keepalive: 1000
-    })
-    t.teardown(s.broker.close.bind(s.broker))
+test('after an error, outstanding packets are discarded', async (t) => {
+  t.plan(2)
+  const s = await createAndConnect(t, {
+    keepalive: 1000
+  })
 
-    const packet = {
-      cmd: 'publish',
-      topic: 'hello',
-      payload: 'world'
-    }
+  const packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world'
+  }
 
-    s.broker.mq.on('hello', function (msg, cb) {
-      t.pass('first msg received')
-      s.inStream.destroy(new Error('something went wrong'))
+  const checkFoo = async () => {
+    const result = await withTimeout(
+      new Promise(resolve => {
+        s.broker.mq.on('foo', (msg, cb) => {
+          resolve('msg received')
+        })
+      }),
+      100,
+      'timeout'
+    )
+    t.assert.equal(result, 'timeout', 'no msg received')
+  }
+
+  const processHello = new Promise(resolve => {
+    s.broker.mq.on('hello', (msg, cb) => {
+      t.assert.ok(true, 'first msg received')
+      s.inStream.destroy()
       cb()
       setImmediate(() => {
         packet.topic = 'foo'
         s.inStream.write(packet)
         s.inStream.write(packet)
+        resolve()
       })
     })
-    s.broker.mq.on('foo', function (msg, cb) {
-      t.fail('msg received')
-    })
-    s.inStream.write(packet)
   })
+
+  // run parallel
+  await Promise.all([
+    checkFoo(),
+    processHello,
+    s.inStream.write(packet)
+  ])
 })

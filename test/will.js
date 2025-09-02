@@ -1,7 +1,12 @@
-import { test } from 'tap'
+import { test } from 'node:test'
+import { once } from 'node:events'
+import {
+  connect,
+  createAndConnect,
+  delay,
+  setup,
+} from './helper.js'
 import memory from 'aedes-persistence'
-import Faketimers from '@sinonjs/fake-timers'
-import { setup, connect, noError, delay } from './helper.js'
 import { Aedes } from '../aedes.js'
 
 async function memorySetup (opts) {
@@ -10,487 +15,371 @@ async function memorySetup (opts) {
   return persistence
 }
 
-function willConnect (s, opts, connected) {
-  opts = opts || {}
+function addWillToOpts (opts = {}) {
   opts.will = {
     topic: 'mywill',
     payload: Buffer.from('last will'),
     qos: 0,
     retain: false
   }
-
-  return connect(s, opts, connected)
+  return opts
 }
 
-test('delivers a will', function (t) {
-  t.plan(4)
-
-  Aedes.createBroker().then((broker) => {
-    const opts = {}
-    // willConnect populates opts with a will
-    const s = willConnect(setup(broker),
-      opts,
-      function () {
-        s.conn.destroy()
-      }
-    )
-    t.teardown(s.broker.close.bind(s.broker))
-
-    s.broker.mq.on('mywill', function (packet, cb) {
-      t.equal(packet.topic, opts.will.topic, 'topic matches')
-      t.same(packet.payload, opts.will.payload, 'payload matches')
-      t.equal(packet.qos, opts.will.qos, 'qos matches')
-      t.equal(packet.retain, opts.will.retain, 'retain matches')
-      cb()
-    })
+async function oneWillFromBroker (broker) {
+  let received
+  const packet = await new Promise(resolve => {
+    received = willsFromBroker(broker, resolve)
   })
-})
+  return { packet, received }
+}
 
-test('calling close two times should not deliver two wills', function (t) {
-  t.plan(4)
-
-  Aedes.createBroker().then((broker) => {
-    const opts = {}
-    t.teardown(broker.close.bind(broker))
-
-    broker.on('client', function (client) {
-      client.close()
-      client.close()
-    })
-
-    broker.mq.on('mywill', onWill)
-
-    // willConnect populates opts with a will
-    willConnect(setup(broker), opts)
-
-    function onWill (packet, cb) {
-      broker.mq.removeListener('mywill', onWill, function () {
-        broker.mq.on('mywill', function (packet) {
-          t.fail('the will must be delivered only once')
-        })
-      })
-      t.equal(packet.topic, opts.will.topic, 'topic matches')
-      t.same(packet.payload, opts.will.payload, 'payload matches')
-      t.equal(packet.qos, opts.will.qos, 'qos matches')
-      t.equal(packet.retain, opts.will.retain, 'retain matches')
-      cb()
+function willsFromBroker (broker, resolve) {
+  const received = []
+  broker.mq.on('mywill', (packet, cb) => {
+    received.push(packet)
+    cb()
+    if (resolve) {
+      resolve(packet)
+      resolve = null
     }
   })
-})
+  return received
+}
 
-test('delivers old will in case of a crash', function (t) {
-  t.plan(7)
-
-  memorySetup({ id: 'anotherBroker' })
-    .then(persistence => {
-      const will = {
-        topic: 'mywill',
-        payload: Buffer.from('last will'),
-        qos: 0,
-        retain: false
-      }
-      persistence.putWill({ id: 'myClientId42' }, will)
-        .then(() => {
-          let authorized = false
-          const interval = 10 // ms, so that the will check happens fast!
-          Aedes.createBroker({
-            persistence,
-            heartbeatInterval: interval,
-            authorizePublish: function (client, packet, callback) {
-              t.strictSame(client, null, 'client must be null')
-              authorized = true
-              callback(null)
-            }
-          })
-            .then((broker) => {
-              t.teardown(broker.close.bind(broker))
-
-              const start = Date.now()
-
-              broker.mq.on('mywill', check)
-
-              function check (packet, cb) {
-                broker.mq.removeListener('mywill', check, function () {
-                  broker.mq.on('mywill', function (packet) {
-                    t.fail('the will must be delivered only once')
-                  })
-                })
-                t.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
-                t.equal(packet.topic, will.topic, 'topic matches')
-                t.same(packet.payload, will.payload, 'payload matches')
-                t.equal(packet.qos, will.qos, 'qos matches')
-                t.equal(packet.retain, will.retain, 'retain matches')
-                t.equal(authorized, true, 'authorization called')
-                cb()
-              }
-            })
-            .catch(err => t.error(err, 'no error'))
-        })
-    })
-})
-
-test('deliver old will without authorization in case of a crash', function (t) {
-  t.plan(1)
-
-  memorySetup({ id: 'anotherBroker' })
-    .then(persistence => {
-      const will = {
-        topic: 'mywill',
-        payload: Buffer.from('last will'),
-        qos: 0,
-        retain: false
-      }
-
-      persistence.putWill({ id: 'myClientId42' }, will)
-        .then(() => {
-          const interval = 10 // ms, so that the will check happens fast!
-          Aedes.createBroker({
-            persistence,
-            heartbeatInterval: interval,
-            authorizePublish: function (client, packet, callback) {
-              t.strictSame(client, null, 'client must be null')
-              callback(new Error())
-            }
-          }).then((broker) => {
-            t.teardown(broker.close.bind(broker))
-            broker.mq.on('mywill', check)
-
-            function check (packet, cb) {
-              t.fail('received will without authorization')
-              cb()
-            }
-          })
-            .catch(err => t.error(err, 'no error'))
-        })
-    })
-})
-
-test('delete old broker', function (t) {
-  t.plan(1)
-
-  const clock = Faketimers.install()
-
-  const heartbeatInterval = 100
-  Aedes.createBroker({
-    heartbeatInterval
-  }).then((broker) => {
-    t.teardown(broker.close.bind(broker))
-
-    const brokerId = 'dummyBroker'
-
-    broker.brokers[brokerId] = Date.now() - heartbeatInterval * 3.5
-
-    setTimeout(() => {
-      t.equal(broker.brokers[brokerId], undefined, 'Broker deleted')
-    }, heartbeatInterval * 4)
-
-    clock.tick(heartbeatInterval * 4)
-
-    clock.uninstall()
-  })
-})
-
-test('store the will in the persistence', function (t) {
+test('delivers a will', async (t) => {
   t.plan(4)
 
-  const opts = {
-    clientId: 'abcde'
-  }
+  const opts = addWillToOpts({})
+  const s = await createAndConnect(t, { connect: opts })
+  s.conn.destroy()
 
-  Aedes.createBroker().then((broker) => {
-    // willConnect populates opts with a will
-    const s = willConnect(setup(broker), opts)
-    t.teardown(s.broker.close.bind(s.broker))
-
-    s.broker.on('client', function () {
-      // this is connack
-      s.broker.persistence.getWill({ id: opts.clientId })
-        .then(packet => {
-          t.same(packet.topic, opts.will.topic, 'will topic matches')
-          t.same(packet.payload, opts.will.payload, 'will payload matches')
-          t.same(packet.qos, opts.will.qos, 'will qos matches')
-          t.same(packet.retain, opts.will.retain, 'will retain matches')
-        })
-        .catch(err => t.error(err, 'no error'))
-    })
-  })
+  const { packet } = await oneWillFromBroker(s.broker)
+  t.assert.equal(packet.topic, opts.will.topic, 'topic matches')
+  t.assert.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+  t.assert.equal(packet.qos, opts.will.qos, 'qos matches')
+  t.assert.equal(packet.retain, opts.will.retain, 'retain matches')
 })
 
-test('delete the will in the persistence after publish', function (t) {
-  t.plan(1)
+test('calling close two times should not deliver two wills', async (t) => {
+  t.plan(5)
 
-  const opts = {
-    clientId: 'abcde'
-  }
+  const opts = addWillToOpts({})
+  const s = await createAndConnect(t, { connect: opts })
 
-  Aedes.createBroker().then((broker) => {
-    t.teardown(broker.close.bind(broker))
-
-    broker.on('client', function (client) {
-      setImmediate(function () {
-        client.close()
-      })
-    })
-
-    broker.mq.on('mywill', check)
-
-    // willConnect populates opts with a will
-    willConnect(setup(broker), opts)
-
-    function check (packet, cb) {
-      broker.mq.removeListener('mywill', check, function () {
-        broker.persistence.getWill({ id: opts.clientId })
-          .then(p => t.notOk(p, 'packet is empty'))
-          .catch(err => t.error(err, 'no error'))
-      })
-      cb()
-    }
-  })
+  const received = willsFromBroker(s.broker)
+  s.client.close()
+  s.client.close()
+  await delay(10) // give Aedes some time to process, potentially twice
+  t.assert.equal(received.length, 1, 'only one will has been delivered')
+  const packet = received[0]
+  t.assert.equal(packet.topic, opts.will.topic, 'topic matches')
+  t.assert.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+  t.assert.equal(packet.qos, opts.will.qos, 'qos matches')
+  t.assert.equal(packet.retain, opts.will.retain, 'retain matches')
 })
 
-test('delivers a will with authorization', function (t) {
-  t.plan(6)
+test('delivers old will in case of a crash', async (t) => {
+  t.plan(8)
+
+  const persistence = await memorySetup({ id: 'anotherBroker' })
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+  await persistence.putWill({ id: 'myClientId42' }, will)
 
   let authorized = false
-
-  Aedes.createBroker({
+  const interval = 10 // ms, so that the will check happens fast!
+  const broker = await Aedes.createBroker({
+    persistence,
+    heartbeatInterval: interval,
     authorizePublish: (client, packet, callback) => {
+      t.assert.equal(client, null, 'client must be null')
       authorized = true
       callback(null)
     }
-  }).then((broker) => {
-    const opts = {}
-    // willConnect populates opts with a will
-    const s = willConnect(
-      setup(broker),
-      opts,
-      function () {
-        s.conn.destroy()
-      }
-    )
-    t.teardown(s.broker.close.bind(s.broker))
-
-    s.broker.on('clientDisconnect', function (client) {
-      t.equal(client.connected, false)
-    })
-
-    s.broker.mq.on('mywill', function (packet, cb) {
-      t.equal(packet.topic, opts.will.topic, 'topic matches')
-      t.same(packet.payload, opts.will.payload, 'payload matches')
-      t.equal(packet.qos, opts.will.qos, 'qos matches')
-      t.equal(packet.retain, opts.will.retain, 'retain matches')
-      t.equal(authorized, true, 'authorization called')
-      cb()
-    })
   })
+
+  t.after(() => broker.close())
+
+  const start = Date.now()
+
+  const { packet, received } = await oneWillFromBroker(broker)
+  t.assert.ok(Date.now() - start >= 3 * interval, 'the will needs to be emitted after 3 heartbeats')
+  t.assert.equal(packet.topic, will.topic, 'topic matches')
+  t.assert.deepEqual(packet.payload, will.payload, 'payload matches')
+  t.assert.equal(packet.qos, will.qos, 'qos matches')
+  t.assert.equal(packet.retain, will.retain, 'retain matches')
+  t.assert.equal(authorized, true, 'authorization called')
+  await delay(10) // give Aedes some time to process, potentially twice
+  t.assert.equal(received.length, 1, 'only one will has been delivered')
 })
 
-test('delivers a will waits for authorization', function (t) {
-  t.plan(6)
-
-  let authorized = false
-  Aedes.createBroker({
-    authorizePublish: (client, packet, callback) => {
-      authorized = true
-      setImmediate(() => { callback(null) })
-    }
-  }).then((broker) => {
-    const opts = {}
-    // willConnect populates opts with a will
-    const s = willConnect(
-      setup(broker),
-      opts,
-      function () {
-        s.conn.destroy()
-      }
-    )
-    t.teardown(s.broker.close.bind(s.broker))
-
-    s.broker.on('clientDisconnect', function () {
-      t.pass('client is disconnected')
-    })
-
-    s.broker.mq.on('mywill', function (packet, cb) {
-      t.equal(packet.topic, opts.will.topic, 'topic matches')
-      t.same(packet.payload, opts.will.payload, 'payload matches')
-      t.equal(packet.qos, opts.will.qos, 'qos matches')
-      t.equal(packet.retain, opts.will.retain, 'retain matches')
-      t.equal(authorized, true, 'authorization called')
-      cb()
-    })
-  })
-})
-
-test('does not deliver a will without authorization', function (t) {
+test('deliver old will without authorization in case of a crash', async (t) => {
   t.plan(1)
 
-  let authorized = false
-  Aedes.createBroker({
-    authorizePublish: (username, packet, callback) => {
-      authorized = true
+  const persistence = await memorySetup({ id: 'anotherBroker' })
+
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  await persistence.putWill({ id: 'myClientId42' }, will)
+
+  const interval = 10 // ms, so that the will check happens fast!
+  const broker = await Aedes.createBroker({
+    persistence,
+    heartbeatInterval: interval,
+    authorizePublish: function (client, packet, callback) {
+      t.assert.equal(client, null, 'client must be null')
       callback(new Error())
     }
-  }).then((broker) => {
-    const opts = {}
-    // willConnect populates opts with a will
-    const s = willConnect(
-      setup(broker),
-      opts,
-      function () {
-        s.conn.destroy()
-      }
-    )
-    t.teardown(s.broker.close.bind(s.broker))
-
-    s.broker.on('clientDisconnect', function () {
-      t.equal(authorized, true, 'authorization called')
-    })
-
-    s.broker.mq.on('mywill', function (packet, cb) {
-      t.fail('received will without authorization')
-      cb()
-    })
   })
+  t.after(() => broker.close())
+  const received = willsFromBroker(broker)
+  await delay(10) // give Aedes some time to process to ensure that no will is send
+  t.assert.equal(received.length, 0, 'no will has been delivered')
 })
 
-test('does not deliver a will without authentication', function (t) {
+test('delete old broker', async (t) => {
   t.plan(1)
 
-  let authenticated = false
-  Aedes.createBroker({
-    authenticate: (client, username, password, callback) => {
-      authenticated = true
-      callback(new Error(), false)
-    }
-  }).then((broker) => {
-    const opts = {}
-    // willConnect populates opts with a will
-    const s = willConnect(
-      setup(broker),
-      opts
-    )
-    t.teardown(s.broker.close.bind(s.broker))
-
-    s.broker.on('clientError', function () {
-      t.equal(authenticated, true, 'authentication called')
-      t.end()
-    })
-
-    s.broker.mq.on('mywill', function (packet, cb) {
-      t.fail('received will without authentication')
-      cb()
-    })
+  const heartbeatInterval = 100
+  const broker = await Aedes.createBroker({
+    heartbeatInterval
   })
+  t.after(() => broker.close())
+
+  const brokerId = 'dummyBroker'
+
+  broker.brokers[brokerId] = Date.now() - heartbeatInterval * 3.5
+
+  await delay(heartbeatInterval * 4)
+  t.assert.equal(broker.brokers[brokerId], undefined, 'Broker deleted')
 })
 
-test('does not deliver will if broker is closed during authentication', function (t) {
-  t.plan(0)
+test('store the will in the persistence', async (t) => {
+  t.plan(4)
 
-  const opts = { keepalive: 1 }
-  let brokerClose
-
-  Aedes.createBroker({
-    authenticate: function (client, username, password, callback) {
-      setTimeout(function () {
-        callback(null, true)
-      })
-      brokerClose()
-    }
-  }).then((broker) => {
-    brokerClose = broker.close.bind(broker)
-
-    broker.on('keepaliveTimeout', function () {
-      t.fail('keepalive timer shoud not be set')
-    })
-
-    broker.mq.on('mywill', function (packet, cb) {
-      t.fail('Received will when it was not expected')
-      cb()
-    })
-
-    willConnect(setup(broker), opts)
+  const opts = addWillToOpts({
+    clientId: 'abcde'
   })
+
+  const s = await createAndConnect(t, { connect: opts })
+
+  const packet = await s.broker.persistence.getWill({ id: opts.clientId })
+  t.assert.deepEqual(structuredClone(packet).topic, opts.will.topic, 'will topic matches')
+  t.assert.deepEqual(structuredClone(packet).payload, opts.will.payload, 'will payload matches')
+  t.assert.deepEqual(structuredClone(packet).qos, opts.will.qos, 'will qos matches')
+  t.assert.deepEqual(structuredClone(packet).retain, opts.will.retain, 'will retain matches')
+})
+
+test('delete the will in the persistence after publish', async (t) => {
+  t.plan(1)
+
+  const opts = addWillToOpts({
+    clientId: 'abcde'
+  })
+
+  const s = await createAndConnect(t, { connect: opts })
+
+  await new Promise(resolve => {
+    willsFromBroker(s.broker, resolve) // setup the listener
+    s.client.close()
+  })
+  const packet = await s.broker.persistence.getWill({ id: opts.clientId })
+  t.assert.ok(!packet, 'packet is empty')
+})
+
+test('delivers a will with authorization', async (t) => {
+  t.plan(7)
+
+  let authorized = false
+
+  const opts = addWillToOpts({})
+  const s = await createAndConnect(t, {
+    broker: {
+      authorizePublish: (client, packet, callback) => {
+        authorized = true
+        callback(null)
+      }
+    },
+    connect: opts
+  })
+
+  const received = willsFromBroker(s.broker)
+  s.conn.destroy()
+
+  const [client] = await once(s.broker, 'clientDisconnect')
+  t.assert.equal(client.connected, false)
+  t.assert.equal(received.length, 1, 'only one will has been delivered')
+  const packet = received[0]
+  t.assert.equal(packet.topic, opts.will.topic, 'topic matches')
+  t.assert.deepEqual(packet.payload, opts.will.payload, 'payload matches')
+  t.assert.equal(packet.qos, opts.will.qos, 'qos matches')
+  t.assert.equal(packet.retain, opts.will.retain, 'retain matches')
+  t.assert.equal(authorized, true, 'authorization called')
+})
+
+test('delivers a will waits for authorization', async (t) => {
+  t.plan(7)
+
+  let authorized = false
+  const opts = addWillToOpts({})
+  const s = await createAndConnect(t, {
+    broker: {
+      authorizePublish: (client, packet, callback) => {
+        authorized = true
+        setImmediate(() => { callback(null) })
+      }
+    },
+    connect: opts
+  })
+  const received = willsFromBroker(s.broker)
+  s.conn.destroy()
+
+  const [client] = await once(s.broker, 'clientDisconnect')
+  t.assert.equal(client.connected, false)
+  t.assert.equal(authorized, true, 'authorization called')
+  await delay(10) // give Aedes time to complete authorizePublish
+  t.assert.equal(received.length, 1, 'only one will has been delivered')
+  const packet = received[0]
+  t.assert.equal(packet.topic, opts.will.topic, 'topic matches')
+  t.assert.deepEqual(structuredClone(packet).payload, opts.will.payload, 'payload matches')
+  t.assert.equal(packet.qos, opts.will.qos, 'qos matches')
+  t.assert.equal(packet.retain, opts.will.retain, 'retain matches')
+})
+
+test('does not deliver a will without authorization', async (t) => {
+  t.plan(2)
+
+  let authorized = false
+  const opts = addWillToOpts({})
+  const s = await createAndConnect(t, {
+    broker: {
+      authorizePublish: (client, packet, callback) => {
+        authorized = true
+        callback(new Error())
+      }
+    },
+    connect: opts
+  })
+  const received = willsFromBroker(s.broker)
+  s.conn.destroy()
+
+  await once(s.broker, 'clientDisconnect')
+  t.assert.equal(authorized, true, 'authorization called')
+  await delay(10) // give Aedes time to complete authorizePublish
+  t.assert.equal(received.length, 0, 'received no will without authorization')
+})
+
+test('does not deliver a will without authentication', async (t) => {
+  t.plan(2)
+
+  let authenticated = false
+  const opts = addWillToOpts({})
+  const s = await createAndConnect(t, {
+    broker: {
+      authenticate: (client, username, password, callback) => {
+        authenticated = true
+        callback(new Error(), false)
+      }
+    },
+    connect: opts,
+    expectedReturnCode: 5
+  })
+  const received = willsFromBroker(s.broker)
+  await once(s.broker, 'clientError')
+  t.assert.equal(authenticated, true, 'authentication called')
+  await delay(10) // give Aedes time to complete authenticate
+  t.assert.equal(received.length, 0, 'received no will without authentication')
+})
+
+test('does not deliver will if broker is closed during authentication', async (t) => {
+  t.plan(2)
+
+  const opts = addWillToOpts({ keepalive: 1 })
+
+  const broker = await Aedes.createBroker()
+  broker.authenticate = (client, username, password, callback) => {
+    setImmediate(() => {
+      callback(null, true)
+    })
+    broker.close()
+  }
+
+  broker.on('keepaliveTimeout', () => {
+    t.assert.fail('keepalive timer shoud not be set')
+  })
+
+  const received = willsFromBroker(broker)
+
+  const s = setup(broker)
+  await connect(s, { connect: opts, noWait: true })
+  await delay(1) // give Aedes some time to close the broker
+  t.assert.equal(broker.closed, true, 'broker closed')
+  t.assert.equal(received.length, 0, 'received no will')
 })
 
 // [MQTT-3.14.4-3]
-test('does not deliver will when client sends a DISCONNECT', function (t) {
-  t.plan(1)
-
-  Aedes.createBroker().then(async (broker) => {
-    t.teardown(broker.close.bind(broker))
-
-    const s = noError(willConnect(setup(broker), {}, async function () {
-      s.inStream.write({
-        cmd: 'disconnect'
-      })
-      // give disconnect some time to properly disconnect
-      // before the stream is closed
-      await delay(10)
-      t.pass('disconnected')
-    }), t)
-
-    s.broker.mq.on('mywill', function (packet, cb) {
-      t.fail(packet, 'received the will that we should not get')
-      cb()
-    })
-  })
-})
-
-test('deletes from persistence on DISCONNECT', function (t) {
-  t.plan(1)
-
-  const opts = {
-    clientId: 'abcde'
-  }
-  Aedes.createBroker().then((broker) => {
-    t.teardown(broker.close.bind(broker))
-
-    const s = noError(willConnect(setup(broker), opts, function () {
-      s.inStream.end({
-        cmd: 'disconnect'
-      })
-    }), t)
-
-    s.broker.persistence.getWill({ id: opts.clientId })
-      .then(packet => t.notOk(packet))
-      .catch(err => t.error(err, 'no error'))
-  })
-})
-
-test('does not store multiple will with same clientid', function (t) {
+test('does not deliver will when client sends a DISCONNECT', async (t) => {
   t.plan(2)
 
-  const opts = { clientId: 'abcde' }
-
-  Aedes.createBroker().then((broker) => {
-    let s = noError(willConnect(setup(broker), opts, function () {
-      // gracefully close client so no will is sent
-      s.inStream.end({
-        cmd: 'disconnect'
-      })
-    }), t)
-
-    broker.on('clientDisconnect', function (client) {
-      // reconnect same client with will
-      s = willConnect(setup(broker), opts, function () {
-        // check that there are not 2 will messages for the same clientid
-        s.broker.persistence.delWill({ id: opts.clientId })
-          .then(packet => {
-            t.equal(packet.clientId, opts.clientId, 'will packet found')
-            s.broker.persistence.delWill({ id: opts.clientId })
-              .then(packet => {
-                t.equal(!!packet, false, 'no duplicated packets')
-                broker.close()
-              })
-              .catch(err => t.error(err, 'no error'))
-          })
-          .catch(err => t.error(err, 'no error'))
-      })
-    })
+  const opts = addWillToOpts({ keepalive: 1 })
+  const s = await createAndConnect(t, { connect: opts })
+  const received = willsFromBroker(s.broker)
+  s.inStream.write({
+    cmd: 'disconnect'
   })
+
+  await once(s.broker, 'clientDisconnect')
+  t.assert.ok(!s.client.connected, 'disconnected')
+  t.assert.equal(received.length, 0, 'received no will')
 })
 
-test('don\'t delivers a will if broker alive', function (t) {
+test('deletes from persistence on DISCONNECT', async (t) => {
+  t.plan(1)
+
+  const opts = addWillToOpts({
+    clientId: 'abcde'
+  })
+  const s = await createAndConnect(t, { connect: opts })
+  s.inStream.end({
+    cmd: 'disconnect'
+  })
+  await once(s.broker, 'clientDisconnect')
+  const packet = await s.broker.persistence.getWill({ id: opts.clientId })
+  t.assert.ok(!packet, 'no packet present')
+})
+
+test('does not store multiple will with same clientid', async (t) => {
+  t.plan(2)
+
+  const opts = addWillToOpts({
+    clientId: 'abcde'
+  })
+  const s = await createAndConnect(t, { connect: opts })
+  s.inStream.end({
+    cmd: 'disconnect'
+  })
+  await once(s.broker, 'clientDisconnect')
+  const s2 = setup(s.broker)
+  await connect(s2, { connect: opts })
+
+  // check that there are not 2 will messages for the same clientid
+  const packet1 = await s.broker.persistence.delWill({ id: opts.clientId })
+  t.assert.equal(packet1.clientId, opts.clientId, 'will packet found')
+  const packet2 = await s.broker.persistence.delWill({ id: opts.clientId })
+  t.assert.ok(!packet2, 'no duplicate will packets')
+})
+
+test('don\'t deliver a will if broker alive', async (t) => {
+  t.plan(6)
   const will = {
     topic: 'mywill',
     payload: Buffer.from('last will'),
@@ -500,45 +389,40 @@ test('don\'t delivers a will if broker alive', function (t) {
 
   const oldBroker = 'broker1'
 
-  memorySetup({ id: oldBroker }).then(persistence => {
-    persistence.putWill({ id: 'myClientId42' }, will)
-      .then(() => {
-        const opts = {
-          persistence,
-          heartbeatInterval: 10
-        }
+  const persistence = await memorySetup({ id: oldBroker })
+  await persistence.putWill({ id: 'myClientId42' }, will)
 
-        let count = 0
+  const opts = {
+    persistence,
+    heartbeatInterval: 10
+  }
 
-        Aedes.createBroker(opts).then((broker) => {
-          t.teardown(broker.close.bind(broker))
+  const broker = await Aedes.createBroker(opts)
+  t.after(() => broker.close())
 
-          const streamWill = persistence.streamWill
-          persistence.streamWill = function () {
-            // don't pass broker.brokers to streamWill
-            return streamWill.call(persistence)
-          }
+  const streamWill = persistence.streamWill
+  persistence.streamWill = () => {
+    // don't pass broker.brokers to streamWill
+    return streamWill.call(persistence)
+  }
+  // catch any wills published
+  const received = willsFromBroker(broker)
 
-          broker.mq.on('mywill', function (packet, cb) {
-            t.fail('Will received')
-            cb()
-          })
-
-          broker.mq.on('$SYS/+/heartbeat', function () {
-            t.pass('Heartbeat received')
-            broker.brokers[oldBroker] = Date.now()
-
-            if (++count === 5) {
-              t.end()
-            }
-          })
-        })
-          .catch(err => t.error(err, 'no error'))
-      })
+  // let the broker run for 5 heartbeats
+  let count = 0
+  await new Promise((resolve) => {
+    broker.mq.on('$SYS/+/heartbeat', () => {
+      t.assert.ok(true, 'Heartbeat received')
+      broker.brokers[oldBroker] = Date.now()
+      if (++count === 5) {
+        resolve()
+      }
+    })
   })
+  t.assert.equal(received.length, 0, 'received no will')
 })
 
-test('handle will publish error', function (t) {
+test('handle will publish error', async (t) => {
   t.plan(1)
 
   const will = {
@@ -548,32 +432,27 @@ test('handle will publish error', function (t) {
     retain: false
   }
 
-  memorySetup({ id: 'broker1' }).then(persistence => {
-    persistence.putWill({ id: 'myClientId42' }, will)
-      .then(() => {
-        const opts = {
-          persistence,
-          heartbeatInterval: 10
-        }
+  const persistence = await memorySetup({ id: 'broker1' })
+  await persistence.putWill({ id: 'myClientId42' }, will)
 
-        persistence.delWill = async function (client) {
-          throw new Error('Throws error')
-        }
+  const opts = {
+    persistence,
+    heartbeatInterval: 10
+  }
 
-        Aedes.createBroker(opts)
-          .then((broker) => {
-            t.teardown(broker.close.bind(broker))
+  // fake an error
+  persistence.delWill = async client => {
+    throw new Error('Throws error')
+  }
 
-            broker.once('error', function (err) {
-              t.equal('Throws error', err.message, 'throws error')
-            })
-          })
-          .catch(err => t.error(err, 'no error'))
-      })
-  })
+  const broker = await Aedes.createBroker(opts)
+  t.after(() => broker.close())
+
+  const [err] = await once(broker, 'error')
+  t.assert.equal('Throws error', err.message, 'throws error')
 })
 
-test('handle will publish error 2', function (t) {
+test('handle will publish error 2', async (t) => {
   t.plan(1)
 
   const will = {
@@ -583,25 +462,22 @@ test('handle will publish error 2', function (t) {
     retain: true
   }
 
-  memorySetup({ id: 'broker1' }).then(persistence => {
-    persistence.putWill({ id: 'myClientId42' }, will)
-      .then(() => {
-        const opts = {
-          persistence,
-          heartbeatInterval: 10
-        }
+  const persistence = await memorySetup({ id: 'broker1' })
+  await persistence.putWill({ id: 'myClientId42' }, will)
 
-        persistence.storeRetained = async function (packet) {
-          throw new Error('Throws error')
-        }
+  const opts = {
+    persistence,
+    heartbeatInterval: 10
+  }
 
-        Aedes.createBroker(opts).then((broker) => {
-          t.teardown(broker.close.bind(broker))
+  // fake error
+  persistence.storeRetained = async packet => {
+    throw new Error('Throws error')
+  }
 
-          broker.once('error', function (err) {
-            t.equal('Throws error', err.message, 'throws error')
-          })
-        })
-      })
-  })
+  const broker = await Aedes.createBroker(opts)
+  t.after(() => broker.close())
+
+  const [err] = await once(broker, 'error')
+  t.assert.equal('Throws error', err.message, 'throws error')
 })
