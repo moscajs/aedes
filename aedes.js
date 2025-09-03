@@ -381,9 +381,9 @@ function runSeries (state, actions, packet, done) {
   next()
 }
 
-async function closeClient (client) {
+async function closeClient (clientInstance) {
   return new Promise((resolve) => {
-    client.close(resolve)
+    clientInstance.close(resolve)
   })
 }
 
