@@ -127,8 +127,8 @@ function reportAverages (avg) {
       const correctedDiff = unit === 'ms' ? diff * -1 : diff
       const sign = correctedDiff > 0 ? '+' : ''
       const perc = correctedDiff === 0 ? 100 : `${sign}${correctedDiff.toFixed(2)}`
-      if (diff > threshold) {
-        console.error(`\n\nError: ${key} is more than ${sign}${threshold}% off the reference (${ref} ${unit})`)
+      if ((-1 * correctedDiff) > threshold) {
+        console.error(`\n\nError: ${key} is ${sign}${correctedDiff.toFixed(2)}% off the reference (${ref} ${unit}) which is more than the threshold of ${threshold}% `)
         failed = true
       }
       console.log(`| ${label} | ${benchmark} | ${config} | ${value.toFixed(0)} | ${unit} | ${perc}%`)
