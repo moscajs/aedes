@@ -5,7 +5,7 @@ import Packet from 'aedes-packet'
 import memory from 'aedes-persistence'
 import mqemitter from 'mqemitter'
 import Client from './lib/client.js'
-import { $SYS_PREFIX, bulk, ObjectPool } from './lib/utils.js'
+import { $SYS_PREFIX, bulk } from './lib/utils.js'
 import pkg from './package.json' with { type: 'json' }
 
 const defaultOptions = {
@@ -54,7 +54,6 @@ export class Aedes extends EventEmitter {
     }
 
     this._series = runSeries
-    this._enqueuers = new ObjectPool(DoEnqueues)
 
     this.preConnect = opts.preConnect
     this.authenticate = opts.authenticate
@@ -297,7 +296,7 @@ function emitPacket (packet, done) {
 }
 
 function enqueueOffline (packet, done) {
-  const enqueuer = this.broker._enqueuers.get()
+  const enqueuer = new DoEnqueues()
 
   enqueuer.complete = done
   enqueuer.packet = packet
@@ -341,7 +340,6 @@ class DoEnqueues {
 
       broker.persistence.outgoingEnqueueCombi(subs, packet)
         .then(() => complete(null), complete)
-      broker._enqueuers.release(that)
     }
   }
 }
