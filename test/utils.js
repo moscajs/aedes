@@ -1,5 +1,6 @@
 import { test } from 'node:test'
-import { runFall } from '../lib/utils.js'
+import { runFall, batch } from '../lib/utils.js'
+import { setTimeout } from 'timers/promises'
 
 test('runFall works ok', function (t) {
   t.plan(5)
@@ -58,3 +59,65 @@ for (let i = 1; i < 4; i++) {
     fall('a', done)
   })
 }
+
+// generator helper to test batch
+async function * generator (numItems) {
+  let ctr = 0
+  while (ctr < numItems) {
+    yield ctr++
+  }
+}
+
+for (const [label, numItems, numBatches] of [
+  ['< highWaterMark', 10, 1],
+  ['> highwatermark exact batch size', 32, 2],
+  ['> highwatermark with remainder', 100, 7],
+]) {
+  test(`batch works with number of items ${label}`, async (t) => {
+    t.plan(2 + numItems)
+    const results = []
+    const fn = async (i) => {
+      await setTimeout(10)
+      results.push(i * 2)
+    }
+    let numBatch = 0
+    for await (const items of (batch(generator(numItems), fn, 16))) {
+      await Promise.all(items)
+      numBatch++
+    }
+    t.assert.equal(numBatch, numBatches, 'all batches')
+    t.assert.equal(results.length, numItems, 'all items')
+    for (let i = 0; i < numItems; i++) {
+      t.assert.equal(results[i], i * 2)
+    }
+  })
+}
+
+test('test batch function trowing error', async (t) => {
+  t.plan(2)
+  const numItems = 100
+
+  const fn = async (i) => {
+    await setTimeout(10)
+    if (i === 20) {
+      throw new Error('item 20 failed')
+    }
+  }
+  let numBatches = 0
+
+  async function runBatches () {
+    for await (const items of (batch(generator(numItems), fn, 16))) {
+      numBatches++
+      await Promise.all(items)
+    }
+  }
+
+  // the extra promise is to make sure the test waits for the error
+  await new Promise(resolve => {
+    runBatches().catch(async err => {
+      t.assert.equal(err.message, 'item 20 failed')
+      t.assert.equal(numBatches, 2, 'correct number of batches before error was thrown')
+      resolve()
+    })
+  })
+})
