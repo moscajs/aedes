@@ -258,7 +258,7 @@ export class Aedes extends EventEmitter {
     for (const clientId of Object.keys(this.clients)) {
       promises.push(closeClient(this.clients[clientId]))
     }
-    Promise.all(promises).then(() => {
+    Promise.all(promises).finally(() => {
       that.emit('closed')
       that.mq.close(cb)
     })
