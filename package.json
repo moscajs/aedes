@@ -129,7 +129,7 @@
 		"mqtt-packet": "^9.0.2",
 		"retimer": "^4.0.0",
 		"reusify": "^1.1.0",
-		"uuid": "^11.1.0"
+		"uuid": "^12.0.0"
 	},
 	"peerDependencies": {
 		"aedes-persistence-level": "^9.1.2",
