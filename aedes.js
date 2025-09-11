@@ -5,7 +5,7 @@ import Packet from 'aedes-packet'
 import memory from 'aedes-persistence'
 import mqemitter from 'mqemitter'
 import Client from './lib/client.js'
-import { $SYS_PREFIX, batch } from './lib/utils.js'
+import { $SYS_PREFIX, batch, noop, runSeries } from './lib/utils.js'
 import pkg from './package.json' with { type: 'json' }
 
 const defaultOptions = {
@@ -352,17 +352,6 @@ const publishFuncsQoS = [
   callPublished
 ]
 
-// runSeries runs functions in fastseries style
-function runSeries (state, actions, packet, done) {
-  done = (done || noop).bind(state)
-  let i = 0
-  function next (err) {
-    if (err || i === actions.length) return done(err)
-    actions[i++].call(state, packet, next)
-  }
-  next()
-}
-
 async function closeClient (clientInstance) {
   return new Promise((resolve) => {
     clientInstance.close(resolve)
@@ -403,8 +392,6 @@ class PublishState {
     this.packet = packet
   }
 }
-
-function noop () { }
 
 function warnMigrate () {
   throw new Error(
