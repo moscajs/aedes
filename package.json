@@ -23,22 +23,6 @@
 		"license-checker": "license-checker --production --onlyAllow=\"MIT;ISC;BSD-3-Clause;BSD-2-Clause;0BSD\"",
 		"release": "read -p 'GITHUB_TOKEN: ' GITHUB_TOKEN && export GITHUB_TOKEN=$GITHUB_TOKEN && release-it --disable-metrics"
 	},
-	"release-it": {
-		"github": {
-			"release": true
-		},
-		"git": {
-			"tagName": "v${version}"
-		},
-		"hooks": {
-			"before:init": [
-				"npm run test:ci"
-			]
-		},
-		"npm": {
-			"publish": true
-		}
-	},
 	"pre-commit": [
 		"test"
 	],
