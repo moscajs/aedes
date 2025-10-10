@@ -24,7 +24,7 @@ jobs:
 
       # Run benchmark on main branch
       - name: Checkout main branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.mainRef }}
           path: main-source
@@ -39,7 +39,7 @@ jobs:
 
       # Run benchmark on PR branch
       - name: Checkout PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: pr-source
 
