@@ -5,6 +5,7 @@ import {
   connect,
   createAndConnect,
   createPubSub,
+  delay,
   nextPacket,
   publish,
   setup,
@@ -573,4 +574,87 @@ test('not send pubrec when persistence fails to store packet', async (t) => {
   const [client, err] = await once(s.broker, 'clientError')
   t.assert.ok(client, 'client exists')
   t.assert.equal(err.message, 'store error')
+})
+
+test('publish QoS 2, pubrel delivery retry', async (t) => {
+  t.plan(4)
+
+  const broker = await Aedes.createBroker()
+  t.after(() => broker.close())
+  const s = setup(broker)
+
+  let warningEmitted = false
+  broker.on('warning', (err) => {
+    t.assert.ok(err, 'error should be passed to warning event')
+    warningEmitted = true
+  })
+
+  await connect(s)
+
+  // Send a PUBREL packet for a message ID that doesn't exist in persistence
+  // This simulates a client retrying PUBREL after reconnection when the broker
+  // already completed the QoS 2 flow and removed the packet from persistence
+  s.inStream.write({
+    cmd: 'pubrel',
+    messageId: 42
+  })
+
+  // The broker should respond with PUBCOMP even though the packet is not in persistence
+  const pubcomp = await nextPacket(s)
+  t.assert.equal(pubcomp.cmd, 'pubcomp', 'should receive pubcomp')
+  t.assert.equal(pubcomp.messageId, 42, 'messageId should match')
+
+  t.assert.ok(warningEmitted, 'warning should be emitted')
+})
+
+test('publish QoS 2, pubrel retry after complete flow', async (t) => {
+  t.plan(8)
+
+  const s = await createAndConnect(t)
+
+  // First, complete a normal QoS 2 flow
+  const packet = {
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 2,
+    messageId: 42
+  }
+
+  s.inStream.write(packet)
+  const pubrec = await nextPacket(s)
+  t.assert.equal(pubrec.cmd, 'pubrec', 'should receive pubrec')
+  t.assert.equal(pubrec.messageId, 42, 'messageId should match')
+
+  s.inStream.write({
+    cmd: 'pubrel',
+    messageId: 42
+  })
+
+  const pubcomp1 = await nextPacket(s)
+  t.assert.equal(pubcomp1.cmd, 'pubcomp', 'should receive first pubcomp')
+  t.assert.equal(pubcomp1.messageId, 42, 'messageId should match')
+
+  // Set up warning handler after first PUBCOMP (packet already deleted from persistence)
+  let warningEmitted = false
+  s.broker.on('warning', (err) => {
+    t.assert.ok(err, 'error should be passed to warning event')
+    warningEmitted = true
+  })
+
+  // Wait a bit to ensure packet deletion is complete
+  await delay(10)
+
+  // Now retry the PUBREL - the packet has already been removed from persistence
+  // This simulates a client that didn't receive the PUBCOMP and retries
+  s.inStream.write({
+    cmd: 'pubrel',
+    messageId: 42
+  })
+
+  const pubcomp2 = await nextPacket(s)
+  t.assert.equal(pubcomp2.cmd, 'pubcomp', 'should receive second pubcomp')
+  t.assert.equal(pubcomp2.messageId, 42, 'messageId should match')
+
+  t.assert.ok(warningEmitted, 'warning should be emitted on retry')
 })
