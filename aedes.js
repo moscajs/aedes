@@ -15,6 +15,7 @@ const defaultOptions = {
   concurrency: 100,
   heartbeatInterval: 60000, // 1 minute
   connectTimeout: 30000, // 30 secs
+  drainTimeout: 0, // disabled by default, set to positive ms to enable
   decodeProtocol: null,
   preConnect: defaultPreConnect,
   authenticate: defaultAuthenticate,

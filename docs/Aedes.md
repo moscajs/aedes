@@ -37,7 +37,9 @@
 
 - options `<object>`
   - `mq` [`<MQEmitter>`](../README.md#mqemitter) middleware used to deliver messages to subscribed clients. In a cluster environment it is used also to share messages between brokers instances. __Default__: `mqemitter`
-  - `concurrency` `<number>` maximum number of concurrent messages delivered by `mq`. __Default__: `100`
+  - `concurrency` `<number>` maximum number of concurrent messages that can be processed simultaneously by `mq`. __Default__: `100`
+
+    __Note:__ Concurrency determines how many messages can be "in-flight" at once. When a slow client blocks (socket buffer full), the message delivery hangs waiting for the `drain` event. With `N` concurrency slots and ANY frozen subscriber on a topic, fast clients will receive at most `N` messages before complete deadlock. Higher concurrency = larger buffer before freeze, but without `drainTimeout`, deadlock is __inevitable__. Use `drainTimeout` to protect against this.
   - `persistence` [`<Persistence>`](../README.md#persistence) middleware that stores _QoS > 0, retained, will_ packets and _subscriptions_. __Default__: `aedes-persistence` (_in memory_)
   Versions 1.x and above require persistence to support async access,see [MIGRATION.md][MIGRATION] for details.
   - `queueLimit` `<number>` maximum number of queued messages before client session is established. If number of queued items exceeds, `connectionError` throws an error `Client queue limit reached`. __Default__: `42`
@@ -46,6 +48,27 @@
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
   - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. __Default__: `0`
+  - `drainTimeout` `<number>` maximum time in milliseconds to wait for a slow client's socket to drain before disconnecting it. When a client's socket buffer fills up (e.g., slow network, unresponsive client), the broker waits for the `drain` event. Without a timeout, one slow client can block message delivery to all other clients. Set to a positive value to disconnect slow clients after the timeout. __Default__: `0` (disabled - wait indefinitely)
+
+    __Why use drainTimeout?__ When publishing messages, if a client's TCP buffer is full, `socket.write()` returns `false` and the broker waits for the `drain` event before continuing. If the client stops reading (slow 3G, crashed app, malicious client), `drain` never fires and that message hangs forever. Even with high `concurrency`, a single frozen subscriber will eventually exhaust all slots and cause __complete deadlock__ - no more messages can be delivered to ANY client. This is a DoS vulnerability.
+
+    __Recommended settings:__
+    - Production: `10000` - `60000` ms (10-60 seconds)
+    - High-latency networks: Higher values to avoid disconnecting legitimate slow clients
+    - IoT/embedded devices: Consider client capabilities when setting timeout
+
+    ```js
+    // Recommended for production
+    const broker = await Aedes.createBroker({
+      drainTimeout: 30000  // Disconnect unresponsive clients after 30 seconds
+    })
+
+    // Monitor disconnections (optional)
+    broker.on('clientDisconnect', (client) => {
+      console.log(`Client ${client.id} disconnected`)
+    })
+    ```
+
 - Returns `<Aedes>`
 
 Create a new Aedes server instance.
