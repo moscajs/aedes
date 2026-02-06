@@ -82,9 +82,6 @@ for (const [title, brokerOpts, subscription] of
     const publish = () => {
       if (sent === total) {
         publisher.end()
-        // Node 20 on Mac needs more time to complete
-        // hence the setImmediate
-        setImmediate(() => subscriber.end())
       } else {
         sent++
         publisher.publish('test', 'payload', () => setImmediate(publish))
@@ -106,8 +103,12 @@ for (const [title, brokerOpts, subscription] of
         console.log('sent / received', sent, received)
       }
       received++
+      if (received === total) {
+        // Close subscriber when all messages received
+        setImmediate(() => subscriber.end())
+      }
     })
-    subscriber.subscribeAsync(subscription)
+    await subscriber.subscribeAsync(subscription)
 
     publisher = await mqtt.connectAsync({
       port,
