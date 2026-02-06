@@ -264,13 +264,13 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
   // Complete the QoS 2 handshake on publisher side
   publisher.inStream.write({
     cmd: 'pubrel',
-    messageId: pubPacket.messageId
+    messageId
   })
 
   // Should receive PUBCOMP
   const pubcomp = await nextPacket(publisher)
   t.assert.equal(pubcomp.cmd, 'pubcomp', 'should receive pubcomp')
-  t.assert.equal(pubcomp.messageId, pubPacket.messageId, 'messageId should match')
+  t.assert.equal(pubcomp.messageId, messageId, 'messageId should match')
 })
 
 test('Overlapped topics with QoS downgrade', async (t) => {
