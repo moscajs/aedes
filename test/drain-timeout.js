@@ -25,7 +25,7 @@ if (shouldSkip) {
 }
 
 const { duplexPair } = await import('node:stream')
-const mqttPacket = await import('mqtt-packet')
+const { default: mqttPacket } = await import('mqtt-packet')
 
 // Only run tests if platform is supported
 if (!shouldSkip) {
