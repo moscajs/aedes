@@ -1,9 +1,24 @@
 import { setTimeout as delay } from 'node:timers/promises'
 import { duplexPair, Transform } from 'node:stream'
+import { platform } from 'node:os'
 import mqtt from 'mqtt-packet'
 import { Aedes } from '../aedes.js'
 
 let clients = 0
+
+/**
+ * Skip tests on Windows and macOS platforms
+ * These platforms often lack proper support for certain network features
+ * like socket.readStop() or have issues with Docker/Testcontainers
+ * @param {string} testName - Name of the test suite for logging
+ */
+export function skipOnWindowsAndMac (testName) {
+  const os = platform()
+  if (os === 'win32' || os === 'darwin') {
+    console.log(`Skipping ${testName} tests on ${os}`)
+    process.exit(0)
+  }
+}
 
 export function setup (broker) {
   const [client, server] = duplexPair()

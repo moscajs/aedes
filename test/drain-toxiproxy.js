@@ -32,6 +32,12 @@ import mqtt from 'mqtt'
 import { GenericContainer, Wait } from 'testcontainers'
 import { Toxiproxy } from 'toxiproxy-node-client'
 import { Aedes } from '../aedes.js'
+import { skipOnWindowsAndMac } from './helper.js'
+
+// Skip on Windows/Mac - Docker/testcontainers not reliably available on CI runners
+// Issues: "Could not find a working container runtime strategy" (Mac)
+//         "invalid volume specification" for Docker socket (Windows)
+skipOnWindowsAndMac('drain-toxiproxy')
 
 // ToxiProxy configuration
 const TOXIPROXY_API_PORT = 8474

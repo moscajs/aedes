@@ -16,6 +16,10 @@ import { createServer } from 'node:net'
 import { setTimeout as delay } from 'node:timers/promises'
 import mqtt from 'mqtt'
 import { Aedes } from '../aedes.js'
+import { skipOnWindowsAndMac } from './helper.js'
+
+// Skip these tests on Windows and macOS (readStop not supported)
+skipOnWindowsAndMac('drain-timeout')
 
 const { duplexPair } = await import('node:stream')
 const mqttPacket = await import('mqtt-packet')
