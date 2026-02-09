@@ -564,4 +564,36 @@ if (!shouldSkip) {
     t.assert.ok(fastReceived < NUM_MESSAGES * 0.5,
       `Throughput should be severely degraded (<50%), got ${((fastReceived / NUM_MESSAGES) * 100).toFixed(1)}%`)
   })
+
+  test('close() flushes pending drain callbacks with error', async (t) => {
+    const [client, server] = duplexPair()
+    const broker = new Aedes({ drainTimeout: 5000 })
+    const aedesClient = broker.handle(server)
+
+    // Simulate backpressure by pausing the client socket
+    client.pause()
+
+    let callbackInvoked = false
+    let callbackError = null
+
+    // Register a drain callback
+    aedesClient.waitForDrain((err) => {
+      callbackInvoked = true
+      callbackError = err
+    })
+
+    // Close the client connection while drain is pending
+    aedesClient.close()
+
+    // Wait for callback to be invoked asynchronously
+    await new Promise(resolve => setImmediate(resolve))
+
+    // Verify callback was invoked with connection closed error
+    t.assert.strictEqual(callbackInvoked, true, 'Drain callback should be invoked')
+    t.assert.ok(callbackError, 'Callback should receive an error')
+    t.assert.strictEqual(callbackError.message, 'connection closed',
+      'Error should indicate connection closed')
+
+    broker.close()
+  })
 } // End of if (!shouldSkip)
