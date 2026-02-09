@@ -15,6 +15,7 @@ const defaultOptions = {
   concurrency: 100,
   heartbeatInterval: 60000, // 1 minute
   connectTimeout: 30000, // 30 secs
+  drainTimeout: 60000, // 60 secs - protects against slow/frozen clients by default, set to 0 to disable
   decodeProtocol: null,
   preConnect: defaultPreConnect,
   authenticate: defaultAuthenticate,

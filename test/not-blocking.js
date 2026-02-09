@@ -7,7 +7,7 @@ import { Aedes } from '../aedes.js'
 test('connect 500 concurrent clients', async (t) => {
   t.plan(3)
 
-  const broker = await Aedes.createBroker()
+  const broker = await Aedes.createBroker({ drainTimeout: 0 }) // Disable for high-load test
   const server = createServer(broker.handle)
   t.after(() => {
     broker.close()
@@ -60,7 +60,7 @@ for (const [title, brokerOpts, subscription] of
   test(`do not block ${title}`, async (t) => {
     t.plan(3)
 
-    const broker = await Aedes.createBroker(brokerOpts)
+    const broker = await Aedes.createBroker({ ...brokerOpts, drainTimeout: 0 }) // Disable for high-throughput test
     const server = createServer(broker.handle)
     t.after(() => {
       broker.close()
