@@ -38,10 +38,6 @@ import { shouldSkipOnWindowsAndMac } from './helper.js'
 // Issues: "Could not find a working container runtime strategy" (Mac)
 //         "invalid volume specification" for Docker socket (Windows)
 const shouldSkip = shouldSkipOnWindowsAndMac()
-if (shouldSkip) {
-  console.log('Skipping drain-toxiproxy tests on Windows/macOS (Docker/testcontainers not available)')
-  process.exit(0)
-}
 
 // ToxiProxy configuration
 const TOXIPROXY_API_PORT = 8474
@@ -53,7 +49,7 @@ let proxyHost
 let proxyApiPort
 let proxyMappedPort
 
-describe('ToxiProxy: realistic slow client behavior', async () => {
+describe('ToxiProxy: realistic slow client behavior', { skip: shouldSkip }, async () => {
   before(async () => {
     console.log('[Setup] Starting ToxiProxy container...')
 
