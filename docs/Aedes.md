@@ -2,8 +2,8 @@
 # Aedes
 
 - [Aedes](#aedes)
-  - [new Aedes([options])](#new-aedesoptions)
-  - [Aedes.createBroker([options])](#aedescreatebrokeroptions)
+  - [new Aedes(\[options\])](#new-aedesoptions)
+  - [Aedes.createBroker(\[options\])](#aedescreatebrokeroptions)
   - [aedes.listen()](#aedeslisten)
   - [aedes.id](#aedesid)
   - [aedes.connectedClients](#aedesconnectedclients)
@@ -25,7 +25,7 @@
   - [aedes.subscribe (topic, deliverfunc, callback)](#aedessubscribe-topic-deliverfunc-callback)
   - [aedes.unsubscribe (topic, deliverfunc, callback)](#aedesunsubscribe-topic-deliverfunc-callback)
   - [aedes.publish (packet, callback)](#aedespublish-packet-callback)
-  - [aedes.close ([callback])](#aedesclose-callback)
+  - [aedes.close (\[callback\])](#aedesclose-callback)
   - [Handler: preConnect (client, packet, callback)](#handler-preconnect-client-packet-callback)
   - [Handler: authenticate (client, username, password, callback)](#handler-authenticate-client-username-password-callback)
   - [Handler: authorizePublish (client, packet, callback)](#handler-authorizepublish-client-packet-callback)
@@ -48,7 +48,7 @@
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
   - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. __Default__: `0`
-  - `drainTimeout` `<number>` maximum time in milliseconds to wait for a slow client's socket to drain before disconnecting it. When a client's socket buffer fills up (e.g., slow network, unresponsive client), the broker waits for the `drain` event. Without a timeout, one slow client can block message delivery to all other clients. Set to a positive value to disconnect slow clients after the timeout. __Default__: `0` (disabled - wait indefinitely)
+  - `drainTimeout` `<number>` maximum time in milliseconds to wait for a slow client's socket to drain before disconnecting it. When a client's socket buffer fills up (e.g., slow network, unresponsive client), the broker waits for the `drain` event. Without a timeout, one slow client can block message delivery to all other clients. Set to `0` to disable and wait indefinitely (not recommended). __Default__: `60000` (60 seconds)
 
     __Why use drainTimeout?__ When publishing messages, if a client's TCP buffer is full, `socket.write()` returns `false` and the broker waits for the `drain` event before continuing. If the client stops reading (slow 3G, crashed app, malicious client), `drain` never fires and that message hangs forever. Even with high `concurrency`, a single frozen subscriber will eventually exhaust all slots and cause __complete deadlock__ - no more messages can be delivered to ANY client. This is a DoS vulnerability.
 
@@ -60,7 +60,8 @@
     ```js
     // Recommended for production
     const broker = await Aedes.createBroker({
-      drainTimeout: 30000  // Disconnect unresponsive clients after 30 seconds
+      drainTimeout: 30000  // Disconnect unresponsive clients after 30 seconds (default: 60000)
+      // drainTimeout: 0   // Disable timeout - NOT RECOMMENDED: vulnerable to DoS
     })
 
     // Monitor disconnections (optional)

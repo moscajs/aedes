@@ -75,7 +75,7 @@ export interface AedesOptions {
   concurrency?: number;
   heartbeatInterval?: number;
   connectTimeout?: number;
-  drainTimeout?: number;
+  drainTimeout?: number; // default: 60000 (60 seconds)
   keepaliveLimit?: number;
   queueLimit?: number;
   maxClientsIdLength?: number;
