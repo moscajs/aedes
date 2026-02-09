@@ -106,16 +106,8 @@
 	"dependencies": {
 		"aedes-packet": "^3.0.0",
 		"aedes-persistence": "^10.2.2",
-		"end-of-stream": "^1.4.5",
-		"fastfall": "^1.5.1",
-		"fastparallel": "^2.4.1",
-		"fastseries": "^2.0.0",
-		"hyperid": "^3.3.0",
 		"mqemitter": "^7.1.0",
-		"mqtt-packet": "^9.0.2",
-		"retimer": "^4.0.0",
-		"reusify": "^1.1.0",
-		"uuid": "^11.1.0"
+		"mqtt-packet": "^9.0.2"
 	},
 	"peerDependencies": {
 		"aedes-persistence-level": "^9.1.2",

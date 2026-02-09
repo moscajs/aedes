@@ -1,14 +1,11 @@
 import EventEmitter from 'node:events'
-import parallel from 'fastparallel'
-import series from 'fastseries'
-import { v4 as uuidv4 } from 'uuid'
-import reusify from 'reusify'
-import { pipeline } from 'stream'
+import { randomUUID } from 'node:crypto'
+import { promisify } from 'node:util'
 import Packet from 'aedes-packet'
 import memory from 'aedes-persistence'
 import mqemitter from 'mqemitter'
 import Client from './lib/client.js'
-import { $SYS_PREFIX, bulk } from './lib/utils.js'
+import { $SYS_PREFIX, batch, noop, runSeries } from './lib/utils.js'
 import pkg from './package.json' with { type: 'json' }
 
 const defaultOptions = {
@@ -38,7 +35,7 @@ export class Aedes extends EventEmitter {
 
     opts = Object.assign({}, defaultOptions, opts)
     this.opts = opts
-    this.id = opts.id || uuidv4()
+    this.id = opts.id || randomUUID()
     // +1 when construct a new aedes-packet
     // internal track for last brokerCounter
     this.counter = 0
@@ -57,9 +54,7 @@ export class Aedes extends EventEmitter {
       return new Client(that, conn, req)
     }
 
-    this._parallel = parallel()
-    this._series = series()
-    this._enqueuers = reusify(DoEnqueues)
+    this._series = runSeries
 
     this.preConnect = opts.preConnect
     this.authenticate = opts.authenticate
@@ -112,51 +107,45 @@ export class Aedes extends EventEmitter {
       }, noop)
     }
 
-    function deleteOldBrokers (broker) {
-      if (that.brokers[broker] + (3 * opts.heartbeatInterval) < Date.now()) {
-        delete that.brokers[broker]
+    async function _clearWills () {
+      const pAuthorizePublish = promisify(that.authorizePublish).bind(that)
+      const pPublish = promisify(that.publish).bind(that)
+      const batchSize = 16 // default highWatermark for Writable in ObjectMode
+
+      async function checkAndPublish (will) {
+        const notPublish = that.brokers[will.brokerId] !== undefined && that.brokers[will.brokerId] + (3 * opts.heartbeatInterval) >= Date.now()
+        if (notPublish) {
+          return
+        }
+        // randomize this, so that multiple brokers
+        // do not publish the same wills at the same time
+        const client = that.clients[will.clientId] || null
+        await pAuthorizePublish(client, will)
+        await pPublish(will)
+        await that.persistence.delWill({
+          id: will.clientId,
+          brokerId: will.brokerId
+        })
+      }
+
+      // delete old brokers
+      for (const broker in that.brokers) {
+        if (that.brokers[broker] + (3 * opts.heartbeatInterval) < Date.now()) {
+          delete that.brokers[broker]
+        }
+      }
+
+      const wills = that.persistence.streamWill(that.brokers)
+      for await (const promises of batch(wills, checkAndPublish, batchSize)) {
+        await Promise.all(promises)
       }
     }
 
-    this._clearWillInterval = setInterval(function () {
-      Object.keys(that.brokers).forEach(deleteOldBrokers)
-
-      pipeline(
-        that.persistence.streamWill(that.brokers),
-        bulk(receiveWills),
-        function done (err) {
-          if (err) {
-            that.emit('error', err)
-          }
-        }
-      )
-    }, opts.heartbeatInterval * 4)
-
-    function receiveWills (chunks, done) {
-      that._parallel(that, checkAndPublish, chunks, done)
-    }
-
-    function checkAndPublish (will, done) {
-      const notPublish = that.brokers[will.brokerId] !== undefined && that.brokers[will.brokerId] + (3 * opts.heartbeatInterval) >= Date.now()
-
-      if (notPublish) return done()
-
-      // randomize this, so that multiple brokers
-      // do not publish the same wills at the same time
-      this.authorizePublish(that.clients[will.clientId] || null, will, function (err) {
-        if (err) { return doneWill() }
-        that.publish(will, doneWill)
-
-        function doneWill (err) {
-          if (err) { return done(err) }
-          that.persistence.delWill({
-            id: will.clientId,
-            brokerId: will.brokerId
-          }).then(will => done(undefined, will), done)
-        }
+    this._clearWillInterval = setInterval(() => {
+      _clearWills().catch(err => {
+        that.emit('error', err)
       })
-    }
-
+    }, opts.heartbeatInterval * 4)
     this.mq.on($SYS_PREFIX + '+/heartbeat', function storeBroker (packet, done) {
       that.brokers[packet.payload.toString()] = Date.now()
       done()
@@ -266,11 +255,14 @@ export class Aedes extends EventEmitter {
     this.closed = true
     clearInterval(this._heartbeatInterval)
     clearInterval(this._clearWillInterval)
-    this._parallel(this, closeClient, Object.keys(this.clients), doneClose)
-    function doneClose () {
+    const promises = []
+    for (const clientId of Object.keys(this.clients)) {
+      promises.push(closeClient(this.clients[clientId]))
+    }
+    Promise.all(promises).finally(() => {
       that.emit('closed')
       that.mq.close(cb)
-    }
+    })
   }
 }
 
@@ -289,7 +281,7 @@ function emitPacket (packet, done) {
 }
 
 function enqueueOffline (packet, done) {
-  const enqueuer = this.broker._enqueuers.get()
+  const enqueuer = new DoEnqueues()
 
   enqueuer.complete = done
   enqueuer.packet = packet
@@ -333,7 +325,6 @@ class DoEnqueues {
 
       broker.persistence.outgoingEnqueueCombi(subs, packet)
         .then(() => complete(null), complete)
-      broker._enqueuers.release(that)
     }
   }
 }
@@ -362,8 +353,10 @@ const publishFuncsQoS = [
   callPublished
 ]
 
-function closeClient (client, cb) {
-  this.clients[client].close(cb)
+async function closeClient (clientInstance) {
+  return new Promise((resolve) => {
+    clientInstance.close(resolve)
+  })
 }
 
 function defaultPreConnect (client, packet, callback) {
@@ -401,11 +394,9 @@ class PublishState {
   }
 }
 
-function noop () {}
-
 function warnMigrate () {
   throw new Error(
-` Aedes default export has been removed.
+    ` Aedes default export has been removed.
  Use 'const aedes = await Aedes.createBroker()' instead.
  See: https://github.com/moscajs/aedes/docs/MIGRATION.MD
  `)
