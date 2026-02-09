@@ -821,7 +821,7 @@ test('overlapping sub does not double deliver', async (t) => {
 test('clear drain', async (t) => {
   t.plan(5)
 
-  const s = await createAndConnect(t)
+  const s = await createAndConnect(t, { broker: { drainTimeout: 0 } }) // Disable timeout to test old behavior
   await subscribe(t, s, 'hello', 0)
 
   // fake a busy socket

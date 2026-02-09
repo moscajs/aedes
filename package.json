@@ -1,6 +1,6 @@
 {
 	"name": "aedes",
-	"version": "0.51.3",
+	"version": "1.0.0",
 	"description": "Stream-based MQTT broker",
 	"exports": "./aedes.js",
 	"type": "module",
@@ -98,6 +98,8 @@
 		"mqtt": "^5.14.0",
 		"neostandard": "^0.12.2",
 		"release-it": "^19.0.4",
+		"testcontainers": "^11.9.0",
+		"toxiproxy-node-client": "^4.0.0",
 		"tsd": "^0.33.0",
 		"ws": "^8.18.3"
 	},

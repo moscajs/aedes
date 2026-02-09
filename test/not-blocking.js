@@ -7,7 +7,7 @@ import { Aedes } from '../aedes.js'
 test('connect 500 concurrent clients', async (t) => {
   t.plan(3)
 
-  const broker = await Aedes.createBroker()
+  const broker = await Aedes.createBroker({ drainTimeout: 0 }) // Disable for high-load test
   const server = createServer(broker.handle)
   t.after(() => {
     broker.close()
@@ -60,7 +60,7 @@ for (const [title, brokerOpts, subscription] of
   test(`do not block ${title}`, async (t) => {
     t.plan(3)
 
-    const broker = await Aedes.createBroker(brokerOpts)
+    const broker = await Aedes.createBroker({ ...brokerOpts, drainTimeout: 0 }) // Disable for high-throughput test
     const server = createServer(broker.handle)
     t.after(() => {
       broker.close()
@@ -82,9 +82,6 @@ for (const [title, brokerOpts, subscription] of
     const publish = () => {
       if (sent === total) {
         publisher.end()
-        // Node 20 on Mac needs more time to complete
-        // hence the setImmediate
-        setImmediate(() => subscriber.end())
       } else {
         sent++
         publisher.publish('test', 'payload', () => setImmediate(publish))
@@ -106,8 +103,12 @@ for (const [title, brokerOpts, subscription] of
         console.log('sent / received', sent, received)
       }
       received++
+      if (received === total) {
+        // Close subscriber when all messages received
+        setImmediate(() => subscriber.end())
+      }
     })
-    subscriber.subscribeAsync(subscription)
+    await subscriber.subscribeAsync(subscription)
 
     publisher = await mqtt.connectAsync({
       port,

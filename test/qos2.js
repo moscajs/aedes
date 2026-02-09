@@ -574,3 +574,28 @@ test('not send pubrec when persistence fails to store packet', async (t) => {
   t.assert.ok(client, 'client exists')
   t.assert.equal(err.message, 'store error')
 })
+
+test('send pubcomp when receiving pubrel even if incomingDelPacket throws (no packet in store)', async (t) => {
+  t.plan(2)
+
+  const s = await createAndConnect(t)
+
+  // Mock incomingDelPacket to throw an error (simulating no packet in store)
+  s.broker.persistence.incomingDelPacket = async () => {
+    throw new Error('packet not found in store')
+  }
+
+  // Send a PUBREL packet directly
+  const pubrelPacket = {
+    cmd: 'pubrel',
+    messageId: 42,
+    dup: false,
+  }
+
+  s.inStream.write(pubrelPacket)
+
+  // Should receive a PUBCOMP response despite the error in incomingDelPacket
+  const pubcompPacket = await nextPacket(s)
+  t.assert.equal(pubcompPacket.cmd, 'pubcomp', 'should send pubcomp')
+  t.assert.equal(pubcompPacket.messageId, 42, 'messageId should match')
+})
