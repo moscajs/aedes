@@ -1,6 +1,6 @@
 {
 	"name": "aedes",
-	"version": "0.51.3",
+	"version": "1.0.0",
 	"description": "Stream-based MQTT broker",
 	"exports": "./aedes.js",
 	"type": "module",
