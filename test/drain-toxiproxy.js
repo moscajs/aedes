@@ -32,12 +32,16 @@ import mqtt from 'mqtt'
 import { GenericContainer, Wait } from 'testcontainers'
 import { Toxiproxy } from 'toxiproxy-node-client'
 import { Aedes } from '../aedes.js'
-import { skipOnWindowsAndMac } from './helper.js'
+import { shouldSkipOnWindowsAndMac } from './helper.js'
 
-// Skip on Windows/Mac - Docker/testcontainers not reliably available on CI runners
+// Check if we should skip tests on Windows/macOS
 // Issues: "Could not find a working container runtime strategy" (Mac)
 //         "invalid volume specification" for Docker socket (Windows)
-skipOnWindowsAndMac('drain-toxiproxy')
+const shouldSkip = shouldSkipOnWindowsAndMac()
+if (shouldSkip) {
+  console.log('Skipping drain-toxiproxy tests on Windows/macOS (Docker/testcontainers not available)')
+  process.exit(0)
+}
 
 // ToxiProxy configuration
 const TOXIPROXY_API_PORT = 8474
@@ -76,7 +80,6 @@ describe('ToxiProxy: realistic slow client behavior', async () => {
       await toxiproxyContainer.stop()
     }
   })
-
   test('INSIGHT: slow client (via ToxiProxy) vs frozen client (readStop) behavior', async (t) => {
     // This test demonstrates the KEY DIFFERENCE between slow and frozen clients:
     // - SLOW client (ToxiProxy): Data flows slowly. Messages eventually arrive.

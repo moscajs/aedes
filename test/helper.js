@@ -7,17 +7,14 @@ import { Aedes } from '../aedes.js'
 let clients = 0
 
 /**
- * Skip tests on Windows and macOS platforms
+ * Check if tests should be skipped on Windows and macOS platforms
  * These platforms often lack proper support for certain network features
  * like socket.readStop() or have issues with Docker/Testcontainers
- * @param {string} testName - Name of the test suite for logging
+ * @returns {boolean} true if tests should be skipped on this platform
  */
-export function skipOnWindowsAndMac (testName) {
+export function shouldSkipOnWindowsAndMac () {
   const os = platform()
-  if (os === 'win32' || os === 'darwin') {
-    console.log(`Skipping ${testName} tests on ${os}`)
-    process.exit(0)
-  }
+  return os === 'win32' || os === 'darwin'
 }
 
 export function setup (broker) {
