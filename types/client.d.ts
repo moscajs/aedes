@@ -5,8 +5,8 @@ import {
   Subscription,
   Subscriptions,
   UnsubscribePacket
-} from './packet'
-import { Connection } from './instance'
+} from './packet.js'
+import { Connection } from './instance.js'
 import { EventEmitter } from 'node:events'
 
 export interface Client extends EventEmitter {
