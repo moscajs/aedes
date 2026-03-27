@@ -1,3 +1,3 @@
-export * from './types/instance'
-export * from './types/packet'
-export * from './types/client'
+export * from './types/instance.js'
+export * from './types/packet.js'
+export * from './types/client.js'
