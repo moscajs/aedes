@@ -5,7 +5,7 @@
 
 ```js
 import { createServer } from 'node:net'
-import Aedes from 'aedes'
+import { Aedes } from 'aedes'
 
 const port = 1883
 

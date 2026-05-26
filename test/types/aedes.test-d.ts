@@ -7,7 +7,7 @@ import type {
   Connection
 } from '../../aedes.js'
 import { Aedes } from '../../aedes.js'
-import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet'
+import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet.js'
 import { expectType } from 'tsd'
 
 // Aedes server

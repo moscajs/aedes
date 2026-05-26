@@ -9,7 +9,7 @@ import {
   ISubscription,
   IUnsubscribePacket
 } from 'mqtt-packet'
-import { Client } from './client'
+import { Client } from './client.js'
 
 export type SubscribePacket = ISubscribePacket & { cmd: 'subscribe' }
 export type UnsubscribePacket = IUnsubscribePacket & { cmd: 'unsubscribe' }

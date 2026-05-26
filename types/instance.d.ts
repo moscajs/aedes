@@ -1,7 +1,7 @@
 import { Duplex } from 'node:stream'
 import { Socket } from 'node:net'
 import { IncomingMessage } from 'node:http'
-import { Client } from './client'
+import { Client } from './client.js'
 import type {
   AedesPublishPacket,
   ConnectPacket,
@@ -10,7 +10,7 @@ import type {
   PingreqPacket,
   PublishPacket,
   PubrelPacket
-} from './packet'
+} from './packet.js'
 import { EventEmitter } from 'node:events'
 
 type LastHearthbeatTimestamp = Date
