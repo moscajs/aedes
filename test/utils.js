@@ -93,7 +93,7 @@ for (const [label, numItems, numBatches] of [
   })
 }
 
-test('test batch function trowing error', async (t) => {
+test('test batch function throwing error', async (t) => {
   t.plan(2)
   const numItems = 100
 

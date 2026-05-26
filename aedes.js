@@ -54,8 +54,6 @@ export class Aedes extends EventEmitter {
       return new Client(that, conn, req)
     }
 
-    this._series = runSeries
-
     this.preConnect = opts.preConnect
     this.authenticate = opts.authenticate
     this.authorizePublish = opts.authorizePublish
@@ -200,7 +198,7 @@ export class Aedes extends EventEmitter {
     const p = new Packet(packet, this)
     const publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
 
-    this._series(new PublishState(this, client, packet), publishFuncs, p, done)
+    runSeries(new PublishState(this, client, packet), publishFuncs, p, done)
   }
 
   subscribe (topic, func, done) {
