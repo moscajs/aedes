@@ -7,6 +7,7 @@ import {
   nextPacketWithTimeOut,
   setup,
   subscribe,
+  withTimeout,
 } from './helper.js'
 
 test('publish direct to a single client QoS 0', async (t) => {
@@ -1051,4 +1052,54 @@ test('custom function in broker.unsubscribe', async (t) => {
   const [packet, client] = await once(s.broker, 'publish')
   t.assert.ok(client, 'client exists')
   t.assert.equal(packet.messageId, 42)
+})
+
+// Regression tests for subscribe handling when the client or broker closes
+// before subscription processing completes.
+
+test('ignore subscription when broker closes before addSubs executes', async (t) => {
+  t.plan(3)
+
+  const s = await createAndConnect(t)
+
+  s.broker.authorizeSubscribe = (client, sub, cb) => {
+    setImmediate(() => {
+      s.broker.close()
+      cb(null, sub)
+    })
+  }
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 42,
+    subscriptions: [{ topic: 'hello', qos: 0 }]
+  })
+
+  const packet = await withTimeout(nextPacket(s), 50, null)
+  t.assert.equal(packet, null, 'should not receive a suback after broker closes')
+  t.assert.equal(s.broker.closed, true, 'broker is closed')
+  t.assert.equal(s.client.subscriptions.hello, undefined, 'subscription is not stored')
+})
+
+test('ignore subscription when client closes before addSubs executes', async (t) => {
+  t.plan(2)
+
+  const s = await createAndConnect(t)
+
+  s.broker.authorizeSubscribe = (client, sub, cb) => {
+    setImmediate(() => {
+      client.close()
+      cb(null, sub)
+    })
+  }
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 43,
+    subscriptions: [{ topic: 'hello', qos: 0 }]
+  })
+
+  const packet = await withTimeout(nextPacket(s), 50, null)
+  t.assert.equal(packet, null, 'should not receive a suback after client closes')
+  t.assert.equal(s.client.subscriptions.hello, undefined, 'subscription is not stored')
 })

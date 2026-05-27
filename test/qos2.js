@@ -599,3 +599,31 @@ test('send pubcomp when receiving pubrel even if incomingDelPacket throws (no pa
   t.assert.equal(pubcompPacket.cmd, 'pubcomp', 'should send pubcomp')
   t.assert.equal(pubcompPacket.messageId, 42, 'messageId should match')
 })
+
+test('publish QoS 2 returns error when broker.publish fails', async (t) => {
+  t.plan(2)
+
+  const s = await createAndConnect(t)
+  const broker = s.broker
+  const originalPublish = broker.publish.bind(broker)
+
+  broker.publish = function (packet, client, done) {
+    if (packet.topic === 'hello' && packet.qos === 2) {
+      setImmediate(() => done(new Error('boom')))
+      return
+    }
+    return originalPublish(packet, client, done)
+  }
+
+  s.inStream.write({
+    cmd: 'publish',
+    topic: 'hello',
+    payload: 'world',
+    qos: 2,
+    messageId: 42
+  })
+
+  const [client, err] = await once(broker, 'clientError')
+  t.assert.ok(client)
+  t.assert.equal(err.message, 'boom')
+})
