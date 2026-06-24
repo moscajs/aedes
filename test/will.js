@@ -117,6 +117,40 @@ test('delivers old will in case of a crash', async (t) => {
   t.assert.equal(received.length, 1, 'only one will has been delivered')
 })
 
+test('delivers many old wills in case of a crash', async (t) => {
+  t.plan(1)
+
+  const numWills = 100
+  const persistence = await memorySetup({ id: 'anotherBroker' })
+  const will = {
+    topic: 'mywill',
+    payload: Buffer.from('last will'),
+    qos: 0,
+    retain: false
+  }
+
+  for (let id = 0; id < numWills; id++) {
+    const cWill = structuredClone(will)
+    cWill.topic = 'mywill'
+    await persistence.putWill({ id: `myClientId${id}` }, cWill)
+  }
+
+  const interval = 10 // ms, so that the will check happens fast!
+  const broker = await Aedes.createBroker({
+    persistence,
+    heartbeatInterval: interval,
+    authorizePublish: (client, packet, callback) => {
+      callback(null)
+    }
+  })
+
+  t.after(() => broker.close())
+
+  const received = await willsFromBroker(broker)
+  await delay(100) // give Aedes some time to process to ensure that all wills are sent
+  t.assert.equal(received.length, numWills, 'all wills have been delivered')
+})
+
 test('deliver old will without authorization in case of a crash', async (t) => {
   t.plan(1)
 
