@@ -11,6 +11,7 @@
   - [client.id](#clientid)
   - [client.clean](#clientclean)
   - [client.version](#clientversion)
+  - [client.disconnectReasonCode](#clientdisconnectreasoncode)
   - [Event: connected](#event-connected)
   - [Event: error](#event-error)
   - [client.publish (packet, [callback])](#clientpublish-packet-callback)
@@ -83,6 +84,12 @@ Client clean flag, set by clean flag in `CONNECT` packet.
 - `<number>` __Default__: `null`
 
 Client version, set by protocol version in `CONNECT` packet when `CONNACK (rc=0)` returns.
+
+## client.disconnectReasonCode
+
+- `<number> | null` __Default__: `null`
+
+MQTT 5.0 only. When the broker initiates the disconnect, the reason code sent to the client (e.g. `0x8E` session taken over, `0x8B` server shutting down, `0x95` packet too large). Remains `null` for a normal client-initiated disconnect. Readable on the [`clientDisconnect`](./Aedes.md#event-clientdisconnect) event to distinguish a server kick from a normal drop.
 
 ## Event: connected
 

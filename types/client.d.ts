@@ -18,6 +18,12 @@ export interface Client extends EventEmitter {
   connecting: Readonly<boolean>;
   connected: Readonly<boolean>;
   closed: Readonly<boolean>;
+  /**
+   * MQTT 5.0: when the broker initiated the disconnect, the reason code sent to
+   * the client (e.g. 0x8E session taken over, 0x8B server shutting down, 0x95
+   * packet too large). `null` for a normal client-initiated disconnect.
+   */
+  disconnectReasonCode: Readonly<number | null>;
 
   on(event: 'connected', listener: () => void): this;
   on(event: 'error', listener: (error: Error) => void): this;

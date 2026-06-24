@@ -528,8 +528,8 @@ test('MQTT 5.0 retained message within expiry is delivered with remaining lifeti
   t.assert.ok(remaining > 0 && remaining <= 60, `retained delivered with remaining lifetime (${remaining}s)`)
 })
 
-test('MQTT 5.0 unauthorized QoS1 publish is answered with 0x87, not a disconnect', async (t) => {
-  t.plan(2)
+test('MQTT 5.0 unauthorized QoS1 publish is answered with 0x87 PUBACK, not a disconnect', async (t) => {
+  t.plan(3)
   const { connect } = await createServerAndConnect(t, {
     brokerOptions: {
       authorizePublish: (client, packet, cb) => {
@@ -546,6 +546,10 @@ test('MQTT 5.0 unauthorized QoS1 publish is answered with 0x87, not a disconnect
 
   const pub = connect({ clientId: 'unauth-pub', reconnectPeriod: 0 })
   await once(pub, 'connect')
+  // Capture the raw PUBACK off the wire to assert the reason code (not just
+  // liveness): a broker that silently dropped the publish would otherwise pass.
+  const acks = []
+  pub.on('packetreceive', (p) => { if (p.cmd === 'puback') acks.push(p) })
   // mqtt.js may reject the publish on a >=0x80 reason code; either way the
   // connection must stay up and the message must not be delivered.
   try { await pub.publishAsync('denied/x', 'data', { qos: 1 }) } catch { /* 0x87 */ }
@@ -553,10 +557,11 @@ test('MQTT 5.0 unauthorized QoS1 publish is answered with 0x87, not a disconnect
 
   t.assert.equal(pub.connected, true, 'publisher connection stays alive')
   t.assert.equal(received, false, 'unauthorized message not delivered')
+  t.assert.ok(acks.some(a => a.reasonCode === 0x87), 'PUBACK carried 0x87 Not authorized')
 })
 
 test('MQTT 5.0 unauthorized QoS2 publish is answered with 0x87 (PUBREC), not a disconnect', async (t) => {
-  t.plan(2)
+  t.plan(3)
   const { connect } = await createServerAndConnect(t, {
     brokerOptions: {
       authorizePublish: (client, packet, cb) => {
@@ -573,13 +578,16 @@ test('MQTT 5.0 unauthorized QoS2 publish is answered with 0x87 (PUBREC), not a d
 
   const pub = connect({ clientId: 'unauth2-pub', reconnectPeriod: 0 })
   await once(pub, 'connect')
-  // The QoS 2 path answers with a 0x87 PUBREC (not PUBACK); the connection must
-  // stay up and the message must not be delivered.
+  // The QoS 2 path answers with a 0x87 PUBREC (not PUBACK); assert the reason
+  // code on the wire, and that the connection stays up / message not delivered.
+  const acks = []
+  pub.on('packetreceive', (p) => { if (p.cmd === 'pubrec') acks.push(p) })
   try { await pub.publishAsync('denied/x', 'data', { qos: 2 }) } catch { /* 0x87 */ }
   await delay(150)
 
   t.assert.equal(pub.connected, true, 'publisher connection stays alive')
   t.assert.equal(received, false, 'unauthorized message not delivered')
+  t.assert.ok(acks.some(a => a.reasonCode === 0x87), 'PUBREC carried 0x87 Not authorized')
 })
 
 test('MQTT 5.0 returns an Assigned Client Identifier for an empty clientId', async (t) => {
@@ -632,17 +640,18 @@ test('MQTT 5.0 DISCONNECT with will (reasonCode 0x04) publishes the will', async
   t.assert.equal(payload.toString(), 'goodbye', `will published on ${topic}`)
 })
 
-test('MQTT 5.0 publish with an out-of-range topic alias is rejected', async (t) => {
-  t.plan(1)
+test('MQTT 5.0 publish with an out-of-range topic alias is rejected with DISCONNECT 0x94', async (t) => {
+  t.plan(2)
   const { broker, connect } = await createServerAndConnect(t, {
     brokerOptions: { topicAliasMaximum: 5 }
   })
-  const client = connect({ clientId: 'alias-bad' })
+  const client = connect({ clientId: 'alias-bad', reconnectPeriod: 0 })
   await once(client, 'connect')
 
   // A compliant client never sends this; inject a raw PUBLISH whose topic alias
   // exceeds the advertised topicAliasMaximum so the broker rejects it.
   const clientError = once(broker, 'clientError')
+  const disc = once(client, 'disconnect')
   client.stream.write(generate(
     { cmd: 'publish', topic: 'x', payload: 'p', qos: 0, properties: { topicAlias: 99 } },
     { protocolVersion: 5 }
@@ -650,18 +659,21 @@ test('MQTT 5.0 publish with an out-of-range topic alias is rejected', async (t) 
 
   const [, err] = await clientError
   t.assert.equal(err.message, 'topic alias 99 is out of range (broker topicAliasMaximum is 5)')
+  const [packet] = await disc
+  t.assert.equal(packet.reasonCode, 0x94, '0x94 Topic Alias invalid on the wire')
 })
 
-test('MQTT 5.0 publish with an unknown topic alias is rejected', async (t) => {
-  t.plan(1)
+test('MQTT 5.0 publish with an unknown topic alias is rejected with DISCONNECT 0x94', async (t) => {
+  t.plan(2)
   const { broker, connect } = await createServerAndConnect(t, {
     brokerOptions: { topicAliasMaximum: 5 }
   })
-  const client = connect({ clientId: 'alias-unknown' })
+  const client = connect({ clientId: 'alias-unknown', reconnectPeriod: 0 })
   await once(client, 'connect')
 
   // Empty topic + an in-range alias that was never registered: nothing resolves.
   const clientError = once(broker, 'clientError')
+  const disc = once(client, 'disconnect')
   client.stream.write(generate(
     { cmd: 'publish', topic: '', payload: 'p', qos: 0, properties: { topicAlias: 3 } },
     { protocolVersion: 5 }
@@ -669,6 +681,25 @@ test('MQTT 5.0 publish with an unknown topic alias is rejected', async (t) => {
 
   const [, err] = await clientError
   t.assert.equal(err.message, 'unknown topic alias 3')
+  const [packet] = await disc
+  t.assert.equal(packet.reasonCode, 0x94, '0x94 Topic Alias invalid on the wire')
+})
+
+test('MQTT 5.0 broker clamps a requested Session Expiry Interval to maximumSessionExpiryInterval', async (t) => {
+  t.plan(1)
+  const { broker, connect } = await createServerAndConnect(t, {
+    brokerOptions: { maximumSessionExpiryInterval: 30 }
+  })
+  const client = connect({
+    clientId: 'clamp-se',
+    clean: false,
+    properties: { sessionExpiryInterval: 0xFFFFFFFF } // "never" — must be clamped
+  })
+  await once(client, 'connect')
+  // Wait until the broker has fully registered the server-side client.
+  while (!broker.clients['clamp-se']?.connected) await delay(5)
+  t.assert.equal(broker.clients['clamp-se'].sessionExpiryInterval, 30,
+    'requested 0xFFFFFFFF clamped to the broker maximum')
 })
 
 test('MQTT 5.0 session with the maximum expiry interval is retained', async (t) => {

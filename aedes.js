@@ -34,7 +34,12 @@ const defaultOptions = {
   maximumPacketSize: 0,
   // MQTT 5.0: maximum number of unacknowledged QoS 1/2 PUBLISH a client may
   // have in flight towards the broker. 0 = not advertised (defaults to 65535).
-  receiveMaximum: 0
+  receiveMaximum: 0,
+  // MQTT 5.0: upper bound (seconds) on the Session Expiry Interval a client may
+  // request. A larger requested value (including 0xFFFFFFFF "never") is clamped
+  // to this. Bounds how long per-client session-expiry / will-delay timers and
+  // their persisted state live, limiting single-source accumulation. 0 = no cap.
+  maximumSessionExpiryInterval: 0
 }
 const version = pkg.version
 
@@ -82,6 +87,7 @@ export class Aedes extends EventEmitter {
     this.topicAliasMaximum = opts.topicAliasMaximum
     this.maximumPacketSize = opts.maximumPacketSize
     this.receiveMaximum = opts.receiveMaximum
+    this.maximumSessionExpiryInterval = opts.maximumSessionExpiryInterval
     this.mq = opts.mq || mqemitter({
       concurrency: opts.concurrency,
       matchEmptyLevels: true // [MQTT-4.7.1-3]
@@ -306,6 +312,15 @@ export class Aedes extends EventEmitter {
     delete this.clients[clientId]
   }
 
+  // MQTT 5.0: clamp a client-requested Session Expiry Interval (seconds) to the
+  // broker maximum. Bounds the lifetime of the per-client expiry/will timers and
+  // persisted state a single source can pin, limiting memory accumulation from a
+  // client cycling identities with large intervals. 0 = no cap.
+  clampSessionExpiry (interval) {
+    const max = this.maximumSessionExpiryInterval
+    return max > 0 && interval > max ? max : interval
+  }
+
   // MQTT 5.0 Session Expiry. Called when a client disconnects: decides whether
   // the session's persisted state (subscriptions, queued messages, will) is
   // kept, wiped immediately, or wiped after the Session Expiry Interval.
@@ -345,10 +360,14 @@ export class Aedes extends EventEmitter {
     }
   }
 
-  // Remove all persisted state belonging to an expired/ended session.
+  // Remove all persisted state belonging to an expired/ended session. Surface
+  // persistence failures on the broker 'error' event rather than swallowing
+  // them, so a backend that fails to wipe a session is observable.
   _wipeSession (client) {
-    this.persistence.cleanSubscriptions(client).then(noop, noop)
-    this.persistence.delWill({ id: client.id, brokerId: this.id }).then(noop, noop)
+    const that = this
+    const onErr = (err) => that.emit('error', err)
+    this.persistence.cleanSubscriptions(client).then(noop, onErr)
+    this.persistence.delWill({ id: client.id, brokerId: this.id }).then(noop, onErr)
     client.emptyOutgoingQueue(noop)
   }
 
@@ -383,7 +402,8 @@ export class Aedes extends EventEmitter {
       that.publish(will, client, cleanup)
     })
     function cleanup () {
-      that.persistence.delWill({ id: client.id, brokerId: that.id }).then(noop, noop)
+      that.persistence.delWill({ id: client.id, brokerId: that.id })
+        .then(noop, (err) => that.emit('error', err))
     }
   }
 

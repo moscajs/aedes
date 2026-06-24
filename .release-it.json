@@ -9,6 +9,7 @@
   },
   "hooks": {
     "before:init": [
+      "npm run check:deps",
       "npm run test:ci"
     ]
   },
