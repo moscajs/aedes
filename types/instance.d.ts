@@ -79,6 +79,10 @@ export interface AedesOptions {
   keepaliveLimit?: number;
   queueLimit?: number;
   maxClientsIdLength?: number;
+  // MQTT 5.0 broker limits, advertised in CONNACK.
+  topicAliasMaximum?: number; // max inbound topic alias; 0 disables (default: 0)
+  maximumPacketSize?: number; // max accepted packet size in bytes; 0 = no limit (default: 0)
+  receiveMaximum?: number; // advertised max in-flight QoS 1/2; 0 = not advertised (default: 0)
   preConnect?: PreConnectHandler;
   authenticate?: AuthenticateHandler;
   authorizePublish?: AuthorizePublishHandler;
