@@ -1,5 +1,5 @@
 import { test } from 'node:test'
-import { runFall, batch, once, runSeries } from '../lib/utils.js'
+import { runFall, batch, once, runSeries, runParallel } from '../lib/utils.js'
 import { setTimeout } from 'timers/promises'
 
 test('runFall works ok', function (t) {
@@ -272,4 +272,81 @@ test('runSeries handles empty actions array', function (t) {
 
   const state = {}
   runSeries(state, [], {}, done)
+})
+
+// Tests for runParallel() function - fastparallel-style fan-out used by subscribe/unsubscribe
+test('runParallel calls done once after all items complete', function (t) {
+  t.plan(3)
+
+  const processed = []
+
+  function action (item, next) {
+    processed.push(item)
+    // resolve asynchronously to exercise the concurrent path
+    setImmediate(next)
+  }
+
+  return new Promise(resolve => {
+    let doneCallCount = 0
+    runParallel({}, action, [1, 2, 3], function (err) {
+      doneCallCount++
+      t.assert.equal(err, undefined, 'done called with no error on success')
+      t.assert.deepEqual(processed.slice().sort(), [1, 2, 3], 'every item was processed')
+      t.assert.equal(doneCallCount, 1, 'done was called exactly once')
+      resolve()
+    })
+  })
+})
+
+test('runParallel stops on first error and ignores later callbacks', function (t) {
+  t.plan(2)
+
+  function action (item, next) {
+    if (item === 2) {
+      return setImmediate(() => next(new Error('item 2 failed')))
+    }
+    setImmediate(next)
+  }
+
+  return new Promise(resolve => {
+    let doneCallCount = 0
+    runParallel({}, action, [1, 2, 3], function (err) {
+      doneCallCount++
+      t.assert.equal(err.message, 'item 2 failed', 'first error passed to done')
+      // wait a tick so any straggler completions would have a chance to re-invoke done
+      setImmediate(() => {
+        t.assert.equal(doneCallCount, 1, 'done called exactly once despite remaining completions')
+        resolve()
+      })
+    })
+  })
+})
+
+test('runParallel binds this context to fn', function (t) {
+  t.plan(2)
+
+  let contextChecked = false
+
+  function action (item, next) {
+    t.assert.equal(this.clientId, 'test-client', 'this context preserved in fn')
+    contextChecked = true
+    next()
+  }
+
+  const done = function (err) {
+    if (err) throw err
+    t.assert.ok(contextChecked, 'fn was executed with correct context')
+  }
+
+  runParallel({ clientId: 'test-client' }, action, [1], done)
+})
+
+test('runParallel handles empty items array', function (t) {
+  t.plan(1)
+
+  const done = function (err) {
+    t.assert.equal(err, undefined, 'done called immediately with no error for empty array')
+  }
+
+  runParallel({}, () => t.assert.fail('fn should not be called'), [], done)
 })
