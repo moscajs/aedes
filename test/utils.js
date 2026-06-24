@@ -1,5 +1,5 @@
 import { test } from 'node:test'
-import { runFall, batch } from '../lib/utils.js'
+import { runFall, batch, once, runSeries } from '../lib/utils.js'
 import { setTimeout } from 'timers/promises'
 
 test('runFall works ok', function (t) {
@@ -120,4 +120,156 @@ test('test batch function throwing error', async (t) => {
       resolve()
     })
   })
+})
+
+// Tests for once() function - critical defensive pattern against double-callback
+test('once() prevents double callback invocation', function (t) {
+  t.plan(4)
+
+  let callCount = 0
+  let lastError = null
+
+  function testFn (err) {
+    callCount++
+    lastError = err
+  }
+
+  const wrappedFn = once(testFn)
+
+  const err1 = new Error('first call')
+  wrappedFn(err1)
+  t.assert.equal(callCount, 1, 'callback invoked on first call')
+  t.assert.equal(lastError, err1, 'error passed through on first call')
+
+  const err2 = new Error('second call - should be ignored')
+  wrappedFn(err2)
+  t.assert.equal(callCount, 1, 'callback still invoked only once after second call')
+  t.assert.equal(lastError, err1, 'second error was ignored, first error preserved')
+})
+
+test('once() prevents double callback with null error', function (t) {
+  t.plan(2)
+
+  let callCount = 0
+  const wrappedFn = once(() => { callCount++ })
+
+  wrappedFn(null)
+  t.assert.equal(callCount, 1, 'callback invoked on first call with null')
+
+  wrappedFn(null)
+  t.assert.equal(callCount, 1, 'callback not invoked on second call with null')
+})
+
+// Tests for runSeries() function - critical for sequential handler execution
+test('runSeries executes functions in order', function (t) {
+  t.plan(4)
+
+  const execution = []
+
+  function action1 (packet, next) {
+    execution.push(1)
+    t.assert.equal(execution.length, 1, 'action1 executed first')
+    next()
+  }
+
+  function action2 (packet, next) {
+    execution.push(2)
+    t.assert.equal(execution.length, 2, 'action2 executed second')
+    next()
+  }
+
+  function action3 (packet, next) {
+    execution.push(3)
+    t.assert.equal(execution.length, 3, 'action3 executed third')
+    next()
+  }
+
+  const done = function (err) {
+    if (err) throw err
+    t.assert.deepEqual(execution, [1, 2, 3], 'all actions executed in order')
+  }
+
+  const state = {}
+  runSeries(state, [action1, action2, action3], {}, done)
+})
+
+test('runSeries stops on first error', function (t) {
+  t.plan(3)
+
+  const execution = []
+
+  function action1 (packet, next) {
+    execution.push(1)
+    next()
+  }
+
+  function action2 (packet, next) {
+    execution.push(2)
+    const err = new Error('action2 failed')
+    next(err)
+  }
+
+  function action3 (packet, next) {
+    execution.push(3)
+    next()
+  }
+
+  const done = function (err) {
+    t.assert.equal(err.message, 'action2 failed', 'error from action2 passed to done')
+    t.assert.deepEqual(execution, [1, 2], 'action3 not executed after error')
+    t.assert.equal(execution.length, 2, 'stopped execution at action2')
+  }
+
+  const state = {}
+  runSeries(state, [action1, action2, action3], {}, done)
+})
+
+test('runSeries calls done with no error on success', function (t) {
+  t.plan(2)
+
+  let doneCallCount = 0
+
+  function action1 (packet, next) {
+    next()
+  }
+
+  const done = function (err) {
+    doneCallCount++
+    t.assert.equal(err, undefined, 'done called with no error on success')
+  }
+
+  const state = {}
+  runSeries(state, [action1], {}, done)
+  t.assert.equal(doneCallCount, 1, 'done was called exactly once')
+})
+
+test('runSeries binds this context to actions', function (t) {
+  t.plan(2)
+
+  let contextChecked = false
+
+  function action1 (packet, next) {
+    t.assert.equal(this.clientId, 'test-client', 'this context preserved in action')
+    contextChecked = true
+    next()
+  }
+
+  const done = function (err) {
+    if (err) throw err
+    t.assert.ok(contextChecked, 'action was executed with correct context')
+  }
+
+  const state = { clientId: 'test-client' }
+  runSeries(state, [action1], {}, done)
+})
+
+test('runSeries handles empty actions array', function (t) {
+  t.plan(1)
+
+  const done = function (err) {
+    t.assert.equal(err, undefined, 'done called immediately with no error for empty array')
+  }
+
+  const state = {}
+  runSeries(state, [], {}, done)
 })
