@@ -685,6 +685,27 @@ test('MQTT 5.0 publish with an unknown topic alias is rejected with DISCONNECT 0
   t.assert.equal(packet.reasonCode, 0x94, '0x94 Topic Alias invalid on the wire')
 })
 
+test('MQTT 5.0 maximumPendingSessions caps the number of pending session-expiry timers', async (t) => {
+  t.plan(1)
+  const { broker, connect } = await createServerAndConnect(t, {
+    brokerOptions: { maximumPendingSessions: 1 }
+  })
+  // First disconnected session takes the single pending slot.
+  const a = connect({ clientId: 'cap-a', clean: false, properties: { sessionExpiryInterval: 60 } })
+  await once(a, 'connect')
+  a.end(true)
+  await once(a, 'close')
+  while (broker.expiringSessions.size < 1) await delay(5)
+
+  // Second exceeds the cap → expired immediately rather than queuing a timer.
+  const b = connect({ clientId: 'cap-b', clean: false, properties: { sessionExpiryInterval: 60 } })
+  await once(b, 'connect')
+  b.end(true)
+  await once(b, 'close')
+  await delay(50)
+  t.assert.equal(broker.expiringSessions.size, 1, 'second pending session denied by the cap')
+})
+
 test('MQTT 5.0 broker clamps a requested Session Expiry Interval to maximumSessionExpiryInterval', async (t) => {
   t.plan(1)
   const { broker, connect } = await createServerAndConnect(t, {

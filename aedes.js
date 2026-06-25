@@ -39,7 +39,13 @@ const defaultOptions = {
   // request. A larger requested value (including 0xFFFFFFFF "never") is clamped
   // to this. Bounds how long per-client session-expiry / will-delay timers and
   // their persisted state live, limiting single-source accumulation. 0 = no cap.
-  maximumSessionExpiryInterval: 0
+  maximumSessionExpiryInterval: 0,
+  // MQTT 5.0: cap on the number of pending session-expiry timers (and, applied
+  // separately, delayed-will timers) the broker holds at once. Beyond it, a
+  // newly disconnecting session is expired immediately and a new delayed will is
+  // published immediately, bounding memory under identity-cycling abuse without
+  // evicting already-pending entries. 0 = unlimited.
+  maximumPendingSessions: 0
 }
 const version = pkg.version
 
@@ -88,6 +94,7 @@ export class Aedes extends EventEmitter {
     this.maximumPacketSize = opts.maximumPacketSize
     this.receiveMaximum = opts.receiveMaximum
     this.maximumSessionExpiryInterval = opts.maximumSessionExpiryInterval
+    this.maximumPendingSessions = opts.maximumPendingSessions
     this.mq = opts.mq || mqemitter({
       concurrency: opts.concurrency,
       matchEmptyLevels: true // [MQTT-4.7.1-3]
@@ -340,6 +347,16 @@ export class Aedes extends EventEmitter {
       this._wipeSession(client)
       return
     }
+    // Count cap: when the broker is already holding the maximum number of
+    // pending expiry timers, end this session now instead of queuing another.
+    // Denying the newest (rather than evicting an oldest) bounds memory without
+    // dropping already-established sessions. 0 = unlimited.
+    if (this.maximumPendingSessions > 0 &&
+        !this.expiringSessions.has(client.id) &&
+        this.expiringSessions.size >= this.maximumPendingSessions) {
+      this._wipeSession(client)
+      return
+    }
 
     const that = this
     const timer = armLongTimer(interval * 1000, function expireSession () {
@@ -375,6 +392,14 @@ export class Aedes extends EventEmitter {
   // instead of immediately, unless the client reconnects first.
   scheduleWill (client, will, delaySeconds) {
     if (this.closed) return
+    // Count cap (see scheduleSessionExpiry): when already holding the maximum
+    // number of delayed wills, publish this one now instead of queuing a timer.
+    if (this.maximumPendingSessions > 0 &&
+        !this.delayedWills.has(client.id) &&
+        this.delayedWills.size >= this.maximumPendingSessions) {
+      this.publishWill(client, will)
+      return
+    }
     const that = this
     const timer = armLongTimer(delaySeconds * 1000, function fireWill () {
       that.delayedWills.delete(client.id)

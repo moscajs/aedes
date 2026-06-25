@@ -12,6 +12,9 @@
   - [client.clean](#clientclean)
   - [client.version](#clientversion)
   - [client.disconnectReasonCode](#clientdisconnectreasoncode)
+  - [client.sessionExpiryInterval](#clientsessionexpiryinterval)
+  - [client.maximumPacketSize](#clientmaximumpacketsize)
+  - [client.receiveMaximum](#clientreceivemaximum)
   - [Event: connected](#event-connected)
   - [Event: error](#event-error)
   - [client.publish (packet, [callback])](#clientpublish-packet-callback)
@@ -90,6 +93,24 @@ Client version, set by protocol version in `CONNECT` packet when `CONNACK (rc=0)
 - `<number> | null` __Default__: `null`
 
 MQTT 5.0 only. When the broker initiates the disconnect, the reason code sent to the client (e.g. `0x8E` session taken over, `0x8B` server shutting down, `0x95` packet too large). Remains `null` for a normal client-initiated disconnect. Readable on the [`clientDisconnect`](./Aedes.md#event-clientdisconnect) event to distinguish a server kick from a normal drop.
+
+## client.sessionExpiryInterval
+
+- `<number>` __Default__: `0`
+
+MQTT 5.0 only. The negotiated Session Expiry Interval in seconds: taken from the `CONNECT` property (clamped to the broker's `maximumSessionExpiryInterval`), and updated by a `DISCONNECT` that carries the property. `0` ends the session with the network connection; `0xFFFFFFFF` means it never expires.
+
+## client.maximumPacketSize
+
+- `<number> | undefined` __Default__: `undefined`
+
+MQTT 5.0 only. The Maximum Packet Size (bytes) the client advertised it will accept, or `undefined` if none. Advisory on the broker side (stored, not enforced on outbound delivery).
+
+## client.receiveMaximum
+
+- `<number>` __Default__: `65535`
+
+MQTT 5.0 only. The Receive Maximum the client advertised (its inbound in-flight QoS 1/2 limit). Advisory on the broker side.
 
 ## Event: connected
 

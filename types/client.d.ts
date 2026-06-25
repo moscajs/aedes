@@ -24,6 +24,22 @@ export interface Client extends EventEmitter {
    * packet too large). `null` for a normal client-initiated disconnect.
    */
   disconnectReasonCode: Readonly<number | null>;
+  /**
+   * MQTT 5.0: the negotiated Session Expiry Interval in seconds (from CONNECT,
+   * clamped to the broker's `maximumSessionExpiryInterval`, and updated by a
+   * DISCONNECT that carries the property). `0xFFFFFFFF` means never expires.
+   */
+  sessionExpiryInterval: Readonly<number>;
+  /**
+   * MQTT 5.0: the Maximum Packet Size (bytes) the client advertised it will
+   * accept, or `undefined` if it advertised none. Advisory on the broker side.
+   */
+  maximumPacketSize: Readonly<number | undefined>;
+  /**
+   * MQTT 5.0: the Receive Maximum the client advertised (in-flight QoS 1/2
+   * limit towards it); defaults to `65535`. Advisory on the broker side.
+   */
+  receiveMaximum: Readonly<number>;
 
   on(event: 'connected', listener: () => void): this;
   on(event: 'error', listener: (error: Error) => void): this;
