@@ -391,7 +391,13 @@ export class Aedes extends EventEmitter {
   // MQTT 5.0 Will Delay Interval: publish the will after `delaySeconds`
   // instead of immediately, unless the client reconnects first.
   scheduleWill (client, will, delaySeconds) {
-    if (this.closed) return
+    if (this.closed) {
+      // Broker is shutting down: the delayed will can't be timed here. It stays
+      // in persistence (another broker's will-sweep can still publish it), but
+      // emit so a single-instance operator can observe the drop.
+      this.emit('willDropped', client, will)
+      return
+    }
     // Count cap (see scheduleSessionExpiry): when already holding the maximum
     // number of delayed wills, publish this one now instead of queuing a timer.
     if (this.maximumPendingSessions > 0 &&

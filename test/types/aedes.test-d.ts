@@ -23,6 +23,8 @@ const broker = new Aedes({
   topicAliasMaximum: 10,
   maximumPacketSize: 1048576,
   receiveMaximum: 20,
+  maximumSessionExpiryInterval: 86400,
+  maximumPendingSessions: 10000,
   preConnect: (client: Client, packet: ConnectPacket, callback) => {
     if (client.req) {
       callback(new Error('not websocket stream'), false)

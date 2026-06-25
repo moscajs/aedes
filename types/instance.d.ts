@@ -83,6 +83,8 @@ export interface AedesOptions {
   topicAliasMaximum?: number; // max inbound topic alias; 0 disables (default: 0)
   maximumPacketSize?: number; // max accepted packet size in bytes; 0 = no limit (default: 0)
   receiveMaximum?: number; // advertised max in-flight QoS 1/2; 0 = not advertised (default: 0)
+  maximumSessionExpiryInterval?: number; // clamp (seconds) on requested Session Expiry Interval; 0 = no cap (default: 0)
+  maximumPendingSessions?: number; // cap on pending session-expiry / delayed-will timers; 0 = unlimited (default: 0)
   preConnect?: PreConnectHandler;
   authenticate?: AuthenticateHandler;
   authorizePublish?: AuthorizePublishHandler;

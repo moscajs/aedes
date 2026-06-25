@@ -62,5 +62,14 @@ export interface Client extends EventEmitter {
     callback?: (error?: Error) => void
   ): void;
   close(callback?: () => void): void;
+  /**
+   * MQTT 5.0: server-initiated disconnect. For a v5 client a DISCONNECT packet
+   * with the given reason code (and optional properties) is sent before closing;
+   * for v3/v4 the connection is just closed.
+   */
+  disconnect(
+    opts?: { reasonCode?: number; properties?: object },
+    callback?: () => void
+  ): void;
   emptyOutgoingQueue(callback?: () => void): void;
 }

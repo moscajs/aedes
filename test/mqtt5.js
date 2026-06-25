@@ -427,7 +427,9 @@ test('MQTT 5.0 queued message within expiry is delivered with the remaining life
   const [, payload, packet] = await message
   t.assert.equal(payload.toString(), 'in-time')
   const remaining = packet.properties?.messageExpiryInterval
-  t.assert.ok(remaining > 0 && remaining <= 60, `remaining lifetime carried (${remaining}s)`)
+  // Tight bound: delivery is near-immediate, so a correct recompute stays close
+  // to the original 60s — a broken recompute that returned e.g. 1 would fail.
+  t.assert.ok(remaining >= 58 && remaining <= 60, `remaining lifetime carried (${remaining}s)`)
 })
 
 test('MQTT 5.0 CONNACK advertises flow-control limits', async (t) => {
@@ -525,7 +527,7 @@ test('MQTT 5.0 retained message within expiry is delivered with remaining lifeti
   const [, payload, packet] = await message
   t.assert.equal(payload.toString(), 'here')
   const remaining = packet.properties?.messageExpiryInterval
-  t.assert.ok(remaining > 0 && remaining <= 60, `retained delivered with remaining lifetime (${remaining}s)`)
+  t.assert.ok(remaining >= 58 && remaining <= 60, `retained delivered with remaining lifetime (${remaining}s)`)
 })
 
 test('MQTT 5.0 unauthorized QoS1 publish is answered with 0x87 PUBACK, not a disconnect', async (t) => {
@@ -591,14 +593,15 @@ test('MQTT 5.0 unauthorized QoS2 publish is answered with 0x87 (PUBREC), not a d
 })
 
 test('MQTT 5.0 returns an Assigned Client Identifier for an empty clientId', async (t) => {
-  t.plan(1)
-  const { connect } = await createServerAndConnect(t)
+  t.plan(2)
+  const { broker, connect } = await createServerAndConnect(t)
   const client = connect({ clientId: '' })
   const [connack] = await once(client, 'connect')
-  t.assert.ok(
-    connack.properties?.assignedClientIdentifier,
-    'broker returned an assigned client identifier'
-  )
+  const assigned = connack.properties?.assignedClientIdentifier
+  t.assert.ok(assigned, 'broker returned an assigned client identifier')
+  // The broker must actually register the client under the assigned id.
+  while (!broker.clients[assigned]) await delay(5)
+  t.assert.ok(broker.clients[assigned], 'client registered under the assigned id')
 })
 
 test('MQTT 5.0 imposes Server Keep Alive when the client exceeds the broker limit', async (t) => {
@@ -852,4 +855,111 @@ test('MQTT 5.0 broker close clears a pending delayed will', async (t) => {
   // helper's teardown close() is idempotent, so closing here as well is safe.
   await new Promise(resolve => broker.close(resolve))
   t.assert.equal(broker.delayedWills.size, 0, 'pending will cleared on close')
+})
+
+test('MQTT 5.0 Clean Start discards a prior session\'s queued messages', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t)
+
+  // Establish a persistable session and queue a QoS 1 message while offline.
+  const sub1 = connect({ clientId: 'cleanstart', clean: false, properties: { sessionExpiryInterval: 60 } })
+  await once(sub1, 'connect')
+  await sub1.subscribeAsync('cleanstart/topic', { qos: 1 })
+  sub1.end(true)
+  await once(sub1, 'close')
+
+  const pub = connect({ clientId: 'cleanstart-pub' })
+  await once(pub, 'connect')
+  await pub.publishAsync('cleanstart/topic', 'stale', { qos: 1 })
+
+  // Reconnect with Clean Start = true (but still a non-zero expiry): the prior
+  // session — including its queued message — must be discarded. [MQTT-3.1.2-4]
+  const sub2 = connect({ clientId: 'cleanstart', clean: true, properties: { sessionExpiryInterval: 60 } })
+  const got = once(sub2, 'message').then(() => 'message')
+  await once(sub2, 'connect')
+  const result = await Promise.race([got, delay(300).then(() => 'timeout')])
+  t.assert.equal(result, 'timeout', 'queued message from the discarded session not delivered')
+})
+
+test('MQTT 5.0 CONNECT with receiveMaximum 0 is rejected (Protocol Error)', async (t) => {
+  t.plan(1)
+  const { broker, port } = await createServerAndConnect(t)
+
+  // mqtt.js won't send an invalid receiveMaximum, so inject a raw v5 CONNECT.
+  const connErr = once(broker, 'connectionError')
+  const raw = createConnection(port, 'localhost')
+  t.after(() => raw.destroy())
+  raw.on('error', () => {})
+  raw.write(generate({
+    cmd: 'connect',
+    protocolVersion: 5,
+    clientId: 'rm0',
+    clean: true,
+    keepalive: 0,
+    properties: { receiveMaximum: 0 }
+  }, { protocolVersion: 5 }))
+
+  const [, err] = await connErr
+  t.assert.match(err.message, /Receive Maximum/, 'rejected with a Receive Maximum protocol error')
+})
+
+test('MQTT 5.0 SUBSCRIBE with subscriptionIdentifier 0 is rejected with DISCONNECT 0x82', async (t) => {
+  t.plan(2)
+  const { broker, connect } = await createServerAndConnect(t)
+  const client = connect({ clientId: 'si0', reconnectPeriod: 0 })
+  await once(client, 'connect')
+
+  // mqtt.js won't send an out-of-range identifier; inject a raw SUBSCRIBE.
+  const clientError = once(broker, 'clientError')
+  const disc = once(client, 'disconnect')
+  client.stream.write(generate({
+    cmd: 'subscribe',
+    messageId: 1,
+    subscriptions: [{ topic: 'si/topic', qos: 0 }],
+    properties: { subscriptionIdentifier: 0 }
+  }, { protocolVersion: 5 }))
+
+  const [, err] = await clientError
+  t.assert.match(err.message, /subscription identifier/, 'protocol error surfaced')
+  const [packet] = await disc
+  t.assert.equal(packet.reasonCode, 0x82, '0x82 Protocol Error on the wire')
+})
+
+test('MQTT 5.0 broker.close() sends DISCONNECT 0x8B to connected v5 clients', async (t) => {
+  t.plan(1)
+  const { broker, connect } = await createServerAndConnect(t)
+  const client = connect({ clientId: 'shutdown', reconnectPeriod: 0 })
+  await once(client, 'connect')
+  while (!broker.clients.shutdown?.connected) await delay(5)
+
+  const disc = once(client, 'disconnect')
+  broker.close() // teardown's close() is idempotent
+  const [packet] = await disc
+  t.assert.equal(packet.reasonCode, 0x8B, 'Server shutting down reason on the wire')
+})
+
+test('MQTT 5.0 unauthorized QoS 0 publish drops the connection (v3/v4 behavior), not delivered', async (t) => {
+  t.plan(2)
+  const { broker, connect } = await createServerAndConnect(t, {
+    brokerOptions: {
+      authorizePublish: (client, packet, cb) => cb(packet.topic.startsWith('denied') ? new Error('no') : null)
+    }
+  })
+  const sub = connect({ clientId: 'unauth0-sub' })
+  await once(sub, 'connect')
+  await sub.subscribeAsync('denied/+')
+  let received = false
+  sub.on('message', () => { received = true })
+
+  const pub = connect({ clientId: 'unauth0-pub', reconnectPeriod: 0 })
+  await once(pub, 'connect')
+  // QoS 0 has no ack, so (unlike the v5 QoS>0 0x87 path) an unauthorized QoS 0
+  // publish keeps the existing v3/v4 behavior: clientError + connection dropped.
+  const clientError = once(broker, 'clientError')
+  pub.publish('denied/x', 'data', { qos: 0 })
+  const [, err] = await clientError
+  await delay(100)
+
+  t.assert.ok(err, 'unauthorized publish surfaced a clientError')
+  t.assert.equal(received, false, 'unauthorized QoS 0 message not delivered')
 })
