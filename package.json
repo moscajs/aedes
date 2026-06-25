@@ -20,6 +20,7 @@
 		"test:ci": "npm run lint && npm run coverage && npm run test:typescript",
 		"test:report": "npm run lint && npm run unit:report && npm run test:typescript",
 		"test:typescript": "tsd",
+		"check:deps": "node scripts/check-no-git-deps.js",
 		"unit": "node checkVersion.js && npm run unit:v20win32 || npm run unit:other",
 		"unit:v20win32": "node --test --test-timeout=180000",
 		"unit:other": "node --test --test-timeout=180000 test/*.js test/*.cjs",
@@ -109,8 +110,8 @@
 		"ws": "^8.18.3"
 	},
 	"dependencies": {
-		"aedes-packet": "^3.0.0",
-		"aedes-persistence": "^10.2.2",
+		"aedes-packet": "github:BenjaminDobler/aedes-packet#7abbbe6ccef000f3aad7ba53b7ae165b2d1cb96c",
+		"aedes-persistence": "github:BenjaminDobler/aedes-persistence#78b6ac7584a8db7bc62b3f3acb2d5213158be596",
 		"mqemitter": "^7.1.0",
 		"mqtt-packet": "^9.0.2"
 	},

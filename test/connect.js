@@ -10,6 +10,7 @@ import {
   withTimeout
 } from './helper.js'
 import http from 'node:http'
+import { createServer } from 'node:net'
 import { WebSocketServer, createWebSocketStream } from 'ws'
 import mqtt from 'mqtt'
 import { Aedes } from '../aedes.js'
@@ -34,28 +35,28 @@ for (const ele of [{ ver: 3, id: 'MQIsdp' }, { ver: 4, id: 'MQTT' }]) {
 }
 
 // [MQTT-3.1.2-2]
-test('reject client requested for unacceptable protocol version', async (t) => {
-  t.plan(3)
+// MQTT 5.0 is now an accepted protocol version. The legacy MQTT 3.1/3.1.1
+// in-memory harness uses a v4 parser that cannot decode a v5 CONNACK, so this
+// uses a real TCP socket + v5 client (see also test/mqtt5.js).
+test('accept client requesting MQTT 5.0 protocol version', async (t) => {
+  t.plan(2)
 
-  const s = await createAndConnect(t, {
-    connect: {
-      protocolId: 'MQIsdp',
-      protocolVersion: 5,
-      clean: true,
-      clientId: 'my-client',
-      keepalive: 0
-    },
-    expectedReturnCode: 1
+  const broker = await Aedes.createBroker()
+  const server = createServer(broker.handle)
+  t.after(() => {
+    server.close()
+    broker.close()
   })
+  await new Promise(resolve => server.listen(0, resolve))
+  const port = server.address().port
 
-  t.assert.equal(s.broker.connectedClients, 0)
+  const client = mqtt.connect({ port, host: 'localhost', protocolVersion: 5, clientId: 'my-client' })
+  t.after(() => client.end(true))
 
-  s.broker.on('clientError', (client, err) => {
-    t.assert.fail('should not raise clientError error')
-  })
-  const [client, err] = await once(s.broker, 'connectionError')
-  t.assert.ok(client, 'client is defined')
-  t.assert.equal(err.message, 'unacceptable protocol version')
+  const [connack] = await once(client, 'connect')
+  // v5 CONNACK carries a reasonCode (0 = success), not a v3/v4 returnCode
+  t.assert.equal(connack.reasonCode, 0, 'v5 CONNACK reasonCode is success')
+  t.assert.equal(broker.connectedClients, 1)
 })
 
 // [MQTT-3.1.2-1], Guarded in mqtt-packet
