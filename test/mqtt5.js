@@ -710,7 +710,7 @@ test('MQTT 5.0 maximumPendingSessions caps the number of pending session-expiry 
 })
 
 test('MQTT 5.0 broker clamps a requested Session Expiry Interval to maximumSessionExpiryInterval', async (t) => {
-  t.plan(1)
+  t.plan(2)
   const { broker, connect } = await createServerAndConnect(t, {
     brokerOptions: { maximumSessionExpiryInterval: 30 }
   })
@@ -719,8 +719,11 @@ test('MQTT 5.0 broker clamps a requested Session Expiry Interval to maximumSessi
     clean: false,
     properties: { sessionExpiryInterval: 0xFFFFFFFF } // "never" — must be clamped
   })
-  await once(client, 'connect')
-  // Wait until the broker has fully registered the server-side client.
+  const [connack] = await once(client, 'connect')
+  // [MQTT-3.2.2-3.2] the applied (clamped) interval must be echoed in the CONNACK.
+  t.assert.equal(connack.properties?.sessionExpiryInterval, 30,
+    'clamped interval echoed in CONNACK')
+  // ...and applied server-side.
   while (!broker.clients['clamp-se']?.connected) await delay(5)
   t.assert.equal(broker.clients['clamp-se'].sessionExpiryInterval, 30,
     'requested 0xFFFFFFFF clamped to the broker maximum')
@@ -881,6 +884,31 @@ test('MQTT 5.0 Clean Start discards a prior session\'s queued messages', async (
   t.assert.equal(result, 'timeout', 'queued message from the discarded session not delivered')
 })
 
+// Positive contrast for the test above: the same queue-while-offline scenario,
+// but a non-clean (resume) reconnect DOES receive the message — proving the
+// queue was populated and that the clean-start case discards it specifically.
+test('MQTT 5.0 a non-clean reconnect receives the prior session\'s queued messages', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t)
+
+  const sub1 = connect({ clientId: 'noclean', clean: false, properties: { sessionExpiryInterval: 60 } })
+  await once(sub1, 'connect')
+  await sub1.subscribeAsync('noclean/topic', { qos: 1 })
+  sub1.end(true)
+  await once(sub1, 'close')
+
+  const pub = connect({ clientId: 'noclean-pub' })
+  await once(pub, 'connect')
+  await pub.publishAsync('noclean/topic', 'queued', { qos: 1 })
+
+  // Resume (clean:false): the queued message must be delivered.
+  const sub2 = connect({ clientId: 'noclean', clean: false, properties: { sessionExpiryInterval: 60 } })
+  const message = once(sub2, 'message')
+  await once(sub2, 'connect')
+  const [, payload] = await message
+  t.assert.equal(payload.toString(), 'queued', 'queued message delivered on a non-clean resume')
+})
+
 test('MQTT 5.0 CONNECT with receiveMaximum 0 is rejected (Protocol Error)', async (t) => {
   t.plan(1)
   const { broker, port } = await createServerAndConnect(t)
@@ -938,8 +966,8 @@ test('MQTT 5.0 broker.close() sends DISCONNECT 0x8B to connected v5 clients', as
   t.assert.equal(packet.reasonCode, 0x8B, 'Server shutting down reason on the wire')
 })
 
-test('MQTT 5.0 unauthorized QoS 0 publish drops the connection (v3/v4 behavior), not delivered', async (t) => {
-  t.plan(2)
+test('MQTT 5.0 unauthorized QoS 0 publish is dropped silently, connection stays up', async (t) => {
+  t.plan(3)
   const { broker, connect } = await createServerAndConnect(t, {
     brokerOptions: {
       authorizePublish: (client, packet, cb) => cb(packet.topic.startsWith('denied') ? new Error('no') : null)
@@ -953,13 +981,15 @@ test('MQTT 5.0 unauthorized QoS 0 publish drops the connection (v3/v4 behavior),
 
   const pub = connect({ clientId: 'unauth0-pub', reconnectPeriod: 0 })
   await once(pub, 'connect')
-  // QoS 0 has no ack, so (unlike the v5 QoS>0 0x87 path) an unauthorized QoS 0
-  // publish keeps the existing v3/v4 behavior: clientError + connection dropped.
+  // v5: an unauthorized QoS 0 publish has no ack to carry a reason code, so it is
+  // dropped silently and the connection stays up (matching the QoS>0 0x87 posture)
+  // while still surfacing the authz failure on clientError.
   const clientError = once(broker, 'clientError')
-  pub.publish('denied/x', 'data', { qos: 0 })
+  await pub.publishAsync('denied/x', 'data', { qos: 0 })
   const [, err] = await clientError
   await delay(100)
 
   t.assert.ok(err, 'unauthorized publish surfaced a clientError')
+  t.assert.equal(pub.connected, true, 'connection stays up')
   t.assert.equal(received, false, 'unauthorized QoS 0 message not delivered')
 })

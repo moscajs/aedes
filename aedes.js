@@ -337,6 +337,10 @@ export class Aedes extends EventEmitter {
     // kept indefinitely), so there is no timed expiry to arrange.
     if (client.version !== 5) return
 
+    // Clear any stale timer for this id first so the previous armLongTimer handle
+    // is never orphaned (defensive; reconnect/takeover normally clears it).
+    this.clearSessionExpiry(client.id)
+
     const interval = client.sessionExpiryInterval
     if (interval >= SESSION_NEVER_EXPIRES) {
       // 0xFFFFFFFF: the session is retained until explicitly taken over.
@@ -350,9 +354,9 @@ export class Aedes extends EventEmitter {
     // Count cap: when the broker is already holding the maximum number of
     // pending expiry timers, end this session now instead of queuing another.
     // Denying the newest (rather than evicting an oldest) bounds memory without
-    // dropping already-established sessions. 0 = unlimited.
+    // dropping already-established sessions. (This id was just cleared above, so
+    // size excludes it.) 0 = unlimited.
     if (this.maximumPendingSessions > 0 &&
-        !this.expiringSessions.has(client.id) &&
         this.expiringSessions.size >= this.maximumPendingSessions) {
       this._wipeSession(client)
       return
@@ -398,10 +402,12 @@ export class Aedes extends EventEmitter {
       this.emit('willDropped', client, will)
       return
     }
+    // Clear any stale timer for this id first so its armLongTimer handle is
+    // never orphaned (defensive).
+    this.clearDelayedWill(client.id)
     // Count cap (see scheduleSessionExpiry): when already holding the maximum
     // number of delayed wills, publish this one now instead of queuing a timer.
     if (this.maximumPendingSessions > 0 &&
-        !this.delayedWills.has(client.id) &&
         this.delayedWills.size >= this.maximumPendingSessions) {
       this.publishWill(client, will)
       return
