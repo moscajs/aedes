@@ -5,7 +5,7 @@ import Packet from 'aedes-packet'
 import memory from 'aedes-persistence'
 import mqemitter from 'mqemitter'
 import Client from './lib/client.js'
-import { $SYS_PREFIX, batch, noop, runSeries } from './lib/utils.js'
+import { $SYS_PREFIX, batch, noop, runSeries, armLongTimer } from './lib/utils.js'
 import { SESSION_NEVER_EXPIRES, ReasonCodes } from './lib/constants.js'
 import pkg from './package.json' with { type: 'json' }
 
@@ -48,33 +48,6 @@ const defaultOptions = {
   maximumPendingSessions: 0
 }
 const version = pkg.version
-
-// Node clamps setTimeout delays above 2^31-1 ms (~24.8 days) to 1 ms, firing
-// almost immediately. MQTT 5.0 session-expiry / will-delay intervals are uint32
-// seconds (up to ~136 years), so a raw setTimeout would wipe long-lived
-// sessions and fire delayed wills early.
-const MAX_TIMEOUT_MS = 2147483647
-
-// Arms a timer that survives delays beyond setTimeout's cap by re-arming in
-// chunks. Returns a handle whose clear() cancels whichever chunk is pending.
-function armLongTimer (delayMs, onFire) {
-  let timer
-  const schedule = (remaining) => {
-    const chunk = Math.min(remaining, MAX_TIMEOUT_MS)
-    timer = setTimeout(() => {
-      const left = remaining - chunk
-      /* c8 ignore next 2 -- re-arm only runs for delays > ~24.8 days; not reachable in a test without waiting out the first chunk */
-      if (left > 0) {
-        schedule(left)
-      } else {
-        onFire()
-      }
-    }, chunk)
-    if (typeof timer.unref === 'function') timer.unref()
-  }
-  schedule(delayMs)
-  return { clear () { clearTimeout(timer) } }
-}
 
 export class Aedes extends EventEmitter {
   constructor (opts) {

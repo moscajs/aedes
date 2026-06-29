@@ -1063,3 +1063,112 @@ test('MQTT 5.0 oversized frame is rejected from its declared length before full 
   const [packet] = await disc
   t.assert.equal(packet.reasonCode, 0x95, 'rejected with 0x95 from the declared length')
 })
+
+test('MQTT 5.0 Retain Handling 2 does not send retained on subscribe', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t)
+  const pub = connect({ clientId: 'rh2-pub' })
+  await once(pub, 'connect')
+  await pub.publishAsync('rh2/topic', 'retained', { retain: true })
+
+  const sub = connect({ clientId: 'rh2-sub' })
+  await once(sub, 'connect')
+  const got = once(sub, 'message').then(() => 'message')
+  await sub.subscribeAsync('rh2/topic', { qos: 0, rh: 2 })
+  const result = await Promise.race([got, delay(300).then(() => 'timeout')])
+  t.assert.equal(result, 'timeout', 'rh=2 suppresses retained on subscribe')
+})
+
+test('MQTT 5.0 Retain Handling 1 sends retained only for a new subscription', async (t) => {
+  t.plan(2)
+  const { connect } = await createServerAndConnect(t)
+  const pub = connect({ clientId: 'rh1-pub' })
+  await once(pub, 'connect')
+  await pub.publishAsync('rh1/topic', 'retained', { retain: true })
+
+  const sub = connect({ clientId: 'rh1-sub' })
+  await once(sub, 'connect')
+  // First (new) subscription with rh=1 → retained delivered.
+  const first = once(sub, 'message')
+  await sub.subscribeAsync('rh1/topic', { qos: 0, rh: 1 })
+  const [, p1] = await first
+  t.assert.equal(p1.toString(), 'retained', 'new subscription gets retained')
+  // Re-subscribe (already exists) with rh=1 → no retained re-sent.
+  const second = once(sub, 'message').then(() => 'message')
+  await sub.subscribeAsync('rh1/topic', { qos: 0, rh: 1 })
+  const result = await Promise.race([second, delay(300).then(() => 'timeout')])
+  t.assert.equal(result, 'timeout', 're-subscription does not re-send retained')
+})
+
+test('MQTT 5.0 $share subscribe is refused with 0x9E (shared subs unavailable)', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t)
+  const client = connect({ clientId: 'share-sub' })
+  await once(client, 'connect')
+  let granted
+  try {
+    // mqtt.js resolves with the granted array on success...
+    granted = (await client.subscribeAsync('$share/grp/topic')).map(g => g.qos)
+  } catch (err) {
+    // ...but rejects on a >= 0x80 SUBACK reason code, attaching the raw packet.
+    granted = err.packet?.granted
+  }
+  t.assert.equal(granted?.[0], 0x9E, 'shared subscription refused with 0x9E')
+})
+
+test('MQTT 5.0 DISCONNECT cannot raise Session Expiry when CONNECT declared 0', async (t) => {
+  t.plan(1)
+  const { broker, connect } = await createServerAndConnect(t)
+  const client = connect({ clientId: 'disc-se0', clean: false, properties: { sessionExpiryInterval: 0 } })
+  await once(client, 'connect')
+  const clientError = once(broker, 'clientError')
+  // Illegal: a non-zero Session Expiry on DISCONNECT when CONNECT declared 0.
+  client.end(false, { properties: { sessionExpiryInterval: 60 } })
+  const [, err] = await clientError
+  t.assert.match(err.message, /Session Expiry/, 'protocol error surfaced; value ignored')
+})
+
+test('MQTT 5.0 CONNECT with an Authentication Method is rejected with 0x8C', async (t) => {
+  t.plan(1)
+  const { broker, port } = await createServerAndConnect(t)
+  const connErr = once(broker, 'connectionError')
+  const raw = createConnection(port, 'localhost')
+  t.after(() => raw.destroy())
+  raw.on('error', () => {})
+  raw.write(generate({
+    cmd: 'connect',
+    protocolVersion: 5,
+    clientId: 'authm',
+    clean: true,
+    keepalive: 0,
+    properties: { authenticationMethod: 'SCRAM-SHA-1' }
+  }, { protocolVersion: 5 }))
+  const [, err] = await connErr
+  t.assert.match(err.message, /authentication method/, 'rejected with bad authentication method')
+})
+
+test('MQTT 5.0 retained message on subscribe carries the Subscription Identifier', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t)
+  const pub = connect({ clientId: 'retsi-pub' })
+  await once(pub, 'connect')
+  await pub.publishAsync('retsi/topic', 'retained', { retain: true })
+
+  const sub = connect({ clientId: 'retsi-sub' })
+  await once(sub, 'connect')
+  const message = once(sub, 'message')
+  await sub.subscribeAsync('retsi/topic', { qos: 0, properties: { subscriptionIdentifier: 7 } })
+  const [, , packet] = await message
+  t.assert.equal(packet.properties?.subscriptionIdentifier, 7, 'retained delivery carries the SI')
+})
+
+test('MQTT 5.0 publish with a wildcard Response Topic is rejected', async (t) => {
+  t.plan(1)
+  const { broker, connect } = await createServerAndConnect(t)
+  const client = connect({ clientId: 'rt-bad', reconnectPeriod: 0 })
+  await once(client, 'connect')
+  const clientError = once(broker, 'clientError')
+  client.publish('rt/topic', 'data', { properties: { responseTopic: 'reply/+/x' } })
+  const [, err] = await clientError
+  t.assert.match(err.message, /Response Topic/, 'wildcard response topic rejected')
+})
