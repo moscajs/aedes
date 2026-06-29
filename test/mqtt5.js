@@ -993,3 +993,73 @@ test('MQTT 5.0 unauthorized QoS 0 publish is dropped silently, connection stays 
   t.assert.equal(pub.connected, true, 'connection stays up')
   t.assert.equal(received, false, 'unauthorized QoS 0 message not delivered')
 })
+
+test('MQTT 5.0 broker close emits willDropped for a pending delayed will', async (t) => {
+  t.plan(1)
+  const { broker, connect } = await createServerAndConnect(t)
+  const willClient = connect({
+    clientId: 'willdrop',
+    reconnectPeriod: 0,
+    properties: { sessionExpiryInterval: 60 },
+    will: { topic: 'willdrop/t', payload: 'x', qos: 0, properties: { willDelayInterval: 60 } }
+  })
+  await once(willClient, 'connect')
+  while (!broker.clients.willdrop?.connected) await delay(5)
+
+  // Closing the broker can't time the delayed will; it is dropped observably.
+  const dropped = once(broker, 'willDropped')
+  broker.close() // teardown's close() is idempotent
+  const [client] = await dropped
+  t.assert.equal(client.id, 'willdrop', 'willDropped emitted for the pending delayed will')
+})
+
+test('MQTT 5.0 maximumPendingSessions publishes an over-cap delayed will immediately', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t, {
+    brokerOptions: { maximumPendingSessions: 1 }
+  })
+  const watcher = connect({ clientId: 'willcap-watch' })
+  await once(watcher, 'connect')
+  await watcher.subscribeAsync('willcap/+')
+
+  // First delayed will takes the single pending-will slot (stays delayed).
+  const a = connect({
+    clientId: 'willcap-a',
+    reconnectPeriod: 0,
+    properties: { sessionExpiryInterval: 60 },
+    will: { topic: 'willcap/a', payload: 'a', qos: 0, properties: { willDelayInterval: 60 } }
+  })
+  await once(a, 'connect')
+  a.stream.destroy()
+  await delay(100)
+
+  // Second exceeds the cap → its will is published immediately, not queued.
+  const got = once(watcher, 'message')
+  const b = connect({
+    clientId: 'willcap-b',
+    reconnectPeriod: 0,
+    properties: { sessionExpiryInterval: 60 },
+    will: { topic: 'willcap/b', payload: 'b', qos: 0, properties: { willDelayInterval: 60 } }
+  })
+  await once(b, 'connect')
+  b.stream.destroy()
+  const [, payload] = await got
+  t.assert.equal(payload.toString(), 'b', 'over-cap delayed will published immediately')
+})
+
+test('MQTT 5.0 oversized frame is rejected from its declared length before full buffering', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t, {
+    brokerOptions: { maximumPacketSize: 50 }
+  })
+  const client = connect({ clientId: 'chunked-big', reconnectPeriod: 0 })
+  await once(client, 'connect')
+
+  // Raw PUBLISH fixed header declaring a 200-byte remaining length, but only a
+  // couple of payload bytes sent: the broker rejects from the declared length
+  // (read-path guard) before the rest of the body arrives.
+  const disc = once(client, 'disconnect')
+  client.stream.write(Buffer.from([0x30, 0xC8, 0x01, 0x00, 0x03]))
+  const [packet] = await disc
+  t.assert.equal(packet.reasonCode, 0x95, 'rejected with 0x95 from the declared length')
+})

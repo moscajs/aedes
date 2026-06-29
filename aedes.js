@@ -63,6 +63,7 @@ function armLongTimer (delayMs, onFire) {
     const chunk = Math.min(remaining, MAX_TIMEOUT_MS)
     timer = setTimeout(() => {
       const left = remaining - chunk
+      /* c8 ignore next 2 -- re-arm only runs for delays > ~24.8 days; not reachable in a test without waiting out the first chunk */
       if (left > 0) {
         schedule(left)
       } else {
