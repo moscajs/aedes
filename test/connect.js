@@ -421,6 +421,26 @@ test('connect handler calls done when preConnect throws error', async (t) => {
   })
 })
 
+test('connect handler rejects an out-of-range protocol version', async (t) => {
+  t.plan(2)
+
+  const broker = await Aedes.createBroker()
+  t.after(() => broker.close())
+
+  const s = setup(broker)
+
+  // mqtt-packet's parser only ever yields protocol versions 3/4/5, so this
+  // defensive guard in init() is exercised by calling the handler directly with
+  // an out-of-range version (e.g. a custom decodeProtocol could produce one).
+  await new Promise(resolve => {
+    handleConnect(s.client, { cmd: 'connect', protocolVersion: 6, clientId: 'x', clean: true, keepalive: 0 }, function done (err) {
+      t.assert.equal(err.message, 'unacceptable protocol version', 'rejected with unacceptable protocol version')
+      t.assert.equal(err.errorCode, 1, 'return code 1')
+      resolve()
+    })
+  })
+})
+
 test('handler calls done when disconnect or unknown packet cmd is received', async (t) => {
   t.plan(2)
 
