@@ -23,8 +23,8 @@ const broker = new Aedes({
   topicAliasMaximum: 10,
   maximumPacketSize: 1048576,
   receiveMaximum: 20,
-  maximumSessionExpiryInterval: 86400,
-  maximumPendingSessions: 10000,
+  sessionExpiryIntervalLimit: 86400,
+  pendingSessionsLimit: 10000,
   preConnect: (client: Client, packet: ConnectPacket, callback) => {
     if (client.req) {
       callback(new Error('not websocket stream'), false)
@@ -139,6 +139,12 @@ expectType<Aedes>(
 )
 expectType<Aedes>(
   broker.on('unsubscribe', (unsubscriptions: string[], client: Client) => {})
+)
+expectType<Aedes>(
+  broker.on('sessionLimitReached', (client: Client) => {})
+)
+expectType<Aedes>(
+  broker.on('willDropped', (client: Client, will: NonNullable<ConnectPacket['will']>) => {})
 )
 
 expectType<void>(

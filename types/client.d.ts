@@ -26,7 +26,7 @@ export interface Client extends EventEmitter {
   disconnectReasonCode: Readonly<number | null>;
   /**
    * MQTT 5.0: the negotiated Session Expiry Interval in seconds (from CONNECT,
-   * clamped to the broker's `maximumSessionExpiryInterval`, and updated by a
+   * clamped to the broker's `sessionExpiryIntervalLimit`, and updated by a
    * DISCONNECT that carries the property). `0xFFFFFFFF` means never expires.
    */
   sessionExpiryInterval: Readonly<number>;

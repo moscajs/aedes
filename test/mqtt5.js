@@ -3,7 +3,7 @@ import { once } from 'node:events'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createServer, createConnection } from 'node:net'
 import mqtt from 'mqtt'
-import { generate } from 'mqtt-packet'
+import { generate, parser as createParser } from 'mqtt-packet'
 import { Aedes } from '../aedes.js'
 
 // Spin up a real TCP server backed by aedes and return a helper to connect
@@ -688,10 +688,34 @@ test('MQTT 5.0 publish with an unknown topic alias is rejected with DISCONNECT 0
   t.assert.equal(packet.reasonCode, 0x94, '0x94 Topic Alias invalid on the wire')
 })
 
-test('MQTT 5.0 maximumPendingSessions caps the number of pending session-expiry timers', async (t) => {
+test('MQTT 5.0 publish with topic alias 0 is rejected with DISCONNECT 0x94', async (t) => {
+  t.plan(2)
+  const { broker, connect } = await createServerAndConnect(t, {
+    brokerOptions: { topicAliasMaximum: 5 }
+  })
+  const client = connect({ clientId: 'alias-zero', reconnectPeriod: 0 })
+  await once(client, 'connect')
+
+  // [MQTT-3.3.2-8] A Topic Alias of 0 is invalid even when aliases are enabled —
+  // a distinct boundary from the > max case. Inject it raw (a compliant client
+  // never sends 0).
+  const clientError = once(broker, 'clientError')
+  const disc = once(client, 'disconnect')
+  client.stream.write(generate(
+    { cmd: 'publish', topic: 'x', payload: 'p', qos: 0, properties: { topicAlias: 0 } },
+    { protocolVersion: 5 }
+  ))
+
+  const [, err] = await clientError
+  t.assert.equal(err.message, 'topic alias 0 is out of range (broker topicAliasMaximum is 5)')
+  const [packet] = await disc
+  t.assert.equal(packet.reasonCode, 0x94, '0x94 Topic Alias invalid on the wire')
+})
+
+test('MQTT 5.0 pendingSessionsLimit caps the number of pending session-expiry timers', async (t) => {
   t.plan(1)
   const { broker, connect } = await createServerAndConnect(t, {
-    brokerOptions: { maximumPendingSessions: 1 }
+    brokerOptions: { pendingSessionsLimit: 1 }
   })
   // First disconnected session takes the single pending slot.
   const a = connect({ clientId: 'cap-a', clean: false, properties: { sessionExpiryInterval: 60 } })
@@ -709,10 +733,111 @@ test('MQTT 5.0 maximumPendingSessions caps the number of pending session-expiry 
   t.assert.equal(broker.expiringSessions.size, 1, 'second pending session denied by the cap')
 })
 
-test('MQTT 5.0 broker clamps a requested Session Expiry Interval to maximumSessionExpiryInterval', async (t) => {
+test('MQTT 5.0 a never-expiring session counts against pendingSessionsLimit and emits sessionLimitReached', async (t) => {
+  t.plan(3)
+  const { broker, connect } = await createServerAndConnect(t, {
+    brokerOptions: { pendingSessionsLimit: 1 }
+  })
+  // A never-expiring (0xFFFFFFFF) session pins persisted state indefinitely, so
+  // it must occupy a cap slot — otherwise a client cycling identities with
+  // "never expires" would accumulate retained sessions without bound.
+  const a = connect({ clientId: 'never-a', clean: false, properties: { sessionExpiryInterval: 0xFFFFFFFF } })
+  await once(a, 'connect')
+  a.end(true)
+  await once(a, 'close')
+  while (broker.expiringSessions.size < 1) await delay(5)
+  t.assert.equal(broker.expiringSessions.size, 1, 'never-expiring session occupies a cap slot')
+
+  // Second never-expiring session exceeds the cap → wiped now and the trip is
+  // observable, instead of silently vanishing or accumulating unbounded.
+  const limit = once(broker, 'sessionLimitReached')
+  const b = connect({ clientId: 'never-b', clean: false, properties: { sessionExpiryInterval: 0xFFFFFFFF } })
+  await once(b, 'connect')
+  b.end(true)
+  await once(b, 'close')
+  const [client] = await limit
+  t.assert.equal(client.id, 'never-b', 'sessionLimitReached emitted for the denied session')
+  t.assert.equal(broker.expiringSessions.size, 1, 'cap held; over-cap never-expiring session not retained')
+})
+
+test('MQTT 5.0 CONNACK carries the auth-failure reason code (0x87 plus the returnCode 2..5 map)', async (t) => {
+  // authenticate maps a username to a returnCode so the whole connackReasonCodes
+  // table is exercised; an unmapped user falls through to the default 0x87.
+  const byUser = { id2: 2, id3: 3, id4: 4, id5: 5 }
+  const { port } = await createServerAndConnect(t, {
+    brokerOptions: {
+      authenticate (client, username, password, cb) {
+        if (username === 'ok') return cb(null, true)
+        const rc = byUser[username]
+        if (rc) {
+          const err = new Error('rejected')
+          err.returnCode = rc
+          return cb(err, false)
+        }
+        cb(new Error('denied'), false) // no returnCode → defaults to 0x87
+      }
+    }
+  })
+
+  // Open a raw v5 connection, send CONNECT, resolve with the parsed CONNACK.
+  const rawConnack = (connectProps) => new Promise((resolve, reject) => {
+    const raw = createConnection(port, 'localhost')
+    t.after(() => raw.destroy())
+    raw.on('error', reject)
+    const parser = createParser({ protocolVersion: 5 })
+    parser.on('packet', (packet) => { if (packet.cmd === 'connack') resolve(packet) })
+    parser.on('error', reject)
+    raw.on('data', (chunk) => parser.parse(chunk))
+    raw.write(generate({ cmd: 'connect', protocolVersion: 5, clean: true, keepalive: 0, ...connectProps }, { protocolVersion: 5 }))
+  })
+
+  const cases = [
+    ['ok', 0x00], // success
+    ['id2', 0x85], // identifier rejected → Client Identifier not valid
+    ['id3', 0x88], // server unavailable
+    ['id4', 0x86], // bad user name or password
+    ['id5', 0x87], // not authorized
+    ['denied', 0x87] // no returnCode → default not authorized
+  ]
+  t.plan(cases.length)
+  for (const [username, code] of cases) {
+    const connack = await rawConnack({ clientId: username, username })
+    t.assert.equal(connack.reasonCode, code, `auth(${username}) → CONNACK reasonCode ${code}`)
+  }
+})
+
+test('MQTT 5.0 Will Delay Interval is capped by the Session Expiry Interval', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t)
+
+  const watcher = connect({ clientId: 'wd-watch' })
+  await once(watcher, 'connect')
+  await watcher.subscribeAsync('wd/cap')
+
+  // willDelayInterval (60s) exceeds the Session Expiry Interval (1s). The will
+  // must be published no later than session end — after ~1s (Math.min clamp),
+  // not 60s — so a reversed-args regression would make this time out.
+  const dying = connect({
+    clientId: 'wd-die',
+    reconnectPeriod: 0,
+    properties: { sessionExpiryInterval: 1 },
+    will: { topic: 'wd/cap', payload: 'bye', qos: 0, properties: { willDelayInterval: 60 } }
+  })
+  await once(dying, 'connect')
+  const got = once(watcher, 'message')
+  dying.stream.destroy() // ungraceful close → the will is in play
+
+  const result = await Promise.race([
+    got.then(([, payload]) => payload.toString()),
+    delay(4000).then(() => 'timeout')
+  ])
+  t.assert.equal(result, 'bye', 'will fired at session expiry (~1s), proving the delay was clamped')
+})
+
+test('MQTT 5.0 broker clamps a requested Session Expiry Interval to sessionExpiryIntervalLimit', async (t) => {
   t.plan(2)
   const { broker, connect } = await createServerAndConnect(t, {
-    brokerOptions: { maximumSessionExpiryInterval: 30 }
+    brokerOptions: { sessionExpiryIntervalLimit: 30 }
   })
   const client = connect({
     clientId: 'clamp-se',
@@ -1013,10 +1138,10 @@ test('MQTT 5.0 broker close emits willDropped for a pending delayed will', async
   t.assert.equal(client.id, 'willdrop', 'willDropped emitted for the pending delayed will')
 })
 
-test('MQTT 5.0 maximumPendingSessions publishes an over-cap delayed will immediately', async (t) => {
+test('MQTT 5.0 pendingSessionsLimit publishes an over-cap delayed will immediately', async (t) => {
   t.plan(1)
   const { connect } = await createServerAndConnect(t, {
-    brokerOptions: { maximumPendingSessions: 1 }
+    brokerOptions: { pendingSessionsLimit: 1 }
   })
   const watcher = connect({ clientId: 'willcap-watch' })
   await once(watcher, 'connect')

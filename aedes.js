@@ -39,15 +39,21 @@ const defaultOptions = {
   // request. A larger requested value (including 0xFFFFFFFF "never") is clamped
   // to this. Bounds how long per-client session-expiry / will-delay timers and
   // their persisted state live, limiting single-source accumulation. 0 = no cap.
-  maximumSessionExpiryInterval: 0,
-  // MQTT 5.0: cap on the number of pending session-expiry timers (and, applied
+  sessionExpiryIntervalLimit: 0,
+  // MQTT 5.0: cap on the number of pending session-expiry entries (and, applied
   // separately, delayed-will timers) the broker holds at once. Beyond it, a
   // newly disconnecting session is expired immediately and a new delayed will is
   // published immediately, bounding memory under identity-cycling abuse without
   // evicting already-pending entries. 0 = unlimited.
-  maximumPendingSessions: 0
+  pendingSessionsLimit: 0
 }
 const version = pkg.version
+
+// Sentinel stored in `expiringSessions` for a never-expiring (0xFFFFFFFF)
+// session: it has no real timer but must still occupy a slot against the
+// pending-sessions cap. `clear()` is a no-op so close()/clearSessionExpiry can
+// treat every entry uniformly.
+const NO_EXPIRY_TIMER = { clear: noop }
 
 export class Aedes extends EventEmitter {
   constructor (opts) {
@@ -67,8 +73,8 @@ export class Aedes extends EventEmitter {
     this.topicAliasMaximum = opts.topicAliasMaximum
     this.maximumPacketSize = opts.maximumPacketSize
     this.receiveMaximum = opts.receiveMaximum
-    this.maximumSessionExpiryInterval = opts.maximumSessionExpiryInterval
-    this.maximumPendingSessions = opts.maximumPendingSessions
+    this.sessionExpiryIntervalLimit = opts.sessionExpiryIntervalLimit
+    this.pendingSessionsLimit = opts.pendingSessionsLimit
     this.mq = opts.mq || mqemitter({
       concurrency: opts.concurrency,
       matchEmptyLevels: true // [MQTT-4.7.1-3]
@@ -298,7 +304,7 @@ export class Aedes extends EventEmitter {
   // persisted state a single source can pin, limiting memory accumulation from a
   // client cycling identities with large intervals. 0 = no cap.
   clampSessionExpiry (interval) {
-    const max = this.maximumSessionExpiryInterval
+    const max = this.sessionExpiryIntervalLimit
     return max > 0 && interval > max ? max : interval
   }
 
@@ -311,28 +317,37 @@ export class Aedes extends EventEmitter {
     // kept indefinitely), so there is no timed expiry to arrange.
     if (client.version !== 5) return
 
-    // Clear any stale timer for this id first so the previous armLongTimer handle
+    // Clear any stale entry for this id first so the previous armLongTimer handle
     // is never orphaned (defensive; reconnect/takeover normally clears it).
     this.clearSessionExpiry(client.id)
 
     const interval = client.sessionExpiryInterval
-    if (interval >= SESSION_NEVER_EXPIRES) {
-      // 0xFFFFFFFF: the session is retained until explicitly taken over.
-      return
-    }
     if (interval === 0) {
       // The session ends when the network connection closes.
       this._wipeSession(client)
       return
     }
     // Count cap: when the broker is already holding the maximum number of
-    // pending expiry timers, end this session now instead of queuing another.
-    // Denying the newest (rather than evicting an oldest) bounds memory without
-    // dropping already-established sessions. (This id was just cleared above, so
-    // size excludes it.) 0 = unlimited.
-    if (this.maximumPendingSessions > 0 &&
-        this.expiringSessions.size >= this.maximumPendingSessions) {
+    // pending sessions, end this one now instead of retaining it. Denying the
+    // newest (rather than evicting an oldest) bounds memory without dropping
+    // already-established sessions. A never-expiring session (0xFFFFFFFF) pins
+    // persisted state indefinitely, so it counts against the cap too — checking
+    // before the never-expires branch closes the bypass where such sessions
+    // could accumulate without bound. (This id was just cleared above, so size
+    // excludes it.) 0 = unlimited.
+    if (this.pendingSessionsLimit > 0 &&
+        this.expiringSessions.size >= this.pendingSessionsLimit) {
       this._wipeSession(client)
+      // Observability: the DoS guard tripped, so abuse is diagnosable instead of
+      // a session silently vanishing.
+      this.emit('sessionLimitReached', client)
+      return
+    }
+    if (interval >= SESSION_NEVER_EXPIRES) {
+      // 0xFFFFFFFF: retained until explicitly taken over. Track it (no timer)
+      // so it still occupies a slot against the pending-sessions cap; the no-op
+      // sentinel is cleaned up uniformly by clearSessionExpiry / close().
+      this.expiringSessions.set(client.id, NO_EXPIRY_TIMER)
       return
     }
 
@@ -381,9 +396,11 @@ export class Aedes extends EventEmitter {
     this.clearDelayedWill(client.id)
     // Count cap (see scheduleSessionExpiry): when already holding the maximum
     // number of delayed wills, publish this one now instead of queuing a timer.
-    if (this.maximumPendingSessions > 0 &&
-        this.delayedWills.size >= this.maximumPendingSessions) {
+    if (this.pendingSessionsLimit > 0 &&
+        this.delayedWills.size >= this.pendingSessionsLimit) {
       this.publishWill(client, will)
+      // Observability: the same DoS guard tripped on the will-delay path.
+      this.emit('sessionLimitReached', client)
       return
     }
     const that = this

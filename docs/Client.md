@@ -98,7 +98,7 @@ MQTT 5.0 only. When the broker initiates the disconnect, the reason code sent to
 
 - `<number>` __Default__: `0`
 
-MQTT 5.0 only. The negotiated Session Expiry Interval in seconds: taken from the `CONNECT` property (clamped to the broker's `maximumSessionExpiryInterval`), and updated by a `DISCONNECT` that carries the property. `0` ends the session with the network connection; `0xFFFFFFFF` means it never expires.
+MQTT 5.0 only. The negotiated Session Expiry Interval in seconds: taken from the `CONNECT` property (clamped to the broker's `sessionExpiryIntervalLimit`), and updated by a `DISCONNECT` that carries the property. `0` ends the session with the network connection; `0xFFFFFFFF` means it never expires.
 
 ## client.maximumPacketSize
 
