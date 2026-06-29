@@ -385,3 +385,18 @@ test('armLongTimer clear() cancels a pending chunk', (t) => {
   t.mock.timers.tick(5000)
   t.assert.equal(fired, 0, 'cleared timer does not fire')
 })
+
+test('armLongTimer throws on a non-finite delay', (t) => {
+  t.plan(2)
+  t.assert.throws(() => armLongTimer(NaN, () => {}), /finite/)
+  t.assert.throws(() => armLongTimer(Infinity, () => {}), /finite/)
+})
+
+test('armLongTimer clamps a negative delay to fire promptly', (t) => {
+  t.plan(1)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let fired = 0
+  armLongTimer(-100, () => { fired++ })
+  t.mock.timers.tick(0)
+  t.assert.equal(fired, 1, 'negative delay clamped to 0 and fired')
+})
