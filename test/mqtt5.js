@@ -1172,3 +1172,45 @@ test('MQTT 5.0 publish with a wildcard Response Topic is rejected', async (t) =>
   const [, err] = await clientError
   t.assert.match(err.message, /Response Topic/, 'wildcard response topic rejected')
 })
+
+test('MQTT 5.0 two oversized packets in one TCP segment are rejected once (latch)', async (t) => {
+  t.plan(1)
+  const { broker, connect } = await createServerAndConnect(t, {
+    brokerOptions: { maximumPacketSize: 120 }
+  })
+  const client = connect({ clientId: 'two-big', reconnectPeriod: 0 })
+  await once(client, 'connect')
+
+  let errors = 0
+  broker.on('clientError', () => { errors++ })
+  // Two complete oversized PUBLISH frames in a single write: the parser emits
+  // both synchronously within one parse() → handle() → rejectPacketTooLarge
+  // twice. The latch must collapse them to a single clientError + DISCONNECT.
+  const big = generate(
+    { cmd: 'publish', topic: 'big/topic', payload: Buffer.alloc(200), qos: 0 },
+    { protocolVersion: 5 }
+  )
+  client.stream.write(Buffer.concat([big, big]))
+  await once(client, 'disconnect')
+  await delay(50)
+  t.assert.equal(errors, 1, 'rejected once despite two oversized frames in one segment')
+})
+
+test('MQTT 5.0 CONNECT with Authentication Data but no Method is a Protocol Error (0x82)', async (t) => {
+  t.plan(1)
+  const { broker, port } = await createServerAndConnect(t)
+  const connErr = once(broker, 'connectionError')
+  const raw = createConnection(port, 'localhost')
+  t.after(() => raw.destroy())
+  raw.on('error', () => {})
+  raw.write(generate({
+    cmd: 'connect',
+    protocolVersion: 5,
+    clientId: 'authd',
+    clean: true,
+    keepalive: 0,
+    properties: { authenticationData: Buffer.from('x') }
+  }, { protocolVersion: 5 }))
+  const [, err] = await connErr
+  t.assert.match(err.message, /authentication data/, 'rejected: auth data without method')
+})
