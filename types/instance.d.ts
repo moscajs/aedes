@@ -68,6 +68,11 @@ type PublishedHandler = (
   callback: (error?: Error | null) => void
 ) => void
 
+type DecodeProtocolHandler = (
+  client: Client,
+  buffer: Buffer
+) => any
+
 export interface AedesOptions {
   mq?: any;
   id?: string;
@@ -79,6 +84,9 @@ export interface AedesOptions {
   keepaliveLimit?: number;
   queueLimit?: number;
   maxClientsIdLength?: number;
+  decodeProtocol?: DecodeProtocolHandler;
+  trustProxy?: boolean;
+  trustedProxies?: string[];
   preConnect?: PreConnectHandler;
   authenticate?: AuthenticateHandler;
   authorizePublish?: AuthorizePublishHandler;
