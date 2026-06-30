@@ -45,7 +45,11 @@ const defaultOptions = {
   // newly disconnecting session is expired immediately and a new delayed will is
   // published immediately, bounding memory under identity-cycling abuse without
   // evicting already-pending entries. 0 = unlimited.
-  pendingSessionsLimit: 0
+  pendingSessionsLimit: 0,
+  // MQTT 5.0 Response Information (§3.2.2.3.15): the base string returned in
+  // CONNACK when a client sets Request Response Information. Either a static
+  // string or a `(client) => string | undefined` function. null = never sent.
+  responseInformation: null
 }
 const version = pkg.version
 
@@ -75,6 +79,7 @@ export class Aedes extends EventEmitter {
     this.receiveMaximum = opts.receiveMaximum
     this.sessionExpiryIntervalLimit = opts.sessionExpiryIntervalLimit
     this.pendingSessionsLimit = opts.pendingSessionsLimit
+    this.responseInformation = opts.responseInformation
     this.mq = opts.mq || mqemitter({
       concurrency: opts.concurrency,
       matchEmptyLevels: true // [MQTT-4.7.1-3]

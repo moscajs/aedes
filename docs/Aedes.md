@@ -60,6 +60,7 @@
     > __Note:__ the limit is enforced independently against pending session-expiry entries and pending delayed wills, so the effective worst-case ceiling is `2 × pendingSessionsLimit` live timers — size accordingly.
     >
     > ⚠️ __Security:__ both `sessionExpiryIntervalLimit` and `pendingSessionsLimit` default to unlimited (`0`), matching aedes's existing v3/v4 posture (persistent `clean=false` sessions are already unbounded). For an internet-exposed broker you __should__ set both, otherwise a single client cycling identities with large session-expiry / will-delay intervals can accumulate timers and persisted state without bound.
+  - `responseInformation` `<string>` | `<Function>` MQTT 5.0 only. The Response Information (request/response topic base) returned in the CONNACK — but only when the client sets Request Response Information on CONNECT (server MAY, §3.2.2.3.15). Either a static string or a `(client) => string | undefined` function for a per-client value; return `undefined` (or leave it unset) to omit the property. __Default__: `null` (never returned)
   - `drainTimeout` `<number>` maximum time in milliseconds to wait for a slow client's socket to drain before disconnecting it. When a client's socket buffer fills up (e.g., slow network, unresponsive client), the broker waits for the `drain` event. Without a timeout, one slow client can block message delivery to all other clients. Set to `0` to disable and wait indefinitely (not recommended). __Default__: `60000` (60 seconds)
 
     __Why use drainTimeout?__ When publishing messages, if a client's TCP buffer is full, `socket.write()` returns `false` and the broker waits for the `drain` event before continuing. If the client stops reading (slow 3G, crashed app, malicious client), `drain` never fires and that message hangs forever. Even with high `concurrency`, a single frozen subscriber will eventually exhaust all slots and cause __complete deadlock__ - no more messages can be delivered to ANY client. This is a DoS vulnerability.
@@ -399,6 +400,8 @@ Invoked when
 
 If invoked `callback` with no errors, server authorizes the packet otherwise emits `clientError` with `error`. If an `error` occurs the client connection will be closed, but no error is returned to the client (MQTT-3.3.5-2)
 
+> __MQTT 5.0:__ the connection is __not__ closed on an authorization failure. A QoS 1/2 publish is answered with a `0x87` (Not authorized) PUBACK/PUBREC and a QoS 0 publish is dropped silently — either way the connection stays up. The `error.message` is sent back as the ACK's __Reason String__, unless the client connected with `Request Problem Information = false` (then it is suppressed, per [MQTT-3.1.2-29]).
+
 ```js
 aedes.authorizePublish = function (client, packet, callback) {
   if (packet.topic === 'aaaa') {
@@ -455,7 +458,7 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
 }
 ```
 
-To negate a subscription, set the subscription to `null`. Aedes ignores the negated subscription and the `qos` in `SubAck` is set to `128` based on [MQTT 3.11 spec](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html#_Toc385349323):
+To negate a subscription, set the subscription to `null`. Aedes ignores the negated subscription and the `qos` in `SubAck` is set to `128` (MQTT 3.1.1) based on [MQTT 3.11 spec](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html#_Toc385349323). For an __MQTT 5.0__ client the SUBACK reason code is the more specific `0x87` (Not authorized) instead of the coarse `0x80`:
 
 ```js
 aedes.authorizeSubscribe = function (client, sub, callback) {

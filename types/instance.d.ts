@@ -85,6 +85,7 @@ export interface AedesOptions {
   receiveMaximum?: number; // advertised max in-flight QoS 1/2; 0 = not advertised (default: 0)
   sessionExpiryIntervalLimit?: number; // clamp (seconds) on requested Session Expiry Interval; 0 = no cap (default: 0)
   pendingSessionsLimit?: number; // cap on pending session-expiry / delayed-will entries; 0 = unlimited (default: 0)
+  responseInformation?: string | ((client: Client) => string | undefined); // MQTT 5.0 Response Information returned in CONNACK on Request Response Information
   preConnect?: PreConnectHandler;
   authenticate?: AuthenticateHandler;
   authorizePublish?: AuthorizePublishHandler;
