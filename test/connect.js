@@ -148,14 +148,16 @@ test('reject clients with no clientId running on MQTT 3.1.0', { skip: true }, as
 // connection closed. mqtt-packet guards this on encode, so we send the raw
 // bytes rather than going through s.inStream.write.
 test('reject clients with zero-byte clientid and clean=false on MQTT 3.1.1', async (t) => {
-  t.plan(5)
+  t.plan(6)
 
   const broker = await Aedes.createBroker()
   t.after(() => broker.close())
   const s = setup(broker)
 
-  // Subscribe before writing so the rejection error is never missed.
+  // Subscribe before writing so neither the rejection error nor the connection
+  // close is missed (both can fire before the awaits below).
   const errorPromise = once(broker, 'connectionError')
+  const closePromise = once(s.conn, 'close')
 
   // cmd: 'connect', protocolId: 'MQTT', protocolVersion: 4, clean: false, clientId: '', keepalive: 0
   rawWrite(s, '10 0C 00 04 4D 51 54 54 04 00 00 00 00 00')
@@ -168,6 +170,10 @@ test('reject clients with zero-byte clientid and clean=false on MQTT 3.1.1', asy
   t.assert.ok(client, 'client is there')
   t.assert.equal(err.message, 'identifier rejected')
   t.assert.equal(broker.connectedClients, 0)
+
+  // [MQTT-3.1.3-8] mandates the network connection is closed after the CONNACK.
+  await closePromise
+  t.assert.ok(s.conn.destroyed, 'connection closed after rejection')
 })
 
 // [MQTT-3.1.3-7/8] apply only to v3/v4. MQTT 5.0 allows a zero-length ClientId
