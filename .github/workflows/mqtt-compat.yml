@@ -1,0 +1,125 @@
+name: MQTT Compatibility
+
+# Measures aedes's actual MQTT 5.0 + 3.1.1 compatibility by running the vendor-
+# neutral Eclipse Paho interoperability suite against a broker booted from this
+# branch, then posts the pass-rate as a sticky PR comment and a job summary.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write # required to post/update the sticky comment
+
+# Supersede in-flight runs for the same PR (or ref) so rapid pushes can't race
+# the sticky comment into duplicates or overwrite a newer result with a stale one.
+concurrency:
+  group: mqtt-compat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned Paho commit: keeps results reproducible and the module-global contract
+  # run_compat.py relies on stable. Bump deliberately.
+  PAHO_REF: 9d7bb80bb8b9d9cfc0b52f8cb4c1916401281103
+  MQTT_PORT: 1883
+
+jobs:
+  compat:
+    name: Paho interoperability
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Fetch Paho interoperability suite (pinned)
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/eclipse-paho/paho.mqtt.testing paho
+          git -C paho checkout "$PAHO_REF"
+
+      - name: Start aedes broker
+        run: |
+          node tools/mqtt-compat/broker.js &
+          echo "BROKER_PID=$!" >> "$GITHUB_ENV"
+          python - "$MQTT_PORT" <<'PY'
+          import socket, sys, time
+          port = int(sys.argv[1])
+          for _ in range(100):
+              try:
+                  socket.create_connection(("localhost", port), 0.3).close()
+                  print(f"broker is up on {port}"); sys.exit(0)
+              except OSError:
+                  time.sleep(0.2)
+          print(f"broker did not come up on {port}"); sys.exit(1)
+          PY
+
+      - name: Run compatibility suites
+        run: |
+          python tools/mqtt-compat/run_compat.py \
+            --paho paho/interoperability \
+            --host localhost --port "${MQTT_PORT}" \
+            --timeout 45 \
+            --out report.md --json result.json
+
+      - name: Stop aedes broker
+        if: always()
+        run: kill "${BROKER_PID}" 2>/dev/null || true
+
+      - name: Warn on unexpected passes
+        if: always()
+        run: |
+          [ -f result.json ] || exit 0
+          python - <<'PY'
+          import json, os
+          data = json.load(open("result.json"))
+          xpass = [f"{t['name']} ({p['label']})"
+                   for p in data["protocols"] for t in p["results"]
+                   if t.get("unexpected_pass")]
+          if xpass:
+              names = ", ".join(xpass)
+              print(f"::warning title=MQTT compat: update EXPECTED_GAPS::"
+                    f"{len(xpass)} expected-gap test(s) now pass: {names}. "
+                    f"Remove them from EXPECTED_GAPS in "
+                    f"tools/mqtt-compat/run_compat.py.")
+          PY
+
+      - name: Job summary
+        if: always()
+        run: cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Only same-repo PRs can post a comment: fork PRs get a read-only GITHUB_TOKEN
+      # (the property that makes this workflow safe to run untrusted code), so the
+      # API call would 403 and fail the job for every external contributor. Forks
+      # still get the job summary above. continue-on-error guards transient API
+      # failures so a posting hiccup never reds the compat result.
+      - name: Sticky PR comment
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: ./.github/actions/sticky-pr-comment
+        with:
+          file: report.md
+          tag: "<!-- MQTT_COMPAT_COMMENT -->"
+
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mqtt-compat-result
+          path: |
+            report.md
+            result.json
+          retention-days: 14
