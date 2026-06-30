@@ -19,12 +19,17 @@ runs:
         echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Post or update PR comment
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
+      env:
+        # Pass via env, not script interpolation: the file body can contain
+        # backticks or ${...} that would otherwise break the JS template literal.
+        STICKY_TAG: ${{ inputs.tag }}
+        STICKY_BODY: ${{ steps.file.outputs.body }}
       with:
         github-token: ${{ github.token }}
         script: |
-          const tag = `${{ inputs.tag }}`;
-          const body = `${tag}\n${{ steps.file.outputs.body }}`;
+          const tag = process.env.STICKY_TAG;
+          const body = `${tag}\n${process.env.STICKY_BODY}`;
           const pr = context.payload.pull_request?.number;
           if (!pr) {
             core.setFailed("No pull request found in context.");
