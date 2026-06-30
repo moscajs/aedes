@@ -21,8 +21,11 @@ gaps our own tests can miss.
 ## Running locally
 
 ```bash
-# 1. Fetch the Paho suite (pin the SHA used in the workflow for reproducibility)
+# 1. Fetch the Paho suite, pinned to the same commit CI uses so local results
+#    match. The pin (PAHO_REF) lives in .github/workflows/mqtt-compat.yml.
 git clone https://github.com/eclipse-paho/paho.mqtt.testing /tmp/paho
+git -C /tmp/paho checkout "$(grep -oP 'PAHO_REF:\s*\K\S+' \
+  ../../.github/workflows/mqtt-compat.yml)"
 
 # 2. Start the broker
 MQTT_PORT=1883 node tools/mqtt-compat/broker.js &
@@ -61,6 +64,19 @@ handled specially:
   mode). These are **excluded** from the denominator. The capability they probe is
   still measured elsewhere (`test_flow_control1` for receive-maximum).
 
+### Adding or moving a test category
+
+Both lists in `run_compat.py` are keyed `protocol -> exact Paho method name ->
+reason string`. Pick the dict by what the failure *means*:
+
+- A genuine aedes gap that should drag the score down → **`EXPECTED_GAPS`**. It
+  still runs and counts as a failure; when aedes later implements it the harness
+  flags the 🎉 xpass so you remove the entry.
+- A test the harness can't fairly evaluate against *any* broker → **`HARNESS_LIMITED`**.
+  It is skipped before the gap logic and excluded from the denominator. A method
+  must live in **exactly one** list (`HARNESS_LIMITED` is checked first, so a
+  duplicate `EXPECTED_GAPS` entry would be dead code).
+
 ## Coverage scope — read the percentage correctly
 
 The percentage is **"% of the Paho functional suite that passes"**, not
@@ -71,7 +87,7 @@ id, server keep alive, inbound topic aliases, max-packet-size rejection, PUBLISH
 user properties), but it touches only 5 reason codes and deliberately omits large
 parts of the spec:
 
-- **Error / negative paths** — most of aedes's 19 reason codes (`lib/constants.js`):
+- **Error / negative paths** — most of aedes's reason codes (`lib/constants.js`):
   `0x87` not-authorized acks, `0x8E` session takeover, `0x82` protocol errors,
   `0x8C` bad auth method, `0x9E`, the CONNACK reject codes, broker-initiated
   DISCONNECT with ReasonString, the oversized-frame read latch, wildcard
@@ -94,8 +110,8 @@ CleanSession=0 must be rejected on v3.1.1).
 ## Harness validation
 
 The harness was validated against the Paho project's own fully-compliant
-reference broker (`startbroker.py`): it scores **26/26** evaluated v5 tests
-(100%, with `test_flow_control2` excluded as above). Every test aedes fails, the
+reference broker (`startbroker.py`): it scores **100%** of evaluated v5 tests
+(with `test_flow_control2` excluded as above). Every test aedes fails, the
 reference broker passes under the identical harness — so a failure here reflects a
 real difference between aedes and a spec-compliant broker, not a harness artifact.
 

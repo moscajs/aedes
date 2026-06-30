@@ -45,9 +45,10 @@ EXPECTED_GAPS = {
         "test_flow_control1":
             "receiveMaximum is advertised but not yet enforced outbound (advisory; "
             "#829, deferred per #821)",
-        "test_flow_control2":
-            "receiveMaximum is advertised but not yet enforced outbound (advisory; "
-            "#829, deferred per #821)",
+        # NOTE: test_flow_control2 is NOT listed here — it lives in HARNESS_LIMITED
+        # below (skipped before the gap logic runs), so a duplicate entry here would
+        # be unreachable. The receiveMaximum gap it probes is tracked via
+        # test_flow_control1 above.
         "test_server_topic_alias":
             "broker-assigned (outbound) topic aliases are not implemented; inbound "
             "aliases work (#840 — spec-optional/MAY, deferred per #821)",
@@ -96,6 +97,12 @@ def set_globals(module, protocol, host, port):
     Values mirror each file's ``__main__`` block verbatim (including the v5
     ``client_test5/`` topic prefix) so results match a direct
     ``python3 client_testN.py --hostname H --port P`` run.
+
+    This duplication is exactly what ``PAHO_REF`` (pinned in
+    ``.github/workflows/mqtt-compat.yml``) protects: a Paho bump that renames or
+    adds a module global the tests read would surface here as a ``NameError`` ->
+    "error" status. When bumping the pin, re-check each suite's ``__main__`` block
+    against this function.
     """
     module.host = host
     module.port = port
@@ -110,6 +117,13 @@ def set_globals(module, protocol, host, port):
     else:
         module.topics = ("TopicA", "TopicA/B", "Topic/C", "TopicA/C", "/TopicA")
         module.wildtopics = ("TopicA/+", "+/C", "#", "/#", "/+", "+/+", "TopicA/#")
+
+
+# Prefix the worker's JSON result so the parent can find it unambiguously. The
+# Paho clients (and Python's interpreter shutdown) can emit stray stdout, so
+# "the last line is the JSON" is not a safe contract — we scan for this sentinel
+# instead, and a worker that prints after us still can't displace the result.
+RESULT_SENTINEL = "__MQTT_COMPAT_RESULT__:"
 
 
 def _last_line(text):
@@ -138,7 +152,8 @@ def run_worker(args):
         status, message = "error", _last_line(result.errors[0][1])
     else:
         status, message = "pass", ""
-    sys.stdout.write(json.dumps({"status": status, "message": message}))
+    sys.stdout.write("\n" + RESULT_SENTINEL
+                     + json.dumps({"status": status, "message": message}) + "\n")
     sys.stdout.flush()
     return 0
 
@@ -149,7 +164,7 @@ def run_worker(args):
 def run_one_subprocess(args, protocol, test_name):
     cmd = [
         sys.executable, os.path.abspath(__file__), "--worker",
-        "--paho", args.paho, "--protocol", protocol, "--test", test_name,
+        "--paho", args.paho, "--worker-protocol", protocol, "--test", test_name,
         "--host", args.host, "--port", str(args.port),
     ]
     try:
@@ -157,7 +172,12 @@ def run_one_subprocess(args, protocol, test_name):
                               timeout=args.timeout)
     except subprocess.TimeoutExpired:
         return ("timeout", f"exceeded {args.timeout}s timeout")
-    line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
+    # Find the sentinel-tagged result line (scan in reverse: last one wins if a
+    # rerun ever printed more than once). Robust to arbitrary stray stdout before
+    # or after it.
+    line = next((ln[len(RESULT_SENTINEL):]
+                 for ln in reversed(proc.stdout.splitlines())
+                 if ln.startswith(RESULT_SENTINEL)), "")
     try:
         payload = json.loads(line)
         return (payload["status"], payload.get("message", ""))
@@ -298,7 +318,9 @@ def main():
     parser.add_argument("--timeout", type=int, default=45,
                         help="per-test timeout in seconds")
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--protocol", help=argparse.SUPPRESS)
+    # Internal worker flag; named distinctly from the public --protocols to avoid a
+    # one-character-off mix-up. dest=protocol keeps run_worker reading args.protocol.
+    parser.add_argument("--worker-protocol", dest="protocol", help=argparse.SUPPRESS)
     parser.add_argument("--test", help=argparse.SUPPRESS)
     args = parser.parse_args()
 

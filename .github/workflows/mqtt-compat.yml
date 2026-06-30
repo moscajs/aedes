@@ -13,6 +13,12 @@ permissions:
   contents: read
   pull-requests: write # required to post/update the sticky comment
 
+# Supersede in-flight runs for the same PR (or ref) so rapid pushes can't race
+# the sticky comment into duplicates or overwrite a newer result with a stale one.
+concurrency:
+  group: mqtt-compat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   # Pinned Paho commit: keeps results reproducible and the module-global contract
   # run_compat.py relies on stable. Bump deliberately.
@@ -23,6 +29,7 @@ jobs:
   compat:
     name: Paho interoperability
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -94,8 +101,14 @@ jobs:
         if: always()
         run: cat report.md >> "$GITHUB_STEP_SUMMARY"
 
+      # Only same-repo PRs can post a comment: fork PRs get a read-only GITHUB_TOKEN
+      # (the property that makes this workflow safe to run untrusted code), so the
+      # API call would 403 and fail the job for every external contributor. Forks
+      # still get the job summary above. continue-on-error guards transient API
+      # failures so a posting hiccup never reds the compat result.
       - name: Sticky PR comment
-        if: always() && github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         uses: ./.github/actions/sticky-pr-comment
         with:
           file: report.md
@@ -109,3 +122,4 @@ jobs:
           path: |
             report.md
             result.json
+          retention-days: 14

@@ -13,10 +13,20 @@ runs:
     - name: Read file and set as output
       id: file
       shell: bash
+      env:
+        # Reference the input via env, never splice ${{ inputs.file }} into the
+        # script: a caller-controlled path must not be able to inject shell.
+        INPUT_FILE: ${{ inputs.file }}
       run: |
-        echo "body<<EOF" >> $GITHUB_OUTPUT
-        cat "${{ inputs.file }}" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        # Random, unguessable heredoc delimiter: a fixed "EOF" would let a body
+        # line that is literally "EOF" terminate the heredoc early and inject
+        # arbitrary key=value pairs into $GITHUB_OUTPUT.
+        delimiter="ghadelimiter_$(openssl rand -hex 16)"
+        {
+          echo "body<<$delimiter"
+          cat "$INPUT_FILE"
+          echo "$delimiter"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Post or update PR comment
       uses: actions/github-script@v9

@@ -45,6 +45,14 @@ broker.on('clientError', (client, err) => {
   console.error('clientError', client?.id, err.message)
 })
 
+// Fail loudly (e.g. EADDRINUSE) instead of letting an unhandled 'error' event
+// become an uncaught exception; the workflow's readiness probe then reports the
+// broker never came up.
+server.on('error', (err) => {
+  console.error(`broker server error: ${err.message}`)
+  process.exit(1)
+})
+
 server.listen(port, () => {
   console.error(`aedes listening on ${port}`)
 })
