@@ -79,6 +79,12 @@ export interface AedesOptions {
   keepaliveLimit?: number;
   queueLimit?: number;
   maxClientsIdLength?: number;
+  // MQTT 5.0 broker limits, advertised in CONNACK.
+  topicAliasMaximum?: number; // max inbound topic alias; 0 disables (default: 0)
+  maximumPacketSize?: number; // max accepted packet size in bytes; 0 = no limit (default: 0)
+  receiveMaximum?: number; // advertised max in-flight QoS 1/2; 0 = not advertised (default: 0)
+  sessionExpiryIntervalLimit?: number; // clamp (seconds) on requested Session Expiry Interval; 0 = no cap (default: 0)
+  pendingSessionsLimit?: number; // cap on pending session-expiry / delayed-will entries; 0 = unlimited (default: 0)
   preConnect?: PreConnectHandler;
   authenticate?: AuthenticateHandler;
   authorizePublish?: AuthorizePublishHandler;
@@ -98,8 +104,21 @@ export class Aedes extends EventEmitter {
 
   on (event: 'closed', listener: () => void): this
   on (
-    event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout',
+    event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout' | 'sessionExpired',
     listener: (client: Client) => void
+  ): this
+
+  on (
+    event: 'sessionLimitReached',
+    listener: (
+      client: Client,
+      info: { reason: 'sessionExpiry' | 'willDelay'; limit: number }
+    ) => void
+  ): this
+
+  on (
+    event: 'willDropped',
+    listener: (client: Client, will: NonNullable<ConnectPacket['will']>) => void
   ): this
 
   on (

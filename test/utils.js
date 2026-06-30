@@ -1,5 +1,5 @@
 import { test } from 'node:test'
-import { runFall, batch, once, runSeries, runParallel } from '../lib/utils.js'
+import { runFall, batch, once, runSeries, runParallel, armLongTimer, MAX_TIMEOUT_MS } from '../lib/utils.js'
 import { setTimeout } from 'timers/promises'
 
 test('runFall works ok', function (t) {
@@ -349,4 +349,54 @@ test('runParallel handles empty items array', function (t) {
   }
 
   runParallel({}, () => t.assert.fail('fn should not be called'), [], done)
+})
+
+test('armLongTimer fires after a delay below the setTimeout cap', (t) => {
+  t.plan(2)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let fired = 0
+  armLongTimer(1000, () => { fired++ })
+  t.mock.timers.tick(999)
+  t.assert.equal(fired, 0, 'not fired before the delay')
+  t.mock.timers.tick(1)
+  t.assert.equal(fired, 1, 'fired at the delay')
+})
+
+test('armLongTimer re-arms for delays beyond the setTimeout cap', (t) => {
+  t.plan(2)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let fired = 0
+  armLongTimer(MAX_TIMEOUT_MS + 5000, () => { fired++ }) // one full chunk + remainder
+  // After the first full chunk it must NOT have fired — it re-arms instead.
+  t.mock.timers.tick(MAX_TIMEOUT_MS)
+  t.assert.equal(fired, 0, 'does not fire after the first chunk (re-armed)')
+  // After the remaining time it fires exactly once.
+  t.mock.timers.tick(5000)
+  t.assert.equal(fired, 1, 'fires once after the full delay')
+})
+
+test('armLongTimer clear() cancels a pending chunk', (t) => {
+  t.plan(1)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let fired = 0
+  const handle = armLongTimer(MAX_TIMEOUT_MS + 5000, () => { fired++ })
+  t.mock.timers.tick(MAX_TIMEOUT_MS) // re-arm scheduled
+  handle.clear()
+  t.mock.timers.tick(5000)
+  t.assert.equal(fired, 0, 'cleared timer does not fire')
+})
+
+test('armLongTimer throws on a non-finite delay', (t) => {
+  t.plan(2)
+  t.assert.throws(() => armLongTimer(NaN, () => {}), /finite/)
+  t.assert.throws(() => armLongTimer(Infinity, () => {}), /finite/)
+})
+
+test('armLongTimer clamps a negative delay to fire promptly', (t) => {
+  t.plan(1)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  let fired = 0
+  armLongTimer(-100, () => { fired++ })
+  t.mock.timers.tick(0)
+  t.assert.equal(fired, 1, 'negative delay clamped to 0 and fired')
 })

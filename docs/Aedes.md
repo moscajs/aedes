@@ -21,6 +21,9 @@
   - [Event: unsubscribe](#event-unsubscribe)
   - [Event: connackSent](#event-connacksent)
   - [Event: closed](#event-closed)
+  - [Event: willDropped](#event-willdropped)
+  - [Event: sessionExpired](#event-sessionexpired)
+  - [Event: sessionLimitReached](#event-sessionlimitreached)
   - [aedes.handle (stream)](#aedeshandle-stream)
   - [aedes.subscribe (topic, deliverfunc, callback)](#aedessubscribe-topic-deliverfunc-callback)
   - [aedes.unsubscribe (topic, deliverfunc, callback)](#aedesunsubscribe-topic-deliverfunc-callback)
@@ -47,7 +50,16 @@
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
-  - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. __Default__: `0`
+  - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. For MQTT 5.0 clients exceeding this, the broker sends a `Server Keep Alive` in the CONNACK and uses it instead of rejecting the connection. __Default__: `0`
+  - `topicAliasMaximum` `<number>` MQTT 5.0 only. Maximum inbound Topic Alias value the broker accepts from a client, advertised in the CONNACK. `0` disables inbound topic aliases. __Default__: `0`
+  - `maximumPacketSize` `<number>` MQTT 5.0 only. Maximum size in bytes of a packet the broker accepts, advertised in the CONNACK. Enforced: an oversized inbound frame is rejected as soon as its declared length is known — before the rest of its payload is buffered — with a `DISCONNECT` (reason code `0x95`, Packet too large) for connected v5 clients, or a dropped connection with a `connectionError`/`clientError` for pre-auth or v3/v4 clients. `0` means no limit. __Default__: `0`
+  - `receiveMaximum` `<number>` MQTT 5.0 only. Maximum number of in-flight QoS 1/2 PUBLISH packets advertised to the client in the CONNACK. __Advisory only__: the value is advertised but the broker does not currently enforce an inbound in-flight window (existing `drainTimeout` transport backpressure applies instead); enforcement is planned for a follow-up. `0` means it is not advertised (clients assume the protocol default of `65535`). __Default__: `0`
+  - `sessionExpiryIntervalLimit` `<number>` MQTT 5.0 only. Upper bound in seconds on the Session Expiry Interval a client may request. A larger requested value — including `0xFFFFFFFF` ("never expires") — is clamped to this, both in CONNECT and in a DISCONNECT that updates the interval. Bounds how long per-client session-expiry and will-delay timers (and their persisted session state) live, limiting memory accumulation from a single source cycling client identities. `0` means no cap. __Default__: `0`
+  - `pendingSessionsLimit` `<number>` MQTT 5.0 only. Cap on the number of pending session-expiry entries (and, applied separately, delayed-will timers) the broker holds at once. A never-expiring (`0xFFFFFFFF`) session counts against this too, since it pins persisted state indefinitely. When the cap is reached, a newly disconnecting session is expired immediately and a new delayed will is published immediately, rather than retaining it — bounding memory under client-identity-cycling abuse without evicting already-pending entries. Each trip emits a [`sessionLimitReached`](#event-sessionlimitreached) event. Complements `sessionExpiryIntervalLimit` (which bounds duration). `0` means unlimited. __Default__: `0`
+
+    > __Note:__ the limit is enforced independently against pending session-expiry entries and pending delayed wills, so the effective worst-case ceiling is `2 × pendingSessionsLimit` live timers — size accordingly.
+    >
+    > ⚠️ __Security:__ both `sessionExpiryIntervalLimit` and `pendingSessionsLimit` default to unlimited (`0`), matching aedes's existing v3/v4 posture (persistent `clean=false` sessions are already unbounded). For an internet-exposed broker you __should__ set both, otherwise a single client cycling identities with large session-expiry / will-delay intervals can accumulate timers and persisted state without bound.
   - `drainTimeout` `<number>` maximum time in milliseconds to wait for a slow client's socket to drain before disconnecting it. When a client's socket buffer fills up (e.g., slow network, unresponsive client), the broker waits for the `drain` event. Without a timeout, one slow client can block message delivery to all other clients. Set to `0` to disable and wait indefinitely (not recommended). __Default__: `60000` (60 seconds)
 
     __Why use drainTimeout?__ When publishing messages, if a client's TCP buffer is full, `socket.write()` returns `false` and the broker waits for the `drain` event before continuing. If the client stops reading (slow 3G, crashed app, malicious client), `drain` never fires and that message hangs forever. Even with high `concurrency`, a single frozen subscriber will eventually exhaust all slots and cause __complete deadlock__ - no more messages can be delivered to ANY client. This is a DoS vulnerability.
@@ -143,6 +155,8 @@ Emitted when a client disconnects.
 
 Server publishes a SYS topic `$SYS/<aedes.id>/disconnect/clients` to inform it deregisters the client. `client.id` is the payload.
 
+For MQTT 5.0, when the disconnect was initiated by the broker, `client.disconnectReasonCode` holds the reason code sent to the client (e.g. `0x8E` session taken over, `0x8B` server shutting down, `0x95` packet too large), letting handlers distinguish a kick from a normal client drop (`null`).
+
 ## Event: clientError
 
 - `client` [`<Client>`](./Client.md)
@@ -213,11 +227,33 @@ Server publishes a SYS topic `$SYS/<aedes.id>/new/unsubscribers` to inform a cli
 - `packet` `<object>` [`CONNACK`][CONNACK]
 - `client` [`<Client>`](./Client.md)
 
-Emitted when server sends an acknowledge to `client`. Please refer to the MQTT specification for the explanation of returnCode object property in `CONNACK`.
+Emitted when server sends an acknowledge to `client`. Please refer to the MQTT specification for the explanation of the `CONNACK` properties.
+
+For MQTT 3.1/3.1.1 the packet carries a `returnCode` (`0` = success). For MQTT 5.0 it instead carries a `reasonCode` (`0x00` = success; the v3/v4 return codes map to the equivalent v5 reason codes) and may carry a `properties` object advertising negotiated capabilities (e.g. `topicAliasMaximum`, `maximumPacketSize`, `receiveMaximum`, `serverKeepAlive`, `assignedClientIdentifier`, `sharedSubscriptionAvailable`).
 
 ## Event: closed
 
 Emitted when server is closed.
+
+## Event: willDropped
+
+- `client` [`<Client>`](./Client.md)
+- `will` `<object>` the client's Will message
+
+MQTT 5.0 only. Emitted when a client's delayed Will (one carrying a `willDelayInterval`) could not be scheduled because the broker was shutting down. The Will stays in persistence — another broker in a cluster can still publish it via its will-sweep — but on a single instance it is effectively dropped, so this event makes that observable.
+
+## Event: sessionExpired
+
+- `client` [`<Client>`](./Client.md)
+
+MQTT 5.0 only. Emitted when a session that outlived its connection reaches its Session Expiry Interval and its persisted state (subscriptions, queued messages, will) is wiped. Useful for answering "where did client X's session go?". Not emitted for a clean teardown (`sessionExpiryInterval` 0 — covered by [`clientDisconnect`](#event-clientdisconnect)) nor for a cap-driven drop (covered by [`sessionLimitReached`](#event-sessionlimitreached)).
+
+## Event: sessionLimitReached
+
+- `client` [`<Client>`](./Client.md)
+- `info` `<object>` `{ reason: 'sessionExpiry' | 'willDelay', limit: number }` — which guard tripped and the configured `pendingSessionsLimit`
+
+MQTT 5.0 only. Emitted when the [`pendingSessionsLimit`](#new-aedesoptions) DoS guard trips: a disconnecting session that would otherwise be retained (including a never-expiring one) is instead expired immediately (`reason: 'sessionExpiry'`), or a delayed Will is published immediately instead of being held (`reason: 'willDelay'`). Listen for this to detect identity-cycling abuse — without it the guard would degrade behavior silently.
 
 ## aedes.handle (stream)
 

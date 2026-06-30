@@ -5,7 +5,8 @@ import Packet from 'aedes-packet'
 import memory from 'aedes-persistence'
 import mqemitter from 'mqemitter'
 import Client from './lib/client.js'
-import { $SYS_PREFIX, batch, noop, runSeries } from './lib/utils.js'
+import { $SYS_PREFIX, batch, noop, runSeries, armLongTimer } from './lib/utils.js'
+import { SESSION_NEVER_EXPIRES, ReasonCodes } from './lib/constants.js'
 import pkg from './package.json' with { type: 'json' }
 
 const defaultOptions = {
@@ -24,9 +25,35 @@ const defaultOptions = {
   trustedProxies: [],
   queueLimit: 42,
   maxClientsIdLength: 23,
-  keepaliveLimit: 0
+  keepaliveLimit: 0,
+  // MQTT 5.0: maximum Topic Alias value the broker accepts from a client.
+  // 0 disables inbound topic aliases (the value advertised in CONNACK).
+  topicAliasMaximum: 0,
+  // MQTT 5.0: maximum size (bytes) of a packet the broker accepts. 0 = no
+  // limit (and nothing advertised in CONNACK).
+  maximumPacketSize: 0,
+  // MQTT 5.0: maximum number of unacknowledged QoS 1/2 PUBLISH a client may
+  // have in flight towards the broker. 0 = not advertised (defaults to 65535).
+  receiveMaximum: 0,
+  // MQTT 5.0: upper bound (seconds) on the Session Expiry Interval a client may
+  // request. A larger requested value (including 0xFFFFFFFF "never") is clamped
+  // to this. Bounds how long per-client session-expiry / will-delay timers and
+  // their persisted state live, limiting single-source accumulation. 0 = no cap.
+  sessionExpiryIntervalLimit: 0,
+  // MQTT 5.0: cap on the number of pending session-expiry entries (and, applied
+  // separately, delayed-will timers) the broker holds at once. Beyond it, a
+  // newly disconnecting session is expired immediately and a new delayed will is
+  // published immediately, bounding memory under identity-cycling abuse without
+  // evicting already-pending entries. 0 = unlimited.
+  pendingSessionsLimit: 0
 }
 const version = pkg.version
+
+// Sentinel stored in `expiringSessions` for a never-expiring (0xFFFFFFFF)
+// session: it has no real timer but must still occupy a slot against the
+// pending-sessions cap. `clear()` is a no-op so close()/clearSessionExpiry can
+// treat every entry uniformly.
+const NO_EXPIRY_TIMER = { clear: noop }
 
 export class Aedes extends EventEmitter {
   constructor (opts) {
@@ -43,6 +70,11 @@ export class Aedes extends EventEmitter {
     this.connectTimeout = opts.connectTimeout
     this.keepaliveLimit = opts.keepaliveLimit
     this.maxClientsIdLength = opts.maxClientsIdLength
+    this.topicAliasMaximum = opts.topicAliasMaximum
+    this.maximumPacketSize = opts.maximumPacketSize
+    this.receiveMaximum = opts.receiveMaximum
+    this.sessionExpiryIntervalLimit = opts.sessionExpiryIntervalLimit
+    this.pendingSessionsLimit = opts.pendingSessionsLimit
     this.mq = opts.mq || mqemitter({
       concurrency: opts.concurrency,
       matchEmptyLevels: true // [MQTT-4.7.1-3]
@@ -67,6 +99,18 @@ export class Aedes extends EventEmitter {
 
     this.clients = {}
     this.brokers = {}
+    // MQTT 5.0: pending session-expiry timers, keyed by clientId. A timer is
+    // armed when a client with a finite, non-zero Session Expiry Interval
+    // disconnects, and cleared if it reconnects before the timer fires.
+    this.expiringSessions = new Map()
+    // MQTT 5.0: pending Will Delay Interval timers, keyed by clientId. Armed
+    // when a client with a will and a non-zero will delay disconnects, and
+    // cleared if it reconnects before the will is published.
+    this.delayedWills = new Map()
+    // MQTT 5.0: clientIds whose session is mid-takeover (a new connection is
+    // replacing an existing one). While an id is in flight, the *old* client's
+    // close must not expire or wipe the session the new connection is resuming.
+    this._takingOver = new Set()
     this.closed = true
   }
 
@@ -196,6 +240,14 @@ export class Aedes extends EventEmitter {
       client = null
     }
     const p = new Packet(packet, this)
+    // MQTT 5.0 Message Expiry Interval: record the absolute expiry so that a
+    // message dropped into the offline queue can be discarded (or have its
+    // remaining lifetime recomputed) when it is finally delivered. The
+    // properties check is first so v3/v4 publishes (no `properties`) short-
+    // circuit off the fast path without the extra field reads.
+    if (p.properties?.messageExpiryInterval > 0 && p.messageExpiry === undefined) {
+      p.messageExpiry = Date.now() + (p.properties.messageExpiryInterval * 1000)
+    }
     const publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
 
     runSeries(new PublishState(this, client, packet), publishFuncs, p, done)
@@ -212,8 +264,12 @@ export class Aedes extends EventEmitter {
   registerClient (client) {
     const that = this
     if (this.clients[client.id]) {
-      // [MQTT-3.1.4-2]
-      this.clients[client.id].close(function closeClient () {
+      // [MQTT-3.1.4-2] An existing session with the same client id is taken
+      // over; tell the old v5 connection with reason code 0x8E (Session taken
+      // over) before closing it. Mark the id as in-flight so the old client's
+      // close doesn't expire/wipe the session this connection is resuming.
+      this._takingOver.add(client.id)
+      this.clients[client.id].disconnect({ reasonCode: ReasonCodes.SESSION_TAKEN_OVER }, function closeClient () {
         that._finishRegisterClient(client)
       })
     } else {
@@ -222,6 +278,11 @@ export class Aedes extends EventEmitter {
   }
 
   _finishRegisterClient (client) {
+    // Reconnecting before the session expires cancels the pending expiry and
+    // any delayed will (the session continues, so the will is not sent).
+    this._takingOver.delete(client.id)
+    this.clearSessionExpiry(client.id)
+    this.clearDelayedWill(client.id)
     this.connectedClients++
     this.clients[client.id] = client
     this.emit('client', client)
@@ -245,6 +306,158 @@ export class Aedes extends EventEmitter {
     delete this.clients[clientId]
   }
 
+  // MQTT 5.0: clamp a client-requested Session Expiry Interval (seconds) to the
+  // broker maximum. Bounds the lifetime of the per-client expiry/will timers and
+  // persisted state a single source can pin, limiting memory accumulation from a
+  // client cycling identities with large intervals. 0 = no cap.
+  clampSessionExpiry (interval) {
+    const max = this.sessionExpiryIntervalLimit
+    return max > 0 && interval > max ? max : interval
+  }
+
+  // MQTT 5.0 Session Expiry. Called when a client disconnects: decides whether
+  // the session's persisted state (subscriptions, queued messages, will) is
+  // kept, wiped immediately, or wiped after the Session Expiry Interval.
+  scheduleSessionExpiry (client) {
+    if (this.closed) return
+    // v3/v4 keep the legacy behavior (clean wiped on next connect, non-clean
+    // kept indefinitely), so there is no timed expiry to arrange.
+    if (client.version !== 5) return
+    // A takeover for this id is in flight: the resuming connection owns the
+    // session, so this (old) client's close must not expire or wipe it.
+    if (this._takingOver.has(client.id)) return
+
+    // Clear any stale entry for this id first so the previous armLongTimer handle
+    // is never orphaned (defensive; reconnect/takeover normally clears it).
+    this.clearSessionExpiry(client.id)
+
+    const interval = client.sessionExpiryInterval
+    if (interval === 0) {
+      // The session ends with the network connection — a clean teardown, not an
+      // expiry, so no `sessionExpired` event (clientDisconnect already covers it).
+      this._wipeSession(client)
+      return
+    }
+    // Count cap: when the broker is already holding the maximum number of
+    // pending sessions, end this one now instead of retaining it. Denying the
+    // newest (rather than evicting an oldest) bounds memory without dropping
+    // already-established sessions. A never-expiring session (0xFFFFFFFF) pins
+    // persisted state indefinitely, so it counts against the cap too — checking
+    // before the never-expires branch closes the bypass where such sessions
+    // could accumulate without bound. (This id was just cleared above, so size
+    // excludes it.) 0 = unlimited.
+    if (this.pendingSessionsLimit > 0 &&
+        this.expiringSessions.size >= this.pendingSessionsLimit) {
+      this._wipeSession(client)
+      // Observability: the DoS guard tripped, so abuse is diagnosable instead of
+      // a session silently vanishing. (The drop is the cap's story, not a normal
+      // expiry, so it is reported via sessionLimitReached rather than sessionExpired.)
+      this.emit('sessionLimitReached', client, { reason: 'sessionExpiry', limit: this.pendingSessionsLimit })
+      return
+    }
+    if (interval >= SESSION_NEVER_EXPIRES) {
+      // 0xFFFFFFFF: retained until explicitly taken over. Track it (no timer)
+      // so it still occupies a slot against the pending-sessions cap; the no-op
+      // sentinel is cleaned up uniformly by clearSessionExpiry / close().
+      this.expiringSessions.set(client.id, NO_EXPIRY_TIMER)
+      return
+    }
+
+    const that = this
+    this._armIdTimer(this.expiringSessions, client.id, interval * 1000, function expireSession () {
+      that._wipeSession(client)
+      // The session outlived its connection and then reached its expiry interval
+      // — observable so "where did client X's session go?" is diagnosable.
+      that.emit('sessionExpired', client)
+    })
+  }
+
+  clearSessionExpiry (clientId) {
+    this._clearIdTimer(this.expiringSessions, clientId)
+  }
+
+  // Remove all persisted state belonging to an expired/ended session. Surface
+  // persistence failures on the broker 'error' event rather than swallowing
+  // them, so a backend that fails to wipe a session is observable.
+  _wipeSession (client) {
+    const that = this
+    const onErr = (err) => that.emit('error', err)
+    this.persistence.cleanSubscriptions(client).then(noop, onErr)
+    this.persistence.delWill({ id: client.id, brokerId: this.id }).then(noop, onErr)
+    client.emptyOutgoingQueue(noop)
+  }
+
+  // MQTT 5.0 Will Delay Interval: publish the will after `delaySeconds`
+  // instead of immediately, unless the client reconnects first.
+  scheduleWill (client, will, delaySeconds) {
+    if (this.closed) {
+      // Broker is shutting down: the delayed will can't be timed here. It stays
+      // in persistence (another broker's will-sweep can still publish it), but
+      // emit so a single-instance operator can observe the drop.
+      this.emit('willDropped', client, will)
+      return
+    }
+    // A takeover for this id is in flight: the resuming connection cancels the
+    // delayed will, so don't schedule (or, at the cap, prematurely publish) it.
+    if (this._takingOver.has(client.id)) return
+    // Clear any stale timer for this id first so its armLongTimer handle is
+    // never orphaned (defensive).
+    this.clearDelayedWill(client.id)
+    // Count cap (see scheduleSessionExpiry): when already holding the maximum
+    // number of delayed wills, publish this one now instead of queuing a timer.
+    if (this.pendingSessionsLimit > 0 &&
+        this.delayedWills.size >= this.pendingSessionsLimit) {
+      this.publishWill(client, will)
+      // Observability: the same DoS guard tripped on the will-delay path.
+      this.emit('sessionLimitReached', client, { reason: 'willDelay', limit: this.pendingSessionsLimit })
+      return
+    }
+    const that = this
+    this._armIdTimer(this.delayedWills, client.id, delaySeconds * 1000, function fireWill () {
+      that.publishWill(client, will)
+    })
+  }
+
+  // Shared lifecycle for the per-clientId timer maps (expiringSessions /
+  // delayedWills): arm a long timer, store it, and on fire delete the entry and
+  // run `onFire` — unless the id was re-registered meanwhile (identity guard: a
+  // reconnect/takeover now owns it, so the session/will must not be touched).
+  // [MQTT-3.1.3-9 for wills]
+  _armIdTimer (map, id, delayMs, onFire) {
+    const that = this
+    const timer = armLongTimer(delayMs, function fired () {
+      map.delete(id)
+      if (that.clients[id]) return
+      onFire()
+    })
+    map.set(id, timer)
+  }
+
+  _clearIdTimer (map, id) {
+    const timer = map.get(id)
+    if (timer) {
+      timer.clear()
+      map.delete(id)
+    }
+  }
+
+  clearDelayedWill (clientId) {
+    this._clearIdTimer(this.delayedWills, clientId)
+  }
+
+  // Authorize and publish a client's will, then remove it from persistence.
+  publishWill (client, will) {
+    const that = this
+    this.authorizePublish(client, will, function (err) {
+      if (err) { return cleanup() }
+      that.publish(will, client, cleanup)
+    })
+    function cleanup () {
+      that.persistence.delWill({ id: client.id, brokerId: that.id })
+        .then(noop, (err) => that.emit('error', err))
+    }
+  }
+
   close (cb = noop) {
     const that = this
     if (this.closed) {
@@ -253,6 +466,14 @@ export class Aedes extends EventEmitter {
     this.closed = true
     clearInterval(this._heartbeatInterval)
     clearInterval(this._clearWillInterval)
+    for (const timer of this.expiringSessions.values()) {
+      timer.clear()
+    }
+    this.expiringSessions.clear()
+    for (const timer of this.delayedWills.values()) {
+      timer.clear()
+    }
+    this.delayedWills.clear()
     const promises = []
     for (const clientId of Object.keys(this.clients)) {
       promises.push(closeClient(this.clients[clientId]))
@@ -353,7 +574,9 @@ const publishFuncsQoS = [
 
 async function closeClient (clientInstance) {
   return new Promise((resolve) => {
-    clientInstance.close(resolve)
+    // [MQTT-3.14.4-1] notify v5 clients with reason code 0x8B (Server shutting
+    // down) before closing; v3/v4 clients are just closed by disconnect().
+    clientInstance.disconnect({ reasonCode: ReasonCodes.SERVER_SHUTTING_DOWN }, resolve)
   })
 }
 
