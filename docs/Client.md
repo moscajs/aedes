@@ -80,7 +80,14 @@ It is available only after `CONNACK (rc=0)`, otherwise it is `null` in cases:
 
 - `<boolean>` __Default__: `true`
 
-Client clean flag, set by clean flag in `CONNECT` packet.
+Whether this session is ephemeral — it does _not_ outlive the network connection (no subscriptions or queued messages are persisted past disconnect).
+
+For MQTT 3.1/3.1.1 this equals the `CONNECT` Clean Session flag. For MQTT 5.0 it tracks the _persistence_ axis derived from the Session Expiry Interval (`clean === (sessionExpiryInterval === 0)`), which v5 decouples from Clean Start:
+
+- __Clean Start__ (`CONNECT` clean flag) decides whether a prior session is _resumed_ at connect.
+- __Session Expiry Interval__ decides whether _this_ session is _retained_ after disconnect — i.e. `client.clean`.
+
+So a v5 client that connects with Clean Start = `true` _and_ a non-zero Session Expiry Interval has `client.clean === false` (fresh session, but persisted past disconnect). To detect Clean Start specifically on v5, read the `CONNECT` packet's clean flag rather than `client.clean`.
 
 ## client.version
 

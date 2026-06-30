@@ -141,7 +141,13 @@ expectType<Aedes>(
   broker.on('unsubscribe', (unsubscriptions: string[], client: Client) => {})
 )
 expectType<Aedes>(
-  broker.on('sessionLimitReached', (client: Client) => {})
+  broker.on('sessionExpired', (client: Client) => {})
+)
+expectType<Aedes>(
+  broker.on(
+    'sessionLimitReached',
+    (client: Client, info: { reason: 'sessionExpiry' | 'willDelay'; limit: number }) => {}
+  )
 )
 expectType<Aedes>(
   broker.on('willDropped', (client: Client, will: NonNullable<ConnectPacket['will']>) => {})
@@ -229,3 +235,15 @@ expectType<void>(client.emptyOutgoingQueue(() => {}))
 
 expectType<void>(client.close())
 expectType<void>(client.close(() => {}))
+
+// MQTT 5.0 server-initiated disconnect: opts form, opts+callback, and the
+// callback-only overload.
+expectType<void>(client.disconnect())
+expectType<void>(client.disconnect(() => {}))
+expectType<void>(client.disconnect({ reasonCode: 0x8b }))
+expectType<void>(
+  client.disconnect(
+    { reasonCode: 0x8b, properties: { reasonString: 'server shutting down' } },
+    () => {}
+  )
+)

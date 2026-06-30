@@ -1,4 +1,5 @@
 import { IncomingMessage } from 'node:http'
+import { IDisconnectPacket } from 'mqtt-packet'
 import {
   PublishPacket,
   SubscribePacket,
@@ -68,8 +69,9 @@ export interface Client extends EventEmitter {
    * for v3/v4 the connection is just closed.
    */
   disconnect(
-    opts?: { reasonCode?: number; properties?: object },
+    opts?: { reasonCode?: number; properties?: IDisconnectPacket['properties'] },
     callback?: () => void
   ): void;
+  disconnect(callback: () => void): void;
   emptyOutgoingQueue(callback?: () => void): void;
 }

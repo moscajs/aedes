@@ -331,8 +331,9 @@ test('MQTT 5.0 will delay is cancelled when the client reconnects', async (t) =>
   await once(willClient, 'connect')
   willClient.stream.destroy()
 
-  // The abrupt drop schedules the delayed will.
-  await delay(150)
+  // The abrupt drop schedules the delayed will (several async hops after the TCP
+  // RST — poll rather than sleep a fixed interval, which races under CI load).
+  while (broker.delayedWills.size < 1) await delay(5)
   t.assert.equal(broker.delayedWills.size, 1, 'will scheduled after abrupt drop')
 
   // Reconnecting under the same client id must cancel the pending will.
@@ -555,7 +556,10 @@ test('MQTT 5.0 unauthorized QoS1 publish is answered with 0x87 PUBACK, not a dis
   // mqtt.js may reject the publish on a >=0x80 reason code; either way the
   // connection must stay up and the message must not be delivered.
   try { await pub.publishAsync('denied/x', 'data', { qos: 1 }) } catch { /* 0x87 */ }
-  await delay(150)
+  // Wait for the actual PUBACK rather than a fixed sleep; then a short settle to
+  // confirm the unauthorized message is not delivered.
+  while (acks.length === 0) await delay(5)
+  await delay(20)
 
   t.assert.equal(pub.connected, true, 'publisher connection stays alive')
   t.assert.equal(received, false, 'unauthorized message not delivered')
@@ -585,7 +589,10 @@ test('MQTT 5.0 unauthorized QoS2 publish is answered with 0x87 (PUBREC), not a d
   const acks = []
   pub.on('packetreceive', (p) => { if (p.cmd === 'pubrec') acks.push(p) })
   try { await pub.publishAsync('denied/x', 'data', { qos: 2 }) } catch { /* 0x87 */ }
-  await delay(150)
+  // Wait for the actual PUBREC rather than a fixed sleep; then a short settle to
+  // confirm the unauthorized message is not delivered.
+  while (acks.length === 0) await delay(5)
+  await delay(20)
 
   t.assert.equal(pub.connected, true, 'publisher connection stays alive')
   t.assert.equal(received, false, 'unauthorized message not delivered')
@@ -712,6 +719,27 @@ test('MQTT 5.0 publish with topic alias 0 is rejected with DISCONNECT 0x94', asy
   t.assert.equal(packet.reasonCode, 0x94, '0x94 Topic Alias invalid on the wire')
 })
 
+test('MQTT 5.0 publish with a topic alias when topicAliasMaximum is 0 is rejected with DISCONNECT 0x94', async (t) => {
+  t.plan(2)
+  // Default topicAliasMaximum (0) means inbound aliases are disabled — a distinct
+  // semantic from an over-limit alias. Any alias must be rejected.
+  const { broker, connect } = await createServerAndConnect(t)
+  const client = connect({ clientId: 'alias-disabled', reconnectPeriod: 0 })
+  await once(client, 'connect')
+
+  const clientError = once(broker, 'clientError')
+  const disc = once(client, 'disconnect')
+  client.stream.write(generate(
+    { cmd: 'publish', topic: 'x', payload: 'p', qos: 0, properties: { topicAlias: 1 } },
+    { protocolVersion: 5 }
+  ))
+
+  const [, err] = await clientError
+  t.assert.equal(err.message, 'topic alias 1 is out of range (broker topicAliasMaximum is 0)')
+  const [packet] = await disc
+  t.assert.equal(packet.reasonCode, 0x94, '0x94 Topic Alias invalid on the wire')
+})
+
 test('MQTT 5.0 pendingSessionsLimit caps the number of pending session-expiry timers', async (t) => {
   t.plan(1)
   const { broker, connect } = await createServerAndConnect(t, {
@@ -725,16 +753,18 @@ test('MQTT 5.0 pendingSessionsLimit caps the number of pending session-expiry ti
   while (broker.expiringSessions.size < 1) await delay(5)
 
   // Second exceeds the cap → expired immediately rather than queuing a timer.
+  // Await the cap-trip event instead of a fixed sleep (deterministic).
+  const limit = once(broker, 'sessionLimitReached')
   const b = connect({ clientId: 'cap-b', clean: false, properties: { sessionExpiryInterval: 60 } })
   await once(b, 'connect')
   b.end(true)
   await once(b, 'close')
-  await delay(50)
+  await limit
   t.assert.equal(broker.expiringSessions.size, 1, 'second pending session denied by the cap')
 })
 
 test('MQTT 5.0 a never-expiring session counts against pendingSessionsLimit and emits sessionLimitReached', async (t) => {
-  t.plan(3)
+  t.plan(4)
   const { broker, connect } = await createServerAndConnect(t, {
     brokerOptions: { pendingSessionsLimit: 1 }
   })
@@ -755,8 +785,9 @@ test('MQTT 5.0 a never-expiring session counts against pendingSessionsLimit and 
   await once(b, 'connect')
   b.end(true)
   await once(b, 'close')
-  const [client] = await limit
+  const [client, info] = await limit
   t.assert.equal(client.id, 'never-b', 'sessionLimitReached emitted for the denied session')
+  t.assert.equal(info.reason, 'sessionExpiry', 'discriminator marks the session-expiry path')
   t.assert.equal(broker.expiringSessions.size, 1, 'cap held; over-cap never-expiring session not retained')
 })
 
@@ -974,9 +1005,10 @@ test('MQTT 5.0 broker close clears a pending delayed will', async (t) => {
   })
   await once(willClient, 'connect')
 
-  // Drop the connection so the will is scheduled (but not yet published).
+  // Drop the connection so the will is scheduled (but not yet published). Poll
+  // the broker-side state rather than sleeping a fixed interval (CI-load race).
   willClient.stream.destroy()
-  await delay(150)
+  while (broker.delayedWills.size < 1) await delay(5)
   t.assert.equal(broker.delayedWills.size, 1, 'delayed will is pending')
 
   // Closing the broker must clear the pending will timer (no leaked timer). The
@@ -1112,7 +1144,7 @@ test('MQTT 5.0 unauthorized QoS 0 publish is dropped silently, connection stays 
   const clientError = once(broker, 'clientError')
   await pub.publishAsync('denied/x', 'data', { qos: 0 })
   const [, err] = await clientError
-  await delay(100)
+  await delay(20) // short settle to confirm non-delivery (clientError already awaited)
 
   t.assert.ok(err, 'unauthorized publish surfaced a clientError')
   t.assert.equal(pub.connected, true, 'connection stays up')
@@ -1139,8 +1171,8 @@ test('MQTT 5.0 broker close emits willDropped for a pending delayed will', async
 })
 
 test('MQTT 5.0 pendingSessionsLimit publishes an over-cap delayed will immediately', async (t) => {
-  t.plan(1)
-  const { connect } = await createServerAndConnect(t, {
+  t.plan(3)
+  const { broker, connect } = await createServerAndConnect(t, {
     brokerOptions: { pendingSessionsLimit: 1 }
   })
   const watcher = connect({ clientId: 'willcap-watch' })
@@ -1156,9 +1188,12 @@ test('MQTT 5.0 pendingSessionsLimit publishes an over-cap delayed will immediate
   })
   await once(a, 'connect')
   a.stream.destroy()
-  await delay(100)
+  while (broker.delayedWills.size < 1) await delay(5)
 
-  // Second exceeds the cap → its will is published immediately, not queued.
+  // Second exceeds the cap → its will is published immediately, not queued, and
+  // the trip is observable. finish() schedules the will before session-expiry,
+  // so the first sessionLimitReached carries the will-delay discriminator.
+  const limit = once(broker, 'sessionLimitReached')
   const got = once(watcher, 'message')
   const b = connect({
     clientId: 'willcap-b',
@@ -1170,6 +1205,9 @@ test('MQTT 5.0 pendingSessionsLimit publishes an over-cap delayed will immediate
   b.stream.destroy()
   const [, payload] = await got
   t.assert.equal(payload.toString(), 'b', 'over-cap delayed will published immediately')
+  const [climit, info] = await limit
+  t.assert.equal(climit.id, 'willcap-b', 'sessionLimitReached fired for the over-cap client')
+  t.assert.equal(info.reason, 'willDelay', 'discriminator marks the will-delay path')
 })
 
 test('MQTT 5.0 oversized frame is rejected from its declared length before full buffering', async (t) => {

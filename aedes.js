@@ -107,6 +107,10 @@ export class Aedes extends EventEmitter {
     // when a client with a will and a non-zero will delay disconnects, and
     // cleared if it reconnects before the will is published.
     this.delayedWills = new Map()
+    // MQTT 5.0: clientIds whose session is mid-takeover (a new connection is
+    // replacing an existing one). While an id is in flight, the *old* client's
+    // close must not expire or wipe the session the new connection is resuming.
+    this._takingOver = new Set()
     this.closed = true
   }
 
@@ -262,7 +266,9 @@ export class Aedes extends EventEmitter {
     if (this.clients[client.id]) {
       // [MQTT-3.1.4-2] An existing session with the same client id is taken
       // over; tell the old v5 connection with reason code 0x8E (Session taken
-      // over) before closing it.
+      // over) before closing it. Mark the id as in-flight so the old client's
+      // close doesn't expire/wipe the session this connection is resuming.
+      this._takingOver.add(client.id)
       this.clients[client.id].disconnect({ reasonCode: ReasonCodes.SESSION_TAKEN_OVER }, function closeClient () {
         that._finishRegisterClient(client)
       })
@@ -274,6 +280,7 @@ export class Aedes extends EventEmitter {
   _finishRegisterClient (client) {
     // Reconnecting before the session expires cancels the pending expiry and
     // any delayed will (the session continues, so the will is not sent).
+    this._takingOver.delete(client.id)
     this.clearSessionExpiry(client.id)
     this.clearDelayedWill(client.id)
     this.connectedClients++
@@ -316,6 +323,9 @@ export class Aedes extends EventEmitter {
     // v3/v4 keep the legacy behavior (clean wiped on next connect, non-clean
     // kept indefinitely), so there is no timed expiry to arrange.
     if (client.version !== 5) return
+    // A takeover for this id is in flight: the resuming connection owns the
+    // session, so this (old) client's close must not expire or wipe it.
+    if (this._takingOver.has(client.id)) return
 
     // Clear any stale entry for this id first so the previous armLongTimer handle
     // is never orphaned (defensive; reconnect/takeover normally clears it).
@@ -323,7 +333,8 @@ export class Aedes extends EventEmitter {
 
     const interval = client.sessionExpiryInterval
     if (interval === 0) {
-      // The session ends when the network connection closes.
+      // The session ends with the network connection — a clean teardown, not an
+      // expiry, so no `sessionExpired` event (clientDisconnect already covers it).
       this._wipeSession(client)
       return
     }
@@ -339,8 +350,9 @@ export class Aedes extends EventEmitter {
         this.expiringSessions.size >= this.pendingSessionsLimit) {
       this._wipeSession(client)
       // Observability: the DoS guard tripped, so abuse is diagnosable instead of
-      // a session silently vanishing.
-      this.emit('sessionLimitReached', client)
+      // a session silently vanishing. (The drop is the cap's story, not a normal
+      // expiry, so it is reported via sessionLimitReached rather than sessionExpired.)
+      this.emit('sessionLimitReached', client, { reason: 'sessionExpiry', limit: this.pendingSessionsLimit })
       return
     }
     if (interval >= SESSION_NEVER_EXPIRES) {
@@ -352,22 +364,16 @@ export class Aedes extends EventEmitter {
     }
 
     const that = this
-    const timer = armLongTimer(interval * 1000, function expireSession () {
-      that.expiringSessions.delete(client.id)
-      // Identity guard: if the id has since been re-registered (reconnect /
-      // takeover), a live session now owns it — do not wipe it. [data integrity]
-      if (that.clients[client.id]) return
+    this._armIdTimer(this.expiringSessions, client.id, interval * 1000, function expireSession () {
       that._wipeSession(client)
+      // The session outlived its connection and then reached its expiry interval
+      // — observable so "where did client X's session go?" is diagnosable.
+      that.emit('sessionExpired', client)
     })
-    this.expiringSessions.set(client.id, timer)
   }
 
   clearSessionExpiry (clientId) {
-    const timer = this.expiringSessions.get(clientId)
-    if (timer) {
-      timer.clear()
-      this.expiringSessions.delete(clientId)
-    }
+    this._clearIdTimer(this.expiringSessions, clientId)
   }
 
   // Remove all persisted state belonging to an expired/ended session. Surface
@@ -391,6 +397,9 @@ export class Aedes extends EventEmitter {
       this.emit('willDropped', client, will)
       return
     }
+    // A takeover for this id is in flight: the resuming connection cancels the
+    // delayed will, so don't schedule (or, at the cap, prematurely publish) it.
+    if (this._takingOver.has(client.id)) return
     // Clear any stale timer for this id first so its armLongTimer handle is
     // never orphaned (defensive).
     this.clearDelayedWill(client.id)
@@ -400,26 +409,40 @@ export class Aedes extends EventEmitter {
         this.delayedWills.size >= this.pendingSessionsLimit) {
       this.publishWill(client, will)
       // Observability: the same DoS guard tripped on the will-delay path.
-      this.emit('sessionLimitReached', client)
+      this.emit('sessionLimitReached', client, { reason: 'willDelay', limit: this.pendingSessionsLimit })
       return
     }
     const that = this
-    const timer = armLongTimer(delaySeconds * 1000, function fireWill () {
-      that.delayedWills.delete(client.id)
-      // Identity guard: a reconnect under the same id cancels the delayed will;
-      // if the id is live again, skip publishing it. [MQTT-3.1.3-9]
-      if (that.clients[client.id]) return
+    this._armIdTimer(this.delayedWills, client.id, delaySeconds * 1000, function fireWill () {
       that.publishWill(client, will)
     })
-    this.delayedWills.set(client.id, timer)
+  }
+
+  // Shared lifecycle for the per-clientId timer maps (expiringSessions /
+  // delayedWills): arm a long timer, store it, and on fire delete the entry and
+  // run `onFire` — unless the id was re-registered meanwhile (identity guard: a
+  // reconnect/takeover now owns it, so the session/will must not be touched).
+  // [MQTT-3.1.3-9 for wills]
+  _armIdTimer (map, id, delayMs, onFire) {
+    const that = this
+    const timer = armLongTimer(delayMs, function fired () {
+      map.delete(id)
+      if (that.clients[id]) return
+      onFire()
+    })
+    map.set(id, timer)
+  }
+
+  _clearIdTimer (map, id) {
+    const timer = map.get(id)
+    if (timer) {
+      timer.clear()
+      map.delete(id)
+    }
   }
 
   clearDelayedWill (clientId) {
-    const timer = this.delayedWills.get(clientId)
-    if (timer) {
-      timer.clear()
-      this.delayedWills.delete(clientId)
-    }
+    this._clearIdTimer(this.delayedWills, clientId)
   }
 
   // Authorize and publish a client's will, then remove it from persistence.

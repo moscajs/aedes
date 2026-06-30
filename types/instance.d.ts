@@ -104,8 +104,16 @@ export class Aedes extends EventEmitter {
 
   on (event: 'closed', listener: () => void): this
   on (
-    event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout' | 'sessionLimitReached',
+    event: 'client' | 'clientReady' | 'clientDisconnect' | 'keepaliveTimeout' | 'sessionExpired',
     listener: (client: Client) => void
+  ): this
+
+  on (
+    event: 'sessionLimitReached',
+    listener: (
+      client: Client,
+      info: { reason: 'sessionExpiry' | 'willDelay'; limit: number }
+    ) => void
   ): this
 
   on (
