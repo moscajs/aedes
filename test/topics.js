@@ -4,10 +4,11 @@ import {
   checkNoPacket,
   createAndConnect,
   createPubSub,
+  delay,
   nextPacket,
   subscribe,
 } from './helper.js'
-import { validateTopic } from '../lib/utils.js'
+import { topicLevelCount, validateTopic } from '../lib/utils.js'
 
 test('validation of `null` topic', (t) => {
   // issue #780
@@ -292,4 +293,197 @@ test('Overlapped topics with QoS downgrade', async (t) => {
   }
   const packet = await nextPacket(subscriber)
   t.assert.deepEqual(structuredClone(packet), expected, 'packet must match')
+})
+
+// GHSA-xxqp-5qx8-gj5q: a remote client could crash the broker by sending a
+// PUBLISH/SUBSCRIBE/UNSUBSCRIBE (or setting a Will) with a deeply nested topic.
+// qlobber (used by mqemitter and the persistence trie) throws a synchronous
+// `too many words` error past its max_words limit, which propagated as an
+// uncaught exception. The broker now rejects topics above `maxTopicLevels`.
+const tooManyLevels = 'a/'.repeat(200) + 'b' // 201 levels, default limit is 100
+
+test('topicLevelCount counts levels like qlobber splits them', (t) => {
+  t.plan(4)
+  t.assert.equal(topicLevelCount(''), 1)
+  t.assert.equal(topicLevelCount('a'), 1)
+  t.assert.equal(topicLevelCount('a/b/c'), 3)
+  t.assert.equal(topicLevelCount('a//b'), 3)
+})
+
+test('publish to a topic with too many levels raises an error', async (t) => {
+  t.plan(3)
+
+  const s = await createAndConnect(t)
+  s.inStream.write({
+    cmd: 'publish',
+    topic: tooManyLevels,
+    payload: 'world'
+  })
+
+  const [client, err] = await once(s.broker, 'clientError')
+  t.assert.ok(client, 'client is defined')
+  t.assert.equal(err.message, 'topic has too many levels', 'raise an error')
+  await checkNoPacket(t, s)
+})
+
+test('subscribe to a topic with too many levels raises an error', async (t) => {
+  t.plan(2)
+
+  const s = await createAndConnect(t)
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{ topic: tooManyLevels, qos: 0 }]
+  })
+
+  const [client, err] = await once(s.broker, 'clientError')
+  t.assert.ok(client, 'client is defined')
+  t.assert.equal(err.message, 'topic has too many levels', 'raise an error')
+})
+
+test('broker.unsubscribe with too many levels errors instead of crashing', async (t) => {
+  // A client can never be subscribed to an over-limit topic (subscribe rejects
+  // it first), so the handler never forwards one here. This guards the public
+  // broker.unsubscribe() API, whose mqemitter.removeListener would otherwise
+  // throw `too many words` asynchronously and crash the process.
+  t.plan(1)
+
+  const s = await createAndConnect(t)
+  await new Promise((resolve) => {
+    s.broker.unsubscribe(tooManyLevels, () => {}, (err) => {
+      t.assert.equal(err.message, 'topic has too many levels', 'raise an error')
+      resolve()
+    })
+  })
+})
+
+test('a Will with too many levels does not crash the broker', async (t) => {
+  t.plan(1)
+
+  const s = await createAndConnect(t, {
+    connect: {
+      will: {
+        topic: tooManyLevels,
+        payload: Buffer.from('bye'),
+        qos: 0,
+        retain: false
+      }
+    }
+  })
+  // ungraceful disconnect triggers the Will publish
+  s.conn.destroy()
+  await delay(100)
+  // if the broker had crashed the process would have thrown; reaching here is the assertion
+  t.assert.equal(s.broker.connectedClients, 0, 'broker survived the malicious Will')
+})
+
+test('maxTopicLevels is configurable and bounds the depth', async (t) => {
+  t.plan(5)
+
+  const s = await createAndConnect(t, { broker: { maxTopicLevels: 3 } })
+
+  // within the limit: delivered normally
+  await subscribe(t, s, 'a/b/c', 0)
+  s.inStream.write({ cmd: 'publish', topic: 'a/b/c', payload: 'world' })
+  const packet = await nextPacket(s)
+  t.assert.equal(packet.topic, 'a/b/c', 'topic at the limit is delivered')
+
+  // above the limit: rejected
+  s.inStream.write({ cmd: 'publish', topic: 'a/b/c/d', payload: 'world' })
+  const [, err] = await once(s.broker, 'clientError')
+  t.assert.equal(err.message, 'topic has too many levels', 'topic above the limit is rejected')
+})
+
+test('topic at the level limit is accepted, one above is rejected', async (t) => {
+  t.plan(4)
+
+  const atLimit = 'a/'.repeat(99) + 'a' // 100 levels
+  const overLimit = 'a/'.repeat(100) + 'a' // 101 levels
+  const s = await createAndConnect(t)
+
+  await subscribe(t, s, atLimit, 0) // exactly at the limit: accepted (suback)
+
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 25,
+    subscriptions: [{ topic: overLimit, qos: 0 }]
+  })
+  const [, err] = await once(s.broker, 'clientError')
+  t.assert.equal(err.message, 'topic has too many levels', 'one level above the limit is rejected')
+})
+
+test('maxTopicLevels is clamped to a maximum of 100', async (t) => {
+  // configuring above the qlobber ceiling must not be honored: a 101-level
+  // topic is still rejected (not routed into qlobber, which would crash).
+  t.plan(1)
+
+  const s = await createAndConnect(t, { broker: { maxTopicLevels: 1000 } })
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{ topic: 'a/'.repeat(100) + 'a', qos: 0 }] // 101 levels
+  })
+  const [, err] = await once(s.broker, 'clientError')
+  t.assert.equal(err.message, 'topic has too many levels', 'clamped to 100, rejected not crashed')
+})
+
+test('maxTopicLevels of 0 is clamped to 1 (cannot be disabled)', async (t) => {
+  t.plan(1)
+
+  const s = await createAndConnect(t, { broker: { maxTopicLevels: 0 } })
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{ topic: 'a/b', qos: 0 }] // 2 levels, over the clamped limit of 1
+  })
+  const [, err] = await once(s.broker, 'clientError')
+  t.assert.equal(err.message, 'topic has too many levels', 'guard cannot be disabled')
+})
+
+test('over-limit SUBSCRIBE on a persistent session is rejected before persistence', async (t) => {
+  // non-clean session runs persistence.addSubscriptions before broker.subscribe;
+  // the boundary check must reject first, with the consistent broker error
+  // (not qlobber's raw "too many words") and without persisting anything.
+  t.plan(1)
+
+  const s = await createAndConnect(t, { connect: { clean: false, clientId: 'persist-deep' } })
+  s.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [{ topic: tooManyLevels, qos: 1 }]
+  })
+  const [, err] = await once(s.broker, 'clientError')
+  t.assert.equal(err.message, 'topic has too many levels', 'rejected at the boundary')
+})
+
+test('over-limit QoS 1 PUBLISH is rejected without sending PUBACK', async (t) => {
+  t.plan(2)
+
+  const s = await createAndConnect(t)
+  s.inStream.write({
+    cmd: 'publish',
+    topic: tooManyLevels,
+    payload: 'world',
+    qos: 1,
+    messageId: 42
+  })
+  const [, err] = await once(s.broker, 'clientError')
+  t.assert.equal(err.message, 'topic has too many levels', 'raise an error')
+  await checkNoPacket(t, s) // rejected before the PUBACK is written
+})
+
+test('over-limit QoS 2 PUBLISH is rejected without sending PUBREC', async (t) => {
+  t.plan(2)
+
+  const s = await createAndConnect(t)
+  s.inStream.write({
+    cmd: 'publish',
+    topic: tooManyLevels,
+    payload: 'world',
+    qos: 2,
+    messageId: 43
+  })
+  const [, err] = await once(s.broker, 'clientError')
+  t.assert.equal(err.message, 'topic has too many levels', 'raise an error')
+  await checkNoPacket(t, s) // rejected before the PUBREC is written
 })

@@ -5,7 +5,7 @@ import Packet from 'aedes-packet'
 import memory from 'aedes-persistence'
 import mqemitter from 'mqemitter'
 import Client from './lib/client.js'
-import { $SYS_PREFIX, batch, noop, runSeries } from './lib/utils.js'
+import { $SYS_PREFIX, batch, noop, runSeries, topicLevelCount } from './lib/utils.js'
 import pkg from './package.json' with { type: 'json' }
 
 const defaultOptions = {
@@ -24,9 +24,16 @@ const defaultOptions = {
   trustedProxies: [],
   queueLimit: 42,
   maxClientsIdLength: 23,
+  maxTopicLevels: 100,
   keepaliveLimit: 0
 }
 const version = pkg.version
+
+// Hard ceiling for maxTopicLevels: the bundled mqemitter and aedes-persistence
+// build qlobber with its default max_words of 100 and aedes cannot raise it, so
+// a larger value would pass our guard yet still throw `too many words` in the
+// matcher. Clamp to [1, MAX_TOPIC_LEVELS] to keep the option safe.
+const MAX_TOPIC_LEVELS = 100
 
 export class Aedes extends EventEmitter {
   constructor (opts) {
@@ -43,6 +50,8 @@ export class Aedes extends EventEmitter {
     this.connectTimeout = opts.connectTimeout
     this.keepaliveLimit = opts.keepaliveLimit
     this.maxClientsIdLength = opts.maxClientsIdLength
+    // clamp to a safe [1, 100] range; see MAX_TOPIC_LEVELS
+    this.maxTopicLevels = Math.min(Math.max(opts.maxTopicLevels, 1), MAX_TOPIC_LEVELS)
     this.mq = opts.mq || mqemitter({
       concurrency: opts.concurrency,
       matchEmptyLevels: true // [MQTT-4.7.1-3]
@@ -195,6 +204,14 @@ export class Aedes extends EventEmitter {
       done = client
       client = null
     }
+    // reject deeply nested topics before they reach qlobber (via mqemitter and
+    // the persistence trie), whose synchronous `too many words` throw would
+    // otherwise crash the broker. The protocol handlers validate the wire paths
+    // earlier; this also covers the will publish and direct programmatic use.
+    // See lib/utils.js#topicLevelCount.
+    if (topicLevelCount(packet.topic) > this.maxTopicLevels) {
+      return (done || noop)(new Error('topic has too many levels'))
+    }
     const p = new Packet(packet, this)
     const publishFuncs = p.qos > 0 ? publishFuncsQoS : publishFuncsSimple
 
@@ -202,10 +219,17 @@ export class Aedes extends EventEmitter {
   }
 
   subscribe (topic, func, done) {
+    // see publish(): guard against qlobber's synchronous `too many words` throw
+    if (topicLevelCount(topic) > this.maxTopicLevels) {
+      return (done || noop)(new Error('topic has too many levels'))
+    }
     this.mq.on(topic, func, done)
   }
 
   unsubscribe (topic, func, done) {
+    if (topicLevelCount(topic) > this.maxTopicLevels) {
+      return (done || noop)(new Error('topic has too many levels'))
+    }
     this.mq.removeListener(topic, func, done)
   }
 

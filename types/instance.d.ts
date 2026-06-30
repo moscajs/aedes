@@ -84,6 +84,7 @@ export interface AedesOptions {
   keepaliveLimit?: number;
   queueLimit?: number;
   maxClientsIdLength?: number;
+  maxTopicLevels?: number; // default: 100, clamped to [1, 100]
   decodeProtocol?: DecodeProtocolHandler;
   trustProxy?: boolean;
   trustedProxies?: string[];

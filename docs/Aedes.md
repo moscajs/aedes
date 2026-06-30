@@ -44,6 +44,7 @@
   Versions 1.x and above require persistence to support async access,see [MIGRATION.md][MIGRATION] for details.
   - `queueLimit` `<number>` maximum number of queued messages before client session is established. If number of queued items exceeds, `connectionError` throws an error `Client queue limit reached`. __Default__: `42`
   - `maxClientsIdLength` option to override MQTT 3.1.0 clients Id length limit. __Default__: `23`
+  - `maxTopicLevels` `<number>` maximum number of levels (`/`-separated segments) allowed in a `PUBLISH`/`SUBSCRIBE`/`UNSUBSCRIBE` topic or in a client's Will topic. Topics exceeding this limit are rejected instead of being routed, which prevents a remote Denial of Service: the underlying router (`qlobber`, via `mqemitter` and the persistence trie) throws a synchronous `too many words` error past its own `max_words` limit, which would otherwise crash the broker process. The value is clamped to `1`–`100`: `100` is a hard ceiling because the bundled `mqemitter` and `aedes-persistence` build `qlobber` with its default `max_words` of `100` and aedes cannot raise it, so a higher value could not be honored safely. __Default__: `100`
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
