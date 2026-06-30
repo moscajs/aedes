@@ -57,6 +57,36 @@ handled specially:
   mode). These are **excluded** from the denominator. The capability they probe is
   still measured elsewhere (`test_flow_control1` for receive-maximum).
 
+## Coverage scope — read the percentage correctly
+
+The percentage is **"% of the Paho functional suite that passes"**, not
+"% MQTT-5.0-compliant". The Paho suite is a third-party **happy-path functional**
+test: it exercises the user-facing v5 features well (session expiry, will + will
+delay, message expiry, RH/RAP/NL, request/response, payload format, assigned client
+id, server keep alive, inbound topic aliases, max-packet-size rejection, PUBLISH
+user properties), but it touches only 5 reason codes and deliberately omits large
+parts of the spec:
+
+- **Error / negative paths** — most of aedes's 19 reason codes (`lib/constants.js`):
+  `0x87` not-authorized acks, `0x8E` session takeover, `0x82` protocol errors,
+  `0x8C` bad auth method, `0x9E`, the CONNACK reject codes, broker-initiated
+  DISCONNECT with ReasonString, the oversized-frame read latch, wildcard
+  ResponseTopic rejection. These are covered by **`test/mqtt5.js`**, which is the
+  authoritative place aedes's v5 error semantics are pinned.
+- **Whole spec chapters** — AUTH / enhanced auth (§4.12), Server Reference
+  (`0x9C`/`0x9D`), CONNACK capability flags, ReasonString round-trips, and
+  UserProperty on non-PUBLISH packets. Some of these aedes does not implement; the
+  test gap left by *both* suites is tracked in
+  [#1096](https://github.com/moscajs/aedes/issues/1096).
+
+So treat this workflow as the **cross-implementation functional gauge** and
+`test/mqtt5.js` as the **gap-filler** — they are complementary, not redundant.
+
+Some Paho failures are intentional aedes design decisions rather than bugs (see
+`EXPECTED_GAPS`), and at least one is a genuine spec bug found by this suite:
+[#1095](https://github.com/moscajs/aedes/issues/1095) (zero-length ClientId +
+CleanSession=0 must be rejected on v3.1.1).
+
 ## Harness validation
 
 The harness was validated against the Paho project's own fully-compliant
