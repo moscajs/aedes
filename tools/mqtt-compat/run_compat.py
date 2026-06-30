@@ -182,8 +182,15 @@ def run_protocol(args, protocol):
         ran += 1
         if status == "pass":
             passed += 1
+        # A test listed in EXPECTED_GAPS that now PASSES is an "unexpected pass":
+        # the underlying feature was implemented (v5 is a work in progress), so the
+        # gap annotation is stale and EXPECTED_GAPS must be updated.
+        unexpected_pass = status == "pass" and name in gaps
         is_gap = name in gaps and status != "pass"
-        if status == "pass":
+        if unexpected_pass:
+            note = ("was an expected gap but now PASSES — remove it from "
+                    "EXPECTED_GAPS in tools/mqtt-compat/run_compat.py")
+        elif status == "pass":
             note = ""
         elif is_gap:
             note = gaps[name]
@@ -193,6 +200,7 @@ def run_protocol(args, protocol):
             "name": name,
             "status": status,
             "expected_gap": is_gap,
+            "unexpected_pass": unexpected_pass,
             "note": note,
         })
 
@@ -228,6 +236,22 @@ def render_markdown(reports):
                      f"{r['passed']} | {r['total']} |")
     lines.append("")
 
+    # Surface unexpected passes (a known gap that now works) prominently: v5 is a
+    # work in progress, so this means a feature got implemented and the gap list is
+    # now stale.
+    xpass = [(r["label"], t["name"]) for r in reports for t in r["results"]
+             if t.get("unexpected_pass")]
+    if xpass:
+        listed = ", ".join(f"`{name}` ({label})" for label, name in xpass)
+        lines += [
+            f"> 🎉 **{len(xpass)} test(s) marked as an expected gap now PASS:** {listed}.",
+            ">",
+            "> A previously-unsupported feature now works. Please update "
+            "`EXPECTED_GAPS` in `tools/mqtt-compat/run_compat.py` so it is no longer "
+            "treated as a known failure.",
+            "",
+        ]
+
     for r in reports:
         gaps = sum(1 for t in r["results"] if t["expected_gap"])
         summary = f"{r['label']} — {r['passed']}/{r['total']} passed"
@@ -237,14 +261,18 @@ def render_markdown(reports):
                   "| Test | Result | Notes |", "|------|--------|-------|"]
         for t in r["results"]:
             cell = STATUS_ICON.get(t["status"], "❔")
-            if t["expected_gap"]:
+            if t.get("unexpected_pass"):
+                cell += " 🎉 update gaps"
+            elif t["expected_gap"]:
                 cell += " ⚠️ expected"
             note = t["note"].replace("|", "\\|") if t["note"] else ""
             lines.append(f"| `{t['name']}` | {cell} | {note} |")
         lines += ["", "</details>", ""]
 
     lines.append("<sub>⚠️ expected = a feature aedes intentionally does not "
-                 "implement yet; counted as a failure in the raw percentage.</sub>")
+                 "implement yet, counted as a failure in the raw percentage. "
+                 "🎉 update gaps = an expected gap that now passes — update "
+                 "`EXPECTED_GAPS`.</sub>")
     return "\n".join(lines)
 
 
@@ -284,6 +312,16 @@ def main():
     for r in reports:
         print(f"{r['label']}: {r['percentage']}% ({r['passed']}/{r['total']})",
               file=sys.stderr)
+
+    # CI-agnostic signal for "expected gap now passes" so the workflow can turn it
+    # into a warning annotation without re-parsing the report.
+    xpass = [(r["label"], t["name"]) for r in reports for t in r["results"]
+             if t.get("unexpected_pass")]
+    if xpass:
+        listed = ", ".join(f"{name} ({label})" for label, name in xpass)
+        print(f"UNEXPECTED_PASS: {listed}", file=sys.stderr)
+        print("These tests are in EXPECTED_GAPS but now pass; update "
+              "tools/mqtt-compat/run_compat.py.", file=sys.stderr)
 
 
 if __name__ == "__main__":

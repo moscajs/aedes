@@ -72,6 +72,24 @@ jobs:
         if: always()
         run: kill "${BROKER_PID}" 2>/dev/null || true
 
+      - name: Warn on unexpected passes
+        if: always()
+        run: |
+          [ -f result.json ] || exit 0
+          python - <<'PY'
+          import json, os
+          data = json.load(open("result.json"))
+          xpass = [f"{t['name']} ({p['label']})"
+                   for p in data["protocols"] for t in p["results"]
+                   if t.get("unexpected_pass")]
+          if xpass:
+              names = ", ".join(xpass)
+              print(f"::warning title=MQTT compat: update EXPECTED_GAPS::"
+                    f"{len(xpass)} expected-gap test(s) now pass: {names}. "
+                    f"Remove them from EXPECTED_GAPS in "
+                    f"tools/mqtt-compat/run_compat.py.")
+          PY
+
       - name: Job summary
         if: always()
         run: cat report.md >> "$GITHUB_STEP_SUMMARY"

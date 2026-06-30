@@ -51,6 +51,10 @@ handled specially:
   intentionally does not implement yet (e.g. shared subscriptions, which the
   broker advertises as `sharedSubscriptionAvailable=false`). These still count as
   failures; they are only annotated with the reason so the table is readable.
+  Because v5 is a work in progress, the harness also detects the reverse: when an
+  `EXPECTED_GAPS` test starts **passing** (the feature got implemented), the report
+  highlights it with a 🎉 banner and the workflow emits a CI warning, prompting you
+  to remove the now-stale entry from `EXPECTED_GAPS`.
 - **Harness-limited** (`HARNESS_LIMITED`) — tests that cannot be evaluated under
   per-test isolation against *any* broker (currently only `test_flow_control2`,
   which depends on the persistent client the suite sets up only in single-process
