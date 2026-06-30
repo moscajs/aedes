@@ -663,6 +663,32 @@ test('MQTT 5.0 returns an Assigned Client Identifier for an empty clientId', asy
   t.assert.ok(broker.clients[assigned], 'client registered under the assigned id')
 })
 
+test('MQTT 5.0 returns Response Information when requested and configured', async (t) => {
+  t.plan(2)
+  const { connect } = await createServerAndConnect(t, {
+    brokerOptions: { responseInformation: 'resp/base' }
+  })
+  // Requested (requestResponseInformation) → the broker returns it.
+  const a = connect({ clientId: 'ri-on', properties: { requestResponseInformation: true } })
+  const [ca] = await once(a, 'connect')
+  t.assert.equal(ca.properties?.responseInformation, 'resp/base', 'returned when requested')
+
+  // Not requested → omitted, even though the broker is configured.
+  const b = connect({ clientId: 'ri-off' })
+  const [cb] = await once(b, 'connect')
+  t.assert.equal(cb.properties?.responseInformation, undefined, 'omitted when not requested')
+})
+
+test('MQTT 5.0 Response Information can be a per-client function', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t, {
+    brokerOptions: { responseInformation: (client) => `resp/${client.id}` }
+  })
+  const client = connect({ clientId: 'ri-fn', properties: { requestResponseInformation: true } })
+  const [connack] = await once(client, 'connect')
+  t.assert.equal(connack.properties?.responseInformation, 'resp/ri-fn', 'per-client value returned')
+})
+
 test('MQTT 5.0 imposes Server Keep Alive when the client exceeds the broker limit', async (t) => {
   t.plan(1)
   const { connect } = await createServerAndConnect(t, {
