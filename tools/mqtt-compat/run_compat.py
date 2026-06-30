@@ -42,17 +42,12 @@ EXPECTED_GAPS = {
         "test_shared_subscriptions":
             "aedes advertises sharedSubscriptionAvailable=false "
             "(deferred until cluster-aware; lib/handlers/connect.js)",
-        "test_subscribe_failure":
-            "relies on a server-side no-subscribe ACL aedes does not model",
         "test_flow_control1":
             "receiveMaximum is advertised but not yet enforced outbound (advisory)",
         "test_flow_control2":
             "receiveMaximum is advertised but not yet enforced outbound (advisory)",
     },
-    "v3": {
-        "test_subscribe_failure":
-            "relies on a server-side no-subscribe ACL aedes does not model",
-    },
+    "v3": {},
 }
 
 PROTOCOL_LABEL = {"v5": "MQTT 5.0", "v3": "MQTT 3.1.1"}

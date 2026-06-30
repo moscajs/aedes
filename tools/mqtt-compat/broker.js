@@ -24,6 +24,21 @@ const broker = await Aedes.createBroker({
   // the suite drives its own client-side limits via CONNECT properties.
 })
 
+// The Paho `test_subscribe_failure` (v3.1.1 and v5) subscribes to a topic that is
+// "not allowed to be subscribed to" and asserts the broker answers with SUBACK
+// reason code 0x80. That is a broker-configuration feature, not a default: aedes
+// supports it via authorizeSubscribe (return a null subscription -> granted 0x80),
+// and the Paho reference broker ships with exactly this rule. Mirror it here so
+// the test measures aedes's capability rather than the absence of a default ACL.
+const NO_SUBSCRIBE_TOPIC = 'test/nosubscribe'
+broker.authorizeSubscribe = function (client, sub, callback) {
+  if (sub.topic === NO_SUBSCRIBE_TOPIC) {
+    callback(null, null) // deny -> SUBACK 0x80
+    return
+  }
+  callback(null, sub)
+}
+
 const server = createServer(broker.handle)
 
 broker.on('clientError', (client, err) => {
