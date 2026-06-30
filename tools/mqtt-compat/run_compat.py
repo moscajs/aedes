@@ -43,9 +43,17 @@ EXPECTED_GAPS = {
             "aedes advertises sharedSubscriptionAvailable=false "
             "(deferred until cluster-aware; lib/handlers/connect.js)",
         "test_flow_control1":
-            "receiveMaximum is advertised but not yet enforced outbound (advisory)",
+            "receiveMaximum is advertised but not yet enforced outbound (advisory; "
+            "#829, deferred per #821)",
         "test_flow_control2":
-            "receiveMaximum is advertised but not yet enforced outbound (advisory)",
+            "receiveMaximum is advertised but not yet enforced outbound (advisory; "
+            "#829, deferred per #821)",
+        "test_server_topic_alias":
+            "broker-assigned (outbound) topic aliases are not implemented; inbound "
+            "aliases work (#840 — spec-optional/MAY, deferred per #821)",
+        "test_subscribe_identifiers":
+            "a delivery matching multiple overlapping subscriptions echoes only one "
+            "Subscription Identifier (#828 [MQTT-3.3.4-4] — deferred per #821)",
     },
     "v3": {},
 }
