@@ -599,6 +599,58 @@ test('MQTT 5.0 unauthorized QoS2 publish is answered with 0x87 (PUBREC), not a d
   t.assert.ok(acks.some(a => a.reasonCode === 0x87), 'PUBREC carried 0x87 Not authorized')
 })
 
+test('MQTT 5.0 unauthorized publish PUBACK carries a Reason String, honoring Request Problem Information', async (t) => {
+  t.plan(3)
+  const { connect } = await createServerAndConnect(t, {
+    brokerOptions: {
+      authorizePublish: (client, packet, cb) => {
+        cb(packet.topic.startsWith('denied') ? new Error('not allowed here') : null)
+      }
+    }
+  })
+
+  // Default Request Problem Information (1): the 0x87 PUBACK carries the broker's
+  // error as a Reason String (#823).
+  const pub = connect({ clientId: 'rpi-on', reconnectPeriod: 0 })
+  await once(pub, 'connect')
+  const acks = []
+  pub.on('packetreceive', (p) => { if (p.cmd === 'puback') acks.push(p) })
+  try { await pub.publishAsync('denied/x', 'd', { qos: 1 }) } catch { /* 0x87 */ }
+  while (acks.length === 0) await delay(5)
+  t.assert.equal(acks[0].reasonCode, 0x87, '0x87 Not authorized')
+  t.assert.equal(acks[0].properties?.reasonString, 'not allowed here', 'Reason String present')
+
+  // Request Problem Information = false [MQTT-3.1.2-29]: still 0x87, but no Reason String.
+  const pub2 = connect({ clientId: 'rpi-off', reconnectPeriod: 0, properties: { requestProblemInformation: false } })
+  await once(pub2, 'connect')
+  const acks2 = []
+  pub2.on('packetreceive', (p) => { if (p.cmd === 'puback') acks2.push(p) })
+  try { await pub2.publishAsync('denied/y', 'd', { qos: 1 }) } catch { /* 0x87 */ }
+  while (acks2.length === 0) await delay(5)
+  t.assert.equal(acks2[0].properties?.reasonString, undefined, 'Reason String suppressed when RPI=0')
+})
+
+test('MQTT 5.0 a denied SUBSCRIBE returns SUBACK reason code 0x87 (not the coarse 0x80)', async (t) => {
+  t.plan(1)
+  const { connect } = await createServerAndConnect(t, {
+    brokerOptions: {
+      authorizeSubscribe: (client, sub, cb) => cb(null, sub.topic === 'denied' ? null : sub)
+    }
+  })
+  const client = connect({ clientId: 'sub-denied', reconnectPeriod: 0 })
+  await once(client, 'connect')
+
+  // mqtt.js rejects subscribeAsync when a granted code is >= 0x80; read it off the
+  // SUBACK packet either way.
+  let granted
+  try {
+    granted = (await client.subscribeAsync('denied')).map(g => g.qos)
+  } catch (err) {
+    granted = err.packet?.granted
+  }
+  t.assert.deepEqual(granted, [0x87], 'denied subscription → 0x87 Not authorized')
+})
+
 test('MQTT 5.0 returns an Assigned Client Identifier for an empty clientId', async (t) => {
   t.plan(2)
   const { broker, connect } = await createServerAndConnect(t)
