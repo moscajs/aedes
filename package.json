@@ -101,7 +101,7 @@
 		"license-checker": "^25.0.1",
 		"markdownlint-cli": "^0.45.0",
 		"mqtt": "^5.14.0",
-		"neostandard": "^0.12.2",
+		"neostandard": "^0.13.0",
 		"release-it": "^19.0.4",
 		"testcontainers": "^11.9.0",
 		"toxiproxy-node-client": "^4.0.0",
