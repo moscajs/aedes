@@ -109,7 +109,7 @@
 		"ws": "^8.18.3"
 	},
 	"dependencies": {
-		"aedes-packet": "^3.0.0",
+		"aedes-packet": "^4.0.1",
 		"aedes-persistence": "^10.2.2",
 		"mqemitter": "^7.1.0",
 		"mqtt-packet": "^9.0.2"
