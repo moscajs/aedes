@@ -8,8 +8,9 @@ name: MQTT Compatibility Comment
 # This workflow closes that gap the fork-safe way: it triggers on workflow_run
 # once the compat run completes, executes only trusted base-repo code, and so is
 # granted pull-requests: write. It NEVER checks out or runs any PR code — the only
-# thing crossing the trust boundary is inert data (report.md + the PR number)
-# downloaded from the compat run's artifact.
+# thing crossing the trust boundary is the report.md comment body downloaded from
+# the compat run's artifact; the target PR is resolved from trusted workflow_run
+# metadata, never from the (untrusted) artifact.
 #
 # Note: this file always runs from the repository's default branch, so edits to
 # the commenting logic only take effect once merged there — not from within a PR
@@ -28,9 +29,9 @@ permissions:
 # Serialize comment runs per PR source (repo + branch), not per compat run id:
 # keying on the run id would make every group a singleton, so a stale comment
 # job could overwrite a newer one. Keying on the PR's identity lets a newer
-# compat run's comment job cancel an older one still in flight. The fork PR
-# number isn't on the workflow_run payload (that's why we pass it via artifact),
-# but head_repository + head_branch uniquely identify the PR source.
+# compat run's comment job cancel an older one still in flight. head_repository +
+# head_branch uniquely identify the PR source (the same pair the job resolves the
+# PR number from).
 concurrency:
   group: mqtt-compat-comment-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
@@ -59,19 +60,47 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      # Guard: only comment when the artifact carries both the PR number and a
-      # report. A compat run that died before producing either simply gets no
-      # comment (its failure is already visible in the Checks tab).
+      # Resolve which PR to comment on from the TRUSTED workflow_run head metadata,
+      # never from the artifact: the artifact is built by the untrusted compat job
+      # that runs fork code, so a poisoned pr-number could retarget the comment
+      # (posted under the bot's write token) at any issue/PR in the repo. Instead
+      # we look the PR up by its head repo:branch and confirm head_sha matches the
+      # run, then bail if there's no match or no report to post.
       - name: Resolve comment inputs
         id: resolve
-        run: |
-          if [ -f compat-result/pr-number.txt ] && [ -f compat-result/report.md ]; then
-            echo "number=$(cat compat-result/pr-number.txt)" >> "$GITHUB_OUTPUT"
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Missing pr-number.txt or report.md in artifact; nothing to post."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          fi
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('compat-result/report.md')) {
+              core.info('No report.md in artifact; nothing to post.');
+              core.setOutput('ready', 'false');
+              return;
+            }
+            const run = context.payload.workflow_run;
+            const headOwner = run.head_repository?.owner?.login;
+            const headBranch = run.head_branch;
+            const headSha = run.head_sha;
+            if (!headOwner || !headBranch || !headSha) {
+              core.info('Missing workflow_run head metadata; nothing to post.');
+              core.setOutput('ready', 'false');
+              return;
+            }
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              head: `${headOwner}:${headBranch}`,
+              per_page: 100,
+            });
+            const pr = prs.find(p => p.head.sha === headSha);
+            if (!pr) {
+              core.info(`No PR matches ${headOwner}:${headBranch}@${headSha}; nothing to post.`);
+              core.setOutput('ready', 'false');
+              return;
+            }
+            core.setOutput('number', String(pr.number));
+            core.setOutput('ready', 'true');
 
       - name: Sticky PR comment
         if: steps.resolve.outputs.ready == 'true'
