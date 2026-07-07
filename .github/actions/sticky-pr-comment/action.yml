@@ -7,6 +7,10 @@ inputs:
   tag:
     description: "Unique tag to identify the comment (e.g. <!-- BENCHMARK_REPORT_COMMENT -->)"
     required: true
+  pr-number:
+    description: "PR number to comment on. Defaults to the pull_request in the event payload; pass explicitly from workflow_run callers, whose context has no pull_request."
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -35,12 +39,15 @@ runs:
         # backticks or ${...} that would otherwise break the JS template literal.
         STICKY_TAG: ${{ inputs.tag }}
         STICKY_BODY: ${{ steps.file.outputs.body }}
+        STICKY_PR_NUMBER: ${{ inputs.pr-number }}
       with:
         github-token: ${{ github.token }}
         script: |
           const tag = process.env.STICKY_TAG;
           const body = `${tag}\n${process.env.STICKY_BODY}`;
-          const pr = context.payload.pull_request?.number;
+          // workflow_run callers pass the PR number explicitly (their event
+          // payload has no pull_request); pull_request callers fall back to it.
+          const pr = Number(process.env.STICKY_PR_NUMBER) || context.payload.pull_request?.number;
           if (!pr) {
             core.setFailed("No pull request found in context.");
             return;

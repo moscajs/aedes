@@ -2,16 +2,24 @@ name: MQTT Compatibility
 
 # Measures aedes's actual MQTT 5.0 + 3.1.1 compatibility by running the vendor-
 # neutral Eclipse Paho interoperability suite against a broker booted from this
-# branch, then posts the pass-rate as a sticky PR comment and a job summary.
+# branch, then surfaces the pass-rate as a job summary and an uploaded artifact.
+#
+# This workflow runs untrusted fork code, so it holds only a read-only token and
+# never posts to the PR itself. The companion "MQTT Compatibility Comment"
+# workflow (mqtt-compat-comment.yml) runs on workflow_run from trusted base-repo
+# code, downloads the artifact produced here, and posts the sticky PR comment —
+# the standard fork-safe pattern that lets external contributors get a comment
+# without ever granting write scope to untrusted code.
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
+# Read-only: this workflow executes untrusted PR code, so it must not hold any
+# write scope. Commenting happens in the companion workflow_run workflow.
 permissions:
   contents: read
-  pull-requests: write # required to post/update the sticky comment
 
 # Supersede in-flight runs for the same PR (or ref) so rapid pushes can't race
 # the sticky comment into duplicates or overwrite a newer result with a stale one.
@@ -114,19 +122,19 @@ jobs:
         if: always()
         run: cat report.md >> "$GITHUB_STEP_SUMMARY"
 
-      # Only same-repo PRs can post a comment: fork PRs get a read-only GITHUB_TOKEN
-      # (the property that makes this workflow safe to run untrusted code), so the
-      # API call would 403 and fail the job for every external contributor. Forks
-      # still get the job summary above. continue-on-error guards transient API
-      # failures so a posting hiccup never reds the compat result.
-      - name: Sticky PR comment
-        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        uses: ./.github/actions/sticky-pr-comment
-        with:
-          file: report.md
-          tag: "<!-- MQTT_COMPAT_COMMENT -->"
+      # Record the PR number so the companion workflow_run workflow — which has no
+      # pull_request in its event payload — knows which PR to comment on. Passed
+      # via env (never spliced into the script) as a matter of habit; the value is
+      # a GitHub-supplied integer and cannot inject.
+      - name: Record PR number for the comment workflow
+        if: always() && github.event_name == 'pull_request'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "$PR_NUMBER" > pr-number.txt
 
+      # report.md/result.json feed the job summary and the comment workflow;
+      # pr-number.txt tells that workflow which PR to post to. Always uploaded so a
+      # failed compat run still surfaces its partial report and gets a comment.
       - name: Upload result artifact
         if: always()
         uses: actions/upload-artifact@v7
@@ -135,4 +143,6 @@ jobs:
           path: |
             report.md
             result.json
+            pr-number.txt
           retention-days: 14
+          if-no-files-found: ignore
