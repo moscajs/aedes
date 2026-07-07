@@ -122,18 +122,10 @@ jobs:
         if: always()
         run: cat report.md >> "$GITHUB_STEP_SUMMARY"
 
-      # Record the PR number so the companion workflow_run workflow — which has no
-      # pull_request in its event payload — knows which PR to comment on. Passed
-      # via env (never spliced into the script) as a matter of habit; the value is
-      # a GitHub-supplied integer and cannot inject.
-      - name: Record PR number for the comment workflow
-        if: always() && github.event_name == 'pull_request'
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: echo "$PR_NUMBER" > pr-number.txt
-
-      # report.md/result.json feed the job summary and the comment workflow;
-      # pr-number.txt tells that workflow which PR to post to. Always uploaded so a
+      # report.md is the comment body the companion workflow_run workflow posts;
+      # result.json is kept for debugging. The comment workflow resolves which PR
+      # to post to from trusted workflow_run metadata, not from this artifact —
+      # nothing PR-identifying is (or should be) carried here. Always uploaded so a
       # failed compat run still surfaces its partial report and gets a comment.
       - name: Upload result artifact
         if: always()
@@ -143,6 +135,5 @@ jobs:
           path: |
             report.md
             result.json
-            pr-number.txt
           retention-days: 14
           if-no-files-found: ignore
