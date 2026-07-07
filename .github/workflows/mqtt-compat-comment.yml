@@ -25,18 +25,27 @@ permissions:
   actions: read # download the artifact from the triggering run
   pull-requests: write # post/update the sticky comment
 
-# One comment run per compat run; a newer compat run supersedes an in-flight one.
+# Serialize comment runs per PR source (repo + branch), not per compat run id:
+# keying on the run id would make every group a singleton, so a stale comment
+# job could overwrite a newer one. Keying on the PR's identity lets a newer
+# compat run's comment job cancel an older one still in flight. The fork PR
+# number isn't on the workflow_run payload (that's why we pass it via artifact),
+# but head_repository + head_branch uniquely identify the PR source.
 concurrency:
-  group: mqtt-compat-comment-${{ github.event.workflow_run.id }}
+  group: mqtt-compat-comment-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 jobs:
   comment:
     name: Post compatibility comment
     runs-on: ubuntu-latest
-    # Only comment for compat runs triggered by a pull request; pushes and manual
-    # dispatches have no PR to post to.
-    if: github.event.workflow_run.event == 'pull_request'
+    # Only comment for compat runs triggered by a pull request (pushes and manual
+    # dispatches have no PR to post to), and skip runs the parent cancelled — a
+    # superseded compat run has nothing worth posting. Genuine failures still
+    # comment, so a failing report reaches the PR.
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
     steps:
       # Checks out the default branch (trusted), never the PR head — needed only
       # to make the local ./.github/actions/sticky-pr-comment composite available.

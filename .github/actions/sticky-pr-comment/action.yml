@@ -52,13 +52,16 @@ runs:
             core.setFailed("No pull request found in context.");
             return;
           }
-          const { data: comments } = await github.rest.issues.listComments({
+          // Paginate: a busy PR can push the sticky comment past the first page,
+          // and missing it would post a duplicate instead of updating in place.
+          const comments = await github.paginate(github.rest.issues.listComments, {
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: pr,
+            per_page: 100,
           });
           const tagged = comments.find(comment =>
-            comment.body.includes(tag)
+            comment.body?.includes(tag)
           );
           if (tagged) {
             await github.rest.issues.updateComment({
