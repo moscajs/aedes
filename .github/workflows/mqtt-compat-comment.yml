@@ -1,0 +1,82 @@
+name: MQTT Compatibility Comment
+
+# Companion to "MQTT Compatibility" (mqtt-compat.yml). That workflow runs on
+# pull_request with a read-only token so it can safely execute untrusted fork
+# code — which is exactly why it cannot post a PR comment (fork PRs get a
+# read-only GITHUB_TOKEN and the API call would 403).
+#
+# This workflow closes that gap the fork-safe way: it triggers on workflow_run
+# once the compat run completes, executes only trusted base-repo code, and so is
+# granted pull-requests: write. It NEVER checks out or runs any PR code — the only
+# thing crossing the trust boundary is inert data (report.md + the PR number)
+# downloaded from the compat run's artifact.
+#
+# Note: this file always runs from the repository's default branch, so edits to
+# the commenting logic only take effect once merged there — not from within a PR
+# that changes this file.
+
+on:
+  workflow_run:
+    workflows: ["MQTT Compatibility"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read # download the artifact from the triggering run
+  pull-requests: write # post/update the sticky comment
+
+# Serialize comment runs per PR source (repo + branch), not per compat run id:
+# keying on the run id would make every group a singleton, so a stale comment
+# job could overwrite a newer one. Keying on the PR's identity lets a newer
+# compat run's comment job cancel an older one still in flight. The fork PR
+# number isn't on the workflow_run payload (that's why we pass it via artifact),
+# but head_repository + head_branch uniquely identify the PR source.
+concurrency:
+  group: mqtt-compat-comment-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    name: Post compatibility comment
+    runs-on: ubuntu-latest
+    # Only comment for compat runs triggered by a pull request (pushes and manual
+    # dispatches have no PR to post to), and skip runs the parent cancelled — a
+    # superseded compat run has nothing worth posting. Genuine failures still
+    # comment, so a failing report reaches the PR.
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+    steps:
+      # Checks out the default branch (trusted), never the PR head — needed only
+      # to make the local ./.github/actions/sticky-pr-comment composite available.
+      - uses: actions/checkout@v7
+
+      - name: Download compat result
+        uses: actions/download-artifact@v7
+        with:
+          name: mqtt-compat-result
+          path: compat-result
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      # Guard: only comment when the artifact carries both the PR number and a
+      # report. A compat run that died before producing either simply gets no
+      # comment (its failure is already visible in the Checks tab).
+      - name: Resolve comment inputs
+        id: resolve
+        run: |
+          if [ -f compat-result/pr-number.txt ] && [ -f compat-result/report.md ]; then
+            echo "number=$(cat compat-result/pr-number.txt)" >> "$GITHUB_OUTPUT"
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Missing pr-number.txt or report.md in artifact; nothing to post."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sticky PR comment
+        if: steps.resolve.outputs.ready == 'true'
+        uses: ./.github/actions/sticky-pr-comment
+        with:
+          file: compat-result/report.md
+          tag: "<!-- MQTT_COMPAT_COMMENT -->"
+          pr-number: ${{ steps.resolve.outputs.number }}

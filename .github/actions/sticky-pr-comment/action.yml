@@ -7,36 +7,61 @@ inputs:
   tag:
     description: "Unique tag to identify the comment (e.g. <!-- BENCHMARK_REPORT_COMMENT -->)"
     required: true
+  pr-number:
+    description: "PR number to comment on. Defaults to the pull_request in the event payload; pass explicitly from workflow_run callers, whose context has no pull_request."
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
     - name: Read file and set as output
       id: file
       shell: bash
+      env:
+        # Reference the input via env, never splice ${{ inputs.file }} into the
+        # script: a caller-controlled path must not be able to inject shell.
+        INPUT_FILE: ${{ inputs.file }}
       run: |
-        echo "body<<EOF" >> $GITHUB_OUTPUT
-        cat "${{ inputs.file }}" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        # Random, unguessable heredoc delimiter: a fixed "EOF" would let a body
+        # line that is literally "EOF" terminate the heredoc early and inject
+        # arbitrary key=value pairs into $GITHUB_OUTPUT.
+        delimiter="ghadelimiter_$(openssl rand -hex 16)"
+        {
+          echo "body<<$delimiter"
+          cat "$INPUT_FILE"
+          echo "$delimiter"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Post or update PR comment
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
+      env:
+        # Pass via env, not script interpolation: the file body can contain
+        # backticks or ${...} that would otherwise break the JS template literal.
+        STICKY_TAG: ${{ inputs.tag }}
+        STICKY_BODY: ${{ steps.file.outputs.body }}
+        STICKY_PR_NUMBER: ${{ inputs.pr-number }}
       with:
         github-token: ${{ github.token }}
         script: |
-          const tag = `${{ inputs.tag }}`;
-          const body = `${tag}\n${{ steps.file.outputs.body }}`;
-          const pr = context.payload.pull_request?.number;
+          const tag = process.env.STICKY_TAG;
+          const body = `${tag}\n${process.env.STICKY_BODY}`;
+          // workflow_run callers pass the PR number explicitly (their event
+          // payload has no pull_request); pull_request callers fall back to it.
+          const pr = Number(process.env.STICKY_PR_NUMBER) || context.payload.pull_request?.number;
           if (!pr) {
             core.setFailed("No pull request found in context.");
             return;
           }
-          const { data: comments } = await github.rest.issues.listComments({
+          // Paginate: a busy PR can push the sticky comment past the first page,
+          // and missing it would post a duplicate instead of updating in place.
+          const comments = await github.paginate(github.rest.issues.listComments, {
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: pr,
+            per_page: 100,
           });
           const tagged = comments.find(comment =>
-            comment.body.includes(tag)
+            comment.body?.includes(tag)
           );
           if (tagged) {
             await github.rest.issues.updateComment({
