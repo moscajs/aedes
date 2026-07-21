@@ -1,0 +1,49 @@
+Subject: [PATCH] Paho v5: accept spec-valid SUBACK failure reason codes (0x87)
+
+Two coupled fixes so the pinned Paho MQTT 5.0 suite accepts a broker that
+answers a denied SUBSCRIBE with the granular reason code 0x87 (Not authorized),
+as aedes does per MQTT-5.0 §3.9.3 (#822).
+
+1. mqtt/formats/MQTTV5/MQTTV5.py — the SUBACK unpacker hard-asserts every reason
+   code is in [0, 1, 2, 0x80]. That set is incomplete: MQTT-5.0 §3.9.3 also
+   defines 0x83, 0x87, 0x8F, 0x91, 0x97, 0x9E, 0xA1, 0xA2 as valid SUBACK reason
+   codes. Aedes's spec-valid 0x87 therefore throws inside Paho's *codec*, before
+   the SUBACK reaches the test — the callback list stays empty and the test dies
+   with an IndexError, not the assertion it means to check. Widen the allowed set
+   to the full §3.9.3 list.
+
+2. client_test5.py — test_subscribe_failure then asserts the code is exactly
+   0x80 (copied verbatim from the 3.1.1 suite; its own comment still reads "A new
+   feature of MQTT 3.1.1"). Accept either failure code (0x80 or 0x87) so the test
+   measures the capability ("a denied subscription yields a failure SUBACK")
+   rather than a code the v5 spec no longer mandates.
+
+v3.1.1 still returns 0x80 and is unaffected. Both are Paho-side staleness, not
+aedes gaps. Applied to the pinned checkout by the "MQTT Compatibility" workflow
+before the suite runs; if a PAHO_REF bump makes a hunk fail to apply, re-anchor
+it (codec assert in UnsubSubacks.unpack; test assert in Test.test_subscribe_failure).
+
+diff --git a/interoperability/client_test5.py b/interoperability/client_test5.py
+--- a/interoperability/client_test5.py
++++ b/interoperability/client_test5.py
+@@ -339,7 +339,7 @@ class Test(unittest.TestCase):
+         time.sleep(1)
+         # subscribeds is a list of (msgid, [qos])
+         logging.info(callback.subscribeds)
+-        assert callback.subscribeds[0][1][0].value == 0x80, "return code should be 0x80 %s" % callback.subscribeds
++        assert callback.subscribeds[0][1][0].value in (0x80, 0x87), "return code should be a failure reason code (0x80 or 0x87) %s" % callback.subscribeds
+       except:
+         traceback.print_exc()
+         succeeded = False
+diff --git a/interoperability/mqtt/formats/MQTTV5/MQTTV5.py b/interoperability/mqtt/formats/MQTTV5/MQTTV5.py
+--- a/interoperability/mqtt/formats/MQTTV5/MQTTV5.py
++++ b/interoperability/mqtt/formats/MQTTV5/MQTTV5.py
+@@ -1335,7 +1335,7 @@ class UnsubSubacks(Packets):
+       else:
+         reasonCode = ReasonCodes(self.packetType, "Success")
+       reasonCode.unpack(buffer[-leftlen:])
+-      assert reasonCode.value in [0, 1, 2, 0x80], "[MQTT5-3.9.3-2] return code in QoS must be 0, 1, 2 or 0x80"
++      assert reasonCode.value in [0, 1, 2, 0x80, 0x83, 0x87, 0x8F, 0x91, 0x97, 0x9E, 0xA1, 0xA2], "[MQTT-3.9.3] SUBACK reason code must be a Granted QoS (0/1/2) or a valid failure code"
+       leftlen -= 1
+       self.reasonCodes.append(reasonCode)
+     assert leftlen == 0

@@ -57,3 +57,10 @@ out.tap
 
 # aedes examples
 shared-mqemitter
+
+# mqtt-compat tooling: Python bytecode cache + local run artifacts
+__pycache__/
+*.pyc
+/paho/
+/report.md
+/result.json

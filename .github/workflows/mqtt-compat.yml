@@ -1,0 +1,139 @@
+name: MQTT Compatibility
+
+# Measures aedes's actual MQTT 5.0 + 3.1.1 compatibility by running the vendor-
+# neutral Eclipse Paho interoperability suite against a broker booted from this
+# branch, then surfaces the pass-rate as a job summary and an uploaded artifact.
+#
+# This workflow runs untrusted fork code, so it holds only a read-only token and
+# never posts to the PR itself. The companion "MQTT Compatibility Comment"
+# workflow (mqtt-compat-comment.yml) runs on workflow_run from trusted base-repo
+# code, downloads the artifact produced here, and posts the sticky PR comment —
+# the standard fork-safe pattern that lets external contributors get a comment
+# without ever granting write scope to untrusted code.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+# Read-only: this workflow executes untrusted PR code, so it must not hold any
+# write scope. Commenting happens in the companion workflow_run workflow.
+permissions:
+  contents: read
+
+# Supersede in-flight runs for the same PR (or ref) so rapid pushes can't race
+# the sticky comment into duplicates or overwrite a newer result with a stale one.
+concurrency:
+  group: mqtt-compat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned Paho commit: keeps results reproducible and the module-global contract
+  # run_compat.py relies on stable. Bump deliberately.
+  PAHO_REF: 9d7bb80bb8b9d9cfc0b52f8cb4c1916401281103
+  MQTT_PORT: 1883
+
+jobs:
+  compat:
+    name: Paho interoperability
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Fetch Paho interoperability suite (pinned)
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/eclipse-paho/paho.mqtt.testing paho
+          git -C paho checkout "$PAHO_REF"
+
+      # Apply targeted fixes for known-stale assertions in the pinned suite (e.g.
+      # a v5 test still asserting a 3.1.1-only reason code). Each patch documents
+      # its rationale in its header. Fails loudly if a patch no longer applies —
+      # that is the signal to re-anchor it when bumping PAHO_REF.
+      - name: Patch pinned Paho suite
+        run: |
+          shopt -s nullglob
+          for p in tools/mqtt-compat/patches/*.patch; do
+            echo "::group::Applying $(basename "$p")"
+            git -C paho apply --verbose "$GITHUB_WORKSPACE/$p"
+            echo "::endgroup::"
+          done
+
+      - name: Start aedes broker
+        run: |
+          node tools/mqtt-compat/broker.js &
+          echo "BROKER_PID=$!" >> "$GITHUB_ENV"
+          python - "$MQTT_PORT" <<'PY'
+          import socket, sys, time
+          port = int(sys.argv[1])
+          for _ in range(100):
+              try:
+                  socket.create_connection(("localhost", port), 0.3).close()
+                  print(f"broker is up on {port}"); sys.exit(0)
+              except OSError:
+                  time.sleep(0.2)
+          print(f"broker did not come up on {port}"); sys.exit(1)
+          PY
+
+      - name: Run compatibility suites
+        run: |
+          python tools/mqtt-compat/run_compat.py \
+            --paho paho/interoperability \
+            --host localhost --port "${MQTT_PORT}" \
+            --timeout 45 \
+            --out report.md --json result.json
+
+      - name: Stop aedes broker
+        if: always()
+        run: kill "${BROKER_PID}" 2>/dev/null || true
+
+      - name: Warn on unexpected passes
+        if: always()
+        run: |
+          [ -f result.json ] || exit 0
+          python - <<'PY'
+          import json, os
+          data = json.load(open("result.json"))
+          xpass = [f"{t['name']} ({p['label']})"
+                   for p in data["protocols"] for t in p["results"]
+                   if t.get("unexpected_pass")]
+          if xpass:
+              names = ", ".join(xpass)
+              print(f"::warning title=MQTT compat: update EXPECTED_GAPS::"
+                    f"{len(xpass)} expected-gap test(s) now pass: {names}. "
+                    f"Remove them from EXPECTED_GAPS in "
+                    f"tools/mqtt-compat/run_compat.py.")
+          PY
+
+      - name: Job summary
+        if: always()
+        run: cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      # report.md is the comment body the companion workflow_run workflow posts;
+      # result.json is kept for debugging. The comment workflow resolves which PR
+      # to post to from trusted workflow_run metadata, not from this artifact —
+      # nothing PR-identifying is (or should be) carried here. Always uploaded so a
+      # failed compat run still surfaces its partial report and gets a comment.
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mqtt-compat-result
+          path: |
+            report.md
+            result.json
+          retention-days: 14
+          if-no-files-found: ignore

@@ -23,6 +23,12 @@ const broker = new Aedes({
   trustProxy: true,
   trustedProxies: ['127.0.0.1'],
   decodeProtocol: (client: Client, buffer: Buffer) => buffer,
+  topicAliasMaximum: 10,
+  maximumPacketSize: 1048576,
+  receiveMaximum: 20,
+  sessionExpiryIntervalLimit: 86400,
+  pendingSessionsLimit: 10000,
+  responseInformation: (client: Client) => 'resp/' + client.id,
   preConnect: (client: Client, packet: ConnectPacket, callback) => {
     if (client.req) {
       callback(new Error('not websocket stream'), false)
@@ -104,6 +110,11 @@ const broker = new Aedes({
 
 expectType<Aedes>(broker)
 
+// responseInformation accepts a static string and the null disable sentinel too,
+// not just the (client) => string function arm exercised above.
+expectType<Aedes>(new Aedes({ responseInformation: 'resp/base' }))
+expectType<Aedes>(new Aedes({ responseInformation: null }))
+
 expectType<Readonly<Brokers>>(broker.brokers)
 
 expectType<Aedes>(broker.on('closed', () => {}))
@@ -137,6 +148,18 @@ expectType<Aedes>(
 )
 expectType<Aedes>(
   broker.on('unsubscribe', (unsubscriptions: string[], client: Client) => {})
+)
+expectType<Aedes>(
+  broker.on('sessionExpired', (client: Client) => {})
+)
+expectType<Aedes>(
+  broker.on(
+    'sessionLimitReached',
+    (client: Client, info: { reason: 'sessionExpiry' | 'willDelay'; limit: number }) => {}
+  )
+)
+expectType<Aedes>(
+  broker.on('willDropped', (client: Client, will: NonNullable<ConnectPacket['will']>) => {})
 )
 
 expectType<void>(
@@ -221,3 +244,15 @@ expectType<void>(client.emptyOutgoingQueue(() => {}))
 
 expectType<void>(client.close())
 expectType<void>(client.close(() => {}))
+
+// MQTT 5.0 server-initiated disconnect: opts form, opts+callback, and the
+// callback-only overload.
+expectType<void>(client.disconnect())
+expectType<void>(client.disconnect(() => {}))
+expectType<void>(client.disconnect({ reasonCode: 0x8b }))
+expectType<void>(
+  client.disconnect(
+    { reasonCode: 0x8b, properties: { reasonString: 'server shutting down' } },
+    () => {}
+  )
+)

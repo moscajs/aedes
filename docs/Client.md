@@ -11,12 +11,17 @@
   - [client.id](#clientid)
   - [client.clean](#clientclean)
   - [client.version](#clientversion)
+  - [client.disconnectReasonCode](#clientdisconnectreasoncode)
+  - [client.sessionExpiryInterval](#clientsessionexpiryinterval)
+  - [client.maximumPacketSize](#clientmaximumpacketsize)
+  - [client.receiveMaximum](#clientreceivemaximum)
   - [Event: connected](#event-connected)
   - [Event: error](#event-error)
   - [client.publish (packet, [callback])](#clientpublish-packet-callback)
   - [client.subscribe (subscriptions, [callback])](#clientsubscribe-subscriptions-callback)
   - [client.unsubscribe (unsubscriptions, [callback])](#clientunsubscribe-unsubscriptions-callback)
   - [client.close ([callback])](#clientclose-callback)
+  - [client.disconnect ([opts], [callback])](#clientdisconnect-opts-callback)
   - [client.emptyOutgoingQueue ([callback])](#clientemptyoutgoingqueue-callback)
 
 ## new Client(aedes, stream, request)
@@ -76,13 +81,44 @@ It is available only after `CONNACK (rc=0)`, otherwise it is `null` in cases:
 
 - `<boolean>` __Default__: `true`
 
-Client clean flag, set by clean flag in `CONNECT` packet.
+Whether this session is ephemeral — it does _not_ outlive the network connection (no subscriptions or queued messages are persisted past disconnect).
+
+For MQTT 3.1/3.1.1 this equals the `CONNECT` Clean Session flag. For MQTT 5.0 it tracks the _persistence_ axis derived from the Session Expiry Interval (`clean === (sessionExpiryInterval === 0)`), which v5 decouples from Clean Start:
+
+- __Clean Start__ (`CONNECT` clean flag) decides whether a prior session is _resumed_ at connect.
+- __Session Expiry Interval__ decides whether _this_ session is _retained_ after disconnect — i.e. `client.clean`.
+
+So a v5 client that connects with Clean Start = `true` _and_ a non-zero Session Expiry Interval has `client.clean === false` (fresh session, but persisted past disconnect). To detect Clean Start specifically on v5, read the `CONNECT` packet's clean flag rather than `client.clean`.
 
 ## client.version
 
 - `<number>` __Default__: `null`
 
 Client version, set by protocol version in `CONNECT` packet when `CONNACK (rc=0)` returns.
+
+## client.disconnectReasonCode
+
+- `<number> | null` __Default__: `null`
+
+MQTT 5.0 only. When the broker initiates the disconnect, the reason code sent to the client (e.g. `0x8E` session taken over, `0x8B` server shutting down, `0x95` packet too large). Remains `null` for a normal client-initiated disconnect. Readable on the [`clientDisconnect`](./Aedes.md#event-clientdisconnect) event to distinguish a server kick from a normal drop.
+
+## client.sessionExpiryInterval
+
+- `<number>` __Default__: `0`
+
+MQTT 5.0 only. The negotiated Session Expiry Interval in seconds: taken from the `CONNECT` property (clamped to the broker's `sessionExpiryIntervalLimit`), and updated by a `DISCONNECT` that carries the property. `0` ends the session with the network connection; `0xFFFFFFFF` means it never expires.
+
+## client.maximumPacketSize
+
+- `<number> | undefined` __Default__: `undefined`
+
+MQTT 5.0 only. The Maximum Packet Size (bytes) the client advertised it will accept, or `undefined` if none. Advisory on the broker side (stored, not enforced on outbound delivery).
+
+## client.receiveMaximum
+
+- `<number>` __Default__: `65535`
+
+MQTT 5.0 only. The Receive Maximum the client advertised (its inbound in-flight QoS 1/2 limit). Advisory on the broker side.
 
 ## Event: connected
 
@@ -141,6 +177,15 @@ Unsubscribe client to the list of topics.
 Disconnect client
 
 `callback` will be invoked when client is closed.
+
+## client.disconnect ([opts], [callback])
+
+- opts: `<object>`
+  - reasonCode: `<number>` MQTT 5.0 disconnect reason code (e.g. `0x8B` server shutting down, `0x9C` use another server, `0x9D` server moved). Default `0`.
+  - properties: `<object>` MQTT 5.0 `DISCONNECT` properties (e.g. `reasonString`, `serverReference`, `userProperties`).
+- callback: `<Function>` invoked once the client is closed.
+
+MQTT 5.0 only: gracefully disconnect a client by sending a `DISCONNECT` packet with the given reason code and properties before closing the connection. For v3/v4 clients (which have no server-side `DISCONNECT`) this just closes the connection. Use `properties.serverReference` with reason code `0x9C`/`0x9D` to redirect a client to another server mid-session.
 
 ## client.emptyOutgoingQueue ([callback])
 

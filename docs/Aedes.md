@@ -21,6 +21,9 @@
   - [Event: unsubscribe](#event-unsubscribe)
   - [Event: connackSent](#event-connacksent)
   - [Event: closed](#event-closed)
+  - [Event: willDropped](#event-willdropped)
+  - [Event: sessionExpired](#event-sessionexpired)
+  - [Event: sessionLimitReached](#event-sessionlimitreached)
   - [aedes.handle (stream)](#aedeshandle-stream)
   - [aedes.subscribe (topic, deliverfunc, callback)](#aedessubscribe-topic-deliverfunc-callback)
   - [aedes.unsubscribe (topic, deliverfunc, callback)](#aedesunsubscribe-topic-deliverfunc-callback)
@@ -48,7 +51,17 @@
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
-  - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. __Default__: `0`
+  - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. For MQTT 5.0 clients exceeding this, the broker sends a `Server Keep Alive` in the CONNACK and uses it instead of rejecting the connection. __Default__: `0`
+  - `topicAliasMaximum` `<number>` MQTT 5.0 only. Maximum inbound Topic Alias value the broker accepts from a client, advertised in the CONNACK. `0` disables inbound topic aliases. __Default__: `0`
+  - `maximumPacketSize` `<number>` MQTT 5.0 only. Maximum size in bytes of a packet the broker accepts, advertised in the CONNACK. Enforced: an oversized inbound frame is rejected as soon as its declared length is known — before the rest of its payload is buffered — with a `DISCONNECT` (reason code `0x95`, Packet too large) for connected v5 clients, or a dropped connection with a `connectionError`/`clientError` for pre-auth or v3/v4 clients. `0` means no limit. __Default__: `0`
+  - `receiveMaximum` `<number>` MQTT 5.0 only. Maximum number of in-flight QoS 1/2 PUBLISH packets advertised to the client in the CONNACK. __Advisory only__: the value is advertised but the broker does not currently enforce an inbound in-flight window (existing `drainTimeout` transport backpressure applies instead); enforcement is planned for a follow-up. `0` means it is not advertised (clients assume the protocol default of `65535`). __Default__: `0`
+  - `sessionExpiryIntervalLimit` `<number>` MQTT 5.0 only. Upper bound in seconds on the Session Expiry Interval a client may request. A larger requested value — including `0xFFFFFFFF` ("never expires") — is clamped to this, both in CONNECT and in a DISCONNECT that updates the interval. Bounds how long per-client session-expiry and will-delay timers (and their persisted session state) live, limiting memory accumulation from a single source cycling client identities. `0` means no cap. __Default__: `0`
+  - `pendingSessionsLimit` `<number>` MQTT 5.0 only. Cap on the number of pending session-expiry entries (and, applied separately, delayed-will timers) the broker holds at once. A never-expiring (`0xFFFFFFFF`) session counts against this too, since it pins persisted state indefinitely. When the cap is reached, a newly disconnecting session is expired immediately and a new delayed will is published immediately, rather than retaining it — bounding memory under client-identity-cycling abuse without evicting already-pending entries. Each trip emits a [`sessionLimitReached`](#event-sessionlimitreached) event. Complements `sessionExpiryIntervalLimit` (which bounds duration). `0` means unlimited. __Default__: `0`
+
+    > __Note:__ the limit is enforced independently against pending session-expiry entries and pending delayed wills, so the effective worst-case ceiling is `2 × pendingSessionsLimit` live timers — size accordingly.
+    >
+    > ⚠️ __Security:__ both `sessionExpiryIntervalLimit` and `pendingSessionsLimit` default to unlimited (`0`), matching aedes's existing v3/v4 posture (persistent `clean=false` sessions are already unbounded). For an internet-exposed broker you __should__ set both, otherwise a single client cycling identities with large session-expiry / will-delay intervals can accumulate timers and persisted state without bound.
+  - `responseInformation` `<string>` | `<Function>` MQTT 5.0 only. The Response Information (request/response topic base) returned in the CONNACK — but only when the client sets Request Response Information on CONNECT (server MAY, §3.2.2.3.15). Either a static string or a `(client) => string | undefined` function for a per-client value; return `undefined` (or leave it unset) to omit the property. A function that __throws__ also omits the property (the handshake still completes) and the error is surfaced on the [`clientError`](#event-clienterror) event. __Default__: `null` (never returned)
   - `drainTimeout` `<number>` maximum time in milliseconds to wait for a slow client's socket to drain before disconnecting it. When a client's socket buffer fills up (e.g., slow network, unresponsive client), the broker waits for the `drain` event. Without a timeout, one slow client can block message delivery to all other clients. Set to `0` to disable and wait indefinitely (not recommended). __Default__: `60000` (60 seconds)
 
     __Why use drainTimeout?__ When publishing messages, if a client's TCP buffer is full, `socket.write()` returns `false` and the broker waits for the `drain` event before continuing. If the client stops reading (slow 3G, crashed app, malicious client), `drain` never fires and that message hangs forever. Even with high `concurrency`, a single frozen subscriber will eventually exhaust all slots and cause __complete deadlock__ - no more messages can be delivered to ANY client. This is a DoS vulnerability.
@@ -144,6 +157,8 @@ Emitted when a client disconnects.
 
 Server publishes a SYS topic `$SYS/<aedes.id>/disconnect/clients` to inform it deregisters the client. `client.id` is the payload.
 
+For MQTT 5.0, when the disconnect was initiated by the broker, `client.disconnectReasonCode` holds the reason code sent to the client (e.g. `0x8E` session taken over, `0x8B` server shutting down, `0x95` packet too large), letting handlers distinguish a kick from a normal client drop (`null`).
+
 ## Event: clientError
 
 - `client` [`<Client>`](./Client.md)
@@ -214,11 +229,33 @@ Server publishes a SYS topic `$SYS/<aedes.id>/new/unsubscribers` to inform a cli
 - `packet` `<object>` [`CONNACK`][CONNACK]
 - `client` [`<Client>`](./Client.md)
 
-Emitted when server sends an acknowledge to `client`. Please refer to the MQTT specification for the explanation of returnCode object property in `CONNACK`.
+Emitted when server sends an acknowledge to `client`. Please refer to the MQTT specification for the explanation of the `CONNACK` properties.
+
+For MQTT 3.1/3.1.1 the packet carries a `returnCode` (`0` = success). For MQTT 5.0 it instead carries a `reasonCode` (`0x00` = success; the v3/v4 return codes map to the equivalent v5 reason codes) and may carry a `properties` object advertising negotiated capabilities (e.g. `topicAliasMaximum`, `maximumPacketSize`, `receiveMaximum`, `serverKeepAlive`, `assignedClientIdentifier`, `sharedSubscriptionAvailable`).
 
 ## Event: closed
 
 Emitted when server is closed.
+
+## Event: willDropped
+
+- `client` [`<Client>`](./Client.md)
+- `will` `<object>` the client's Will message
+
+MQTT 5.0 only. Emitted when a client's delayed Will (one carrying a `willDelayInterval`) could not be scheduled because the broker was shutting down. The Will stays in persistence — another broker in a cluster can still publish it via its will-sweep — but on a single instance it is effectively dropped, so this event makes that observable.
+
+## Event: sessionExpired
+
+- `client` [`<Client>`](./Client.md)
+
+MQTT 5.0 only. Emitted when a session that outlived its connection reaches its Session Expiry Interval and its persisted state (subscriptions, queued messages, will) is wiped. Useful for answering "where did client X's session go?". Not emitted for a clean teardown (`sessionExpiryInterval` 0 — covered by [`clientDisconnect`](#event-clientdisconnect)) nor for a cap-driven drop (covered by [`sessionLimitReached`](#event-sessionlimitreached)).
+
+## Event: sessionLimitReached
+
+- `client` [`<Client>`](./Client.md)
+- `info` `<object>` `{ reason: 'sessionExpiry' | 'willDelay', limit: number }` — which guard tripped and the configured `pendingSessionsLimit`
+
+MQTT 5.0 only. Emitted when the [`pendingSessionsLimit`](#new-aedesoptions) DoS guard trips: a disconnecting session that would otherwise be retained (including a never-expiring one) is instead expired immediately (`reason: 'sessionExpiry'`), or a delayed Will is published immediately instead of being held (`reason: 'willDelay'`). Listen for this to detect identity-cycling abuse — without it the guard would degrade behavior silently.
 
 ## aedes.handle (stream)
 
@@ -297,6 +334,16 @@ Invoked when server receives a valid [`CONNECT`][CONNECT] packet. The packet can
 
 Any `error` will be raised in `connectionError` event.
 
+> __MQTT 5.0 server redirect:__ to redirect a v5 client to another server, reject the connection with an `error` carrying a `serverReference` (and optionally a `reasonCode`). The rejection CONNACK then carries reason code `0x9C` (Use another server; or `0x9D` Server moved when `error.reasonCode` is set to it) and the `serverReference` property. The same works from [`authenticate`](#handler-authenticate-client-username-password-callback), and mid-session via [`client.disconnect`](./Client.md#clientdisconnect-opts-callback) (DISCONNECT Server Reference is spec §3.14.2.2.5). Per §4.11 the `serverReference` may be a __space-separated list__ of `host[:port]` references (IPv6 literals bracketed, e.g. `[fe80::1]:1883`) — aedes passes the string through verbatim, so load-balancing across several targets already works. Because a Server Reference is only meaningful with a redirect reason code, the broker clamps the CONNACK code to `0x9C` (or `0x9D` when you set `error.reasonCode` to it) — any other `error.reasonCode` is ignored on the redirect path.
+>
+> ```js
+> aedes.preConnect = function (client, packet, callback) {
+>   const err = new Error('use another server')
+>   err.serverReference = 'a.example:1883 b.example:1883' // one or more, space-separated
+>   callback(err, false)
+> }
+> ```
+
 Some Use Cases:
 
 1. Rate Limit / Throttle by `client.conn.remoteAddress`
@@ -364,6 +411,8 @@ Invoked when
 
 If invoked `callback` with no errors, server authorizes the packet otherwise emits `clientError` with `error`. If an `error` occurs the client connection will be closed, but no error is returned to the client (MQTT-3.3.5-2)
 
+> __MQTT 5.0:__ the connection is __not__ closed on an authorization failure. A QoS 1/2 publish is answered with a `0x87` (Not authorized) PUBACK/PUBREC and a QoS 0 publish is dropped silently — either way the connection stays up. The `error.message` is sent back to the client as the ACK's __Reason String__ (unless the client connected with `Request Problem Information = false`, when it is suppressed, per [MQTT-3.1.2-29]). Because it is client-visible, keep the message generic — do not put internal detail (paths, user ids, backend errors) in it.
+
 ```js
 aedes.authorizePublish = function (client, packet, callback) {
   if (packet.topic === 'aaaa') {
@@ -420,7 +469,7 @@ aedes.authorizeSubscribe = function (client, sub, callback) {
 }
 ```
 
-To negate a subscription, set the subscription to `null`. Aedes ignores the negated subscription and the `qos` in `SubAck` is set to `128` based on [MQTT 3.11 spec](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html#_Toc385349323):
+To negate a subscription, set the subscription to `null`. Aedes ignores the negated subscription and the `qos` in `SubAck` is set to `128` (MQTT 3.1.1) based on [MQTT 3.11 spec](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html#_Toc385349323). For an __MQTT 5.0__ client the SUBACK reason code is the more specific `0x87` (Not authorized) instead of the coarse `0x80`, and the SUBACK carries a broker-generated Reason String (e.g. `not authorized to subscribe`), gated by Request Problem Information:
 
 ```js
 aedes.authorizeSubscribe = function (client, sub, callback) {
