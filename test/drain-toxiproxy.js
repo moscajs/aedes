@@ -27,42 +27,67 @@
 
 import { test, before, after, describe } from 'node:test'
 import { createServer } from 'node:net'
+import { execFile, spawnSync } from 'node:child_process'
+import { promisify } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import mqtt from 'mqtt'
-import { GenericContainer, Wait } from 'testcontainers'
 import { Toxiproxy } from 'toxiproxy-node-client'
 import { Aedes } from '../aedes.js'
 import { shouldSkipOnWindowsAndMac } from './helper.js'
 
-// Check if we should skip tests on Windows/macOS
+const execFileAsync = promisify(execFile)
+
+// Check if we should skip tests on Windows/macOS or when Docker is unavailable
 // Issues: "Could not find a working container runtime strategy" (Mac)
 //         "invalid volume specification" for Docker socket (Windows)
-const shouldSkip = shouldSkipOnWindowsAndMac()
+const shouldSkip = shouldSkipOnWindowsAndMac() || spawnSync('docker', ['info'], { stdio: 'ignore' }).status !== 0
 
 // ToxiProxy configuration
 const TOXIPROXY_API_PORT = 8474
 const PROXY_LISTEN_PORT = 14883
+const TOXIPROXY_IMAGE = 'ghcr.io/shopify/toxiproxy:2.9.0'
 
-let toxiproxyContainer
+let toxiproxyContainerId
 let toxiproxy
 let proxyHost
 let proxyApiPort
 let proxyMappedPort
 
+async function getMappedPort (containerId, containerPort) {
+  const { stdout } = await execFileAsync('docker', ['port', containerId, `${containerPort}/tcp`])
+  return Number(stdout.trim().split(':').pop())
+}
+
+async function waitForToxiProxy () {
+  const url = `http://${proxyHost}:${proxyApiPort}/version`
+  for (let attempt = 0; attempt < 60; attempt++) {
+    try {
+      const response = await fetch(url)
+      if (response.ok) return
+    } catch {}
+    await delay(250)
+  }
+  throw new Error('ToxiProxy did not become ready in time')
+}
+
 describe('ToxiProxy: realistic slow client behavior', { skip: shouldSkip }, async () => {
   before(async () => {
-    console.log('[Setup] Starting ToxiProxy container...')
+    console.log('[Setup] Starting ToxiProxy container with Docker...')
 
-    toxiproxyContainer = await new GenericContainer('ghcr.io/shopify/toxiproxy:2.9.0')
-      .withExposedPorts(TOXIPROXY_API_PORT, PROXY_LISTEN_PORT)
-      .withCommand(['-host=0.0.0.0'])
-      .withWaitStrategy(Wait.forHttp('/version', TOXIPROXY_API_PORT))
-      .withResourcesQuota({ cpu: 0.5, memory: 256 * 1024 * 1024 })
-      .start()
+    const { stdout } = await execFileAsync('docker', [
+      'run', '--detach', '--rm',
+      '--publish', `0:${TOXIPROXY_API_PORT}`,
+      '--publish', `0:${PROXY_LISTEN_PORT}`,
+      '--name', `aedes-toxiproxy-${process.pid}`,
+      TOXIPROXY_IMAGE,
+      '-host=0.0.0.0'
+    ])
+    toxiproxyContainerId = stdout.trim()
 
-    proxyHost = toxiproxyContainer.getHost()
-    proxyApiPort = toxiproxyContainer.getMappedPort(TOXIPROXY_API_PORT)
-    proxyMappedPort = toxiproxyContainer.getMappedPort(PROXY_LISTEN_PORT)
+    proxyHost = '127.0.0.1'
+    proxyApiPort = await getMappedPort(toxiproxyContainerId, TOXIPROXY_API_PORT)
+    proxyMappedPort = await getMappedPort(toxiproxyContainerId, PROXY_LISTEN_PORT)
+    await waitForToxiProxy()
 
     toxiproxy = new Toxiproxy(`http://${proxyHost}:${proxyApiPort}`)
 
@@ -71,9 +96,9 @@ describe('ToxiProxy: realistic slow client behavior', { skip: shouldSkip }, asyn
   })
 
   after(async () => {
-    if (toxiproxyContainer) {
+    if (toxiproxyContainerId) {
       console.log('[Cleanup] Stopping ToxiProxy container...')
-      await toxiproxyContainer.stop()
+      await execFileAsync('docker', ['rm', '--force', toxiproxyContainerId])
     }
   })
   test('INSIGHT: slow client (via ToxiProxy) vs frozen client (readStop) behavior', async (t) => {
