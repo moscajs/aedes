@@ -322,6 +322,7 @@ Licensed under [MIT](./LICENSE).
 [aedes-persistence]: https://www.npmjs.com/aedes-persistence
 [aedes-persistence-mongodb]: https://www.npmjs.com/aedes-persistence-mongodb
 [aedes-persistence-redis]: https://www.npmjs.com/aedes-persistence-redis
+[aedes-persistence-redis]: https://www.npmjs.com/aedes-persistence-sqlite
 [aedes-persistence-level]: https://www.npmjs.com/aedes-persistence-level
 [aedes-persistence-nedb]: https://www.npmjs.com/aedes-persistence-nedb
 
