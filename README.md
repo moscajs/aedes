@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD013 -->
 # Aedes
 
-![ci](https://github.com/moscajs/aedes/workflows/ci/badge.svg)
+![ci](https://github.com/moscajs/aedes/actions/workflows/ci.yml/badge.svg)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/moscajs/aedes/graphs/commit-activity)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/moscajs/aedes/pulls)\
@@ -122,6 +122,7 @@ except that the `retain` flag in the packet is propagated as-is.
 - [aedes-persistence]: In-memory implementation of an Aedes persistence
 - [aedes-persistence-mongodb]: MongoDB persistence for Aedes
 - [aedes-persistence-redis]: Redis persistence for Aedes
+- [aedes-persistence-sqlite]: node:sqlite persistence for Aedes
 - [aedes-persistence-level]: LevelDB persistence for Aedes
 - [aedes-persistence-nedb]: NeDB persistence for Aedes
 
