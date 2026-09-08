@@ -1,5 +1,23 @@
 # Migration
 
+## MQTT 5.0 Enhanced Authentication (§4.12)
+
+A v5 `CONNECT` carrying an Authentication Method is now handled by the new
+[`authenticateEnhanced`](Aedes.md#handler-authenticateenhanced-client-method-data-callback)
+hook. __Behaviour change:__ when that hook is not configured (the default), such
+a `CONNECT` is now rejected with CONNACK reason code `0x8C` (Bad authentication
+method). Previously the Authentication Method was ignored and the client fell
+through to the username/password
+[`authenticate`](Aedes.md#handler-authenticate-client-username-password-callback)
+hook, typically getting CONNACK `0x00`.
+
+If you have SCRAM- or OAuth-capable clients that send an Authentication Method
+and you have not opted into enhanced auth, they will stop connecting. To restore
+them, set `authenticateEnhanced` and implement the exchange (see the handler
+docs). When it is set, the two hooks __chain__: `authenticateEnhanced` runs the
+AUTH exchange, then your existing `authenticate` hook runs as before (with
+`username`/`password`), so per-IP/allow-list policy there still applies.
+
 ## From 0.x to 1.x
 
 Version 1.x changes the persistence interface from callback to async/await.

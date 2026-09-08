@@ -1,6 +1,7 @@
 import { Duplex } from 'node:stream'
 import { Socket } from 'node:net'
 import { IncomingMessage } from 'node:http'
+import { IAuthPacket } from 'mqtt-packet'
 import { Client } from './client.js'
 import type {
   AedesPublishPacket,
@@ -30,7 +31,53 @@ export const enum AuthErrorCode {
   NOT_AUTHORIZED = 5,
 }
 
-export type AuthenticateError = Error & { returnCode: AuthErrorCode }
+export type AuthenticateError = Error & { returnCode: AuthErrorCode, serverReference?: string }
+
+// MQTT 5.0 CONNACK reason codes a rejection may carry (the failure subset from
+// Table 3-1). A hook returning any code NOT valid on a CONNACK — a success/< 0x80
+// code, or a real reason code that isn't in this set (e.g. 0x8E, 0x93) — is clamped
+// to 0x87 at runtime.
+export const enum ConnackReasonCode {
+  UNSPECIFIED_ERROR = 0x80,
+  MALFORMED_PACKET = 0x81,
+  PROTOCOL_ERROR = 0x82,
+  IMPLEMENTATION_SPECIFIC_ERROR = 0x83,
+  UNSUPPORTED_PROTOCOL_VERSION = 0x84,
+  CLIENT_IDENTIFIER_NOT_VALID = 0x85,
+  BAD_USERNAME_OR_PASSWORD = 0x86,
+  NOT_AUTHORIZED = 0x87,
+  SERVER_UNAVAILABLE = 0x88,
+  SERVER_BUSY = 0x89,
+  BANNED = 0x8A,
+  BAD_AUTHENTICATION_METHOD = 0x8C,
+  TOPIC_NAME_INVALID = 0x90,
+  PACKET_TOO_LARGE = 0x95,
+  QUOTA_EXCEEDED = 0x97,
+  PAYLOAD_FORMAT_INVALID = 0x99,
+  RETAIN_NOT_SUPPORTED = 0x9A,
+  QOS_NOT_SUPPORTED = 0x9B,
+  USE_ANOTHER_SERVER = 0x9C,
+  SERVER_MOVED = 0x9D,
+  CONNECTION_RATE_EXCEEDED = 0x9F,
+}
+
+// MQTT 5.0 Enhanced Authentication (§4.12). An error rejects the CONNECT; its
+// optional reasonCode / reasonString are surfaced on the CONNACK.
+export type EnhancedAuthError = Error & { reasonCode?: ConnackReasonCode, reasonString?: string, serverReference?: string }
+
+// Properties a hook may attach to a challenge AUTH. AUTH allows only Reason String
+// and User Property (§3.15.2.2); Authentication Method / Data are owned by aedes,
+// so they are excluded here. Subject to the client's Request Problem Information.
+export type EnhancedAuthProperties = Omit<NonNullable<IAuthPacket['properties']>, 'authenticationMethod' | 'authenticationData'>
+
+// One step of the enhanced-auth exchange, as a discriminated union on `status`.
+// `status: 'challenge'` sends the client another AUTH challenge (carrying `data` /
+// `properties`); `status: 'accept'` accepts the connection (any `data` becomes the
+// CONNACK Authentication Data). `status` is a distinct field from the `done`
+// callback in the hook signature, and TS narrows `data`/`properties` per branch.
+export type EnhancedAuthResult =
+  | { status: 'challenge'; data?: Buffer; properties?: EnhancedAuthProperties }
+  | { status: 'accept'; data?: Buffer; properties?: EnhancedAuthProperties }
 
 type PreConnectHandler = (
   client: Client,
@@ -43,6 +90,16 @@ type AuthenticateHandler = (
   username: Readonly<string | undefined>,
   password: Readonly<Buffer | undefined>,
   done: (error: AuthenticateError | null, success: boolean | null) => void
+) => void
+
+// MQTT 5.0 Enhanced Authentication (§4.12): drives the AUTH-packet exchange for a
+// CONNECT carrying an Authentication Method. Called once per round with the
+// client's latest Authentication Data.
+type AuthenticateEnhancedHandler = (
+  client: Client,
+  method: Readonly<string>,
+  data: Readonly<Buffer | undefined>,
+  done: (error: EnhancedAuthError | null, result?: EnhancedAuthResult | null) => void
 ) => void
 
 type AuthorizePublishHandler = (
@@ -95,8 +152,10 @@ export interface AedesOptions {
   sessionExpiryIntervalLimit?: number; // clamp (seconds) on requested Session Expiry Interval; 0 = no cap (default: 0)
   pendingSessionsLimit?: number; // cap on pending session-expiry / delayed-will entries; 0 = unlimited (default: 0)
   responseInformation?: string | null | ((client: Client) => string | undefined); // MQTT 5.0 Response Information returned in CONNACK on Request Response Information (null = disabled, the default)
+  maxAuthRounds?: number; // MQTT 5.0 enhanced auth: max challenge/response rounds (default: 8)
   preConnect?: PreConnectHandler;
   authenticate?: AuthenticateHandler;
+  authenticateEnhanced?: AuthenticateEnhancedHandler | null;
   authorizePublish?: AuthorizePublishHandler;
   authorizeSubscribe?: AuthorizeSubscribeHandler;
   authorizeForward?: AuthorizeForwardHandler;
@@ -187,6 +246,7 @@ export class Aedes extends EventEmitter {
 
   preConnect: PreConnectHandler
   authenticate: AuthenticateHandler
+  authenticateEnhanced: AuthenticateEnhancedHandler | null
   authorizePublish: AuthorizePublishHandler
   authorizeSubscribe: AuthorizeSubscribeHandler
   authorizeForward: AuthorizeForwardHandler

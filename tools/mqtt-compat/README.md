@@ -95,8 +95,10 @@ parts of the spec:
   authoritative place aedes's v5 error semantics are pinned.
 - **Whole spec chapters** — AUTH / enhanced auth (§4.12), Server Reference
   (`0x9C`/`0x9D`), CONNACK capability flags, ReasonString round-trips, and
-  UserProperty on non-PUBLISH packets. Some of these aedes does not implement; the
-  test gap left by *both* suites is tracked in
+  UserProperty on non-PUBLISH packets. aedes implements these (the Paho suite has
+  no enhanced-auth coverage at all — its bundled codec can encode `AUTH` but no
+  test drives it), so they are pinned by **`test/mqtt5.js`** instead; the test gap
+  left by *both* suites is tracked in
   [#1096](https://github.com/moscajs/aedes/issues/1096).
 
 So treat this workflow as the **cross-implementation functional gauge** and

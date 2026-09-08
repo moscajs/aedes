@@ -22,6 +22,16 @@ test('test Aedes constructor', (t) => {
   t.assert.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
 })
 
+test('[#833] maxAuthRounds must be a positive integer (throws on a supplied-but-invalid value)', (t) => {
+  t.plan(4)
+  // Unlike sibling limits, 0 is NOT "unlimited" here — it would remove the pre-auth
+  // round cap — so a bad value throws at startup rather than silently coercing.
+  t.assert.throws(() => new Aedes({ maxAuthRounds: 0 }), /positive integer/, '0 throws')
+  t.assert.throws(() => new Aedes({ maxAuthRounds: -1 }), /positive integer/, 'negative throws')
+  t.assert.throws(() => new Aedes({ maxAuthRounds: 2.5 }), /positive integer/, 'non-integer throws')
+  t.assert.equal(new Aedes({ maxAuthRounds: 16 }).maxAuthRounds, 16, 'a valid value is honored')
+})
+
 test('test warning on default export', (t) => {
   t.plan(1)
   t.assert.throws(defaultExport, 'received expected error')

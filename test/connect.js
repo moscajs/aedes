@@ -486,6 +486,112 @@ test('handler calls done when disconnect or unknown packet cmd is received', asy
   })
 })
 
+test('[#833] AUTH from a connecting client with no enhanced-auth exchange in flight is dropped', async (t) => {
+  t.plan(2)
+
+  const broker = await Aedes.createBroker()
+  t.after(() => broker.close())
+
+  const s = setup(broker)
+  // Models the race window: a client mid-connect (connecting, not yet connected)
+  // with no `_enhancedAuth` state sends an AUTH. It is not a re-auth (that path is
+  // gated on `connected`), so it must be dropped — the connection closed — rather
+  // than mishandled. Driven through the handler directly because the enqueue/pause
+  // machinery makes this interleaving hard to force deterministically from a socket.
+  s.client.connecting = true
+  // No client.id yet (init hasn't run in this window), so the uninitialized-client
+  // selector routes this to connectionError rather than clientError.
+  const connErr = once(broker, 'connectionError')
+  await new Promise(resolve => {
+    handle(s.client, { cmd: 'auth', reasonCode: 0x18, properties: { authenticationMethod: 'SCRAM-SHA-256' } }, function done () {
+      t.assert.ok(true, 'calls done for a stray AUTH on a connecting client')
+      resolve()
+    })
+  })
+  const [, err] = await connErr
+  t.assert.match(err.message, /unexpected AUTH/, 'surfaced as a connection error')
+})
+
+test('[#833] an enhanced-auth step short-circuits when the client is already closed', async (t) => {
+  t.plan(2)
+
+  let hookCalled = false
+  const broker = await Aedes.createBroker({
+    authenticateEnhanced (client, method, data, cb) {
+      hookCalled = true
+      cb(null, { status: 'accept' })
+    }
+  })
+  t.after(() => broker.close())
+
+  const s = setup(broker)
+  // A continuation AUTH races in after the connection has already closed: the step
+  // must not arm a timer or invoke the broker hook on a dead connection.
+  s.client.connecting = true
+  s.client.closed = true
+  s.client._enhancedAuth = { method: 'SCRAM-SHA-256', rounds: 0, onSuccess () {}, onFailure () {} }
+  await new Promise(resolve => {
+    handle(s.client, { cmd: 'auth', reasonCode: 0x18, properties: { authenticationMethod: 'SCRAM-SHA-256' } }, function done () {
+      t.assert.ok(true, 'calls done')
+      resolve()
+    })
+  })
+  t.assert.equal(hookCalled, false, 'the authenticateEnhanced hook is not invoked on a closed connection')
+})
+
+test('[#833] an AUTH from a connected v3/v4 client is dropped (handleAuth does not gate on version)', async (t) => {
+  t.plan(2)
+  // AUTH is a v5-only packet, so mqtt-packet's parser never yields one for a v3/v4
+  // client on the wire — drive it through handle() directly. A connected v4 client
+  // that somehow presents an AUTH-shaped packet must be dropped, not mishandled.
+  const broker = await Aedes.createBroker()
+  t.after(() => broker.close())
+
+  const s = setup(broker)
+  s.client.version = 4
+  s.client.id = 'v4-auth'
+  s.client.connected = true
+  const clientError = once(broker, 'clientError')
+  await new Promise(resolve => {
+    handle(s.client, { cmd: 'auth', reasonCode: 0x18, properties: {} }, function done () {
+      t.assert.ok(true, 'calls done for a v3/v4 AUTH')
+      resolve()
+    })
+  })
+  const [, err] = await clientError
+  t.assert.match(err.message, /unexpected AUTH/, 'surfaced as a client error and dropped')
+})
+
+test('[#833] a socket close in the setImmediate(init) window arms no enhanced-auth timer', async (t) => {
+  t.plan(2)
+
+  let hookCalled = false
+  const broker = await Aedes.createBroker({
+    authenticateEnhanced (client, method, data, cb) {
+      hookCalled = true
+      cb(null, { status: 'accept' })
+    }
+  })
+  t.after(() => broker.close())
+
+  const s = setup(broker)
+  handleConnect(s.client, {
+    cmd: 'connect',
+    protocolVersion: 5,
+    clientId: 'ea-init-race',
+    clean: true,
+    keepalive: 0,
+    properties: { authenticationMethod: 'SCRAM-SHA-256', authenticationData: Buffer.from('x') }
+  }, () => {})
+  // Close synchronously — before the deferred init() macrotask runs. init ->
+  // authenticate -> startEnhancedAuth then reaches a dead client and must arm no
+  // connectTimeout timer (which would later fire a spurious clientError).
+  s.client.close()
+  await delay(20) // let setImmediate(init) run against the closed client
+  t.assert.equal(hookCalled, false, 'the hook is not invoked on a closed connection')
+  t.assert.ok(!s.client._enhancedAuthTimer, 'no orphaned enhanced-auth timer was armed')
+})
+
 test('reject second CONNECT Packet sent while first CONNECT still in preConnect stage', async (t) => {
   t.plan(3)
 

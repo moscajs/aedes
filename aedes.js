@@ -17,6 +17,16 @@ const defaultOptions = {
   decodeProtocol: null,
   preConnect: defaultPreConnect,
   authenticate: defaultAuthenticate,
+  // MQTT 5.0 Enhanced Authentication (§4.12). null = unsupported: a CONNECT
+  // carrying an Authentication Method is rejected with 0x8C. When set, it drives
+  // the AUTH-packet exchange. [#833]
+  authenticateEnhanced: null,
+  // MQTT 5.0 Enhanced Authentication: maximum number of challenge/response rounds
+  // (authenticateEnhanced invocations) allowed per connection before the exchange
+  // is rejected with 0x97 (Quota exceeded). Bounds pre-auth work an unauthenticated
+  // client can force; raise it for a mechanism that legitimately needs more steps.
+  // [#833]
+  maxAuthRounds: 8,
   authorizePublish: defaultAuthorizePublish,
   authorizeSubscribe: defaultAuthorizeSubscribe,
   authorizeForward: defaultAuthorizeForward,
@@ -102,6 +112,18 @@ export class Aedes extends EventEmitter {
 
     this.preConnect = opts.preConnect
     this.authenticate = opts.authenticate
+    this.authenticateEnhanced = opts.authenticateEnhanced
+    // maxAuthRounds must be a positive integer. Unlike the sibling limits, `0` is
+    // NOT "unlimited" here — it would make the round-cap check (`++rounds >
+    // maxAuthRounds`) never fire, removing the pre-auth DoS bound. Rather than
+    // silently coerce a bad value (which hides a `'16'`-from-env typo behind an
+    // unexplained 0x97), THROW on a supplied-but-invalid value so the misconfig
+    // surfaces at startup; default to 8 when unset.
+    if (opts.maxAuthRounds !== undefined &&
+        (!Number.isInteger(opts.maxAuthRounds) || opts.maxAuthRounds < 1)) {
+      throw new Error('maxAuthRounds must be a positive integer')
+    }
+    this.maxAuthRounds = opts.maxAuthRounds ?? defaultOptions.maxAuthRounds
     this.authorizePublish = opts.authorizePublish
     this.authorizeSubscribe = opts.authorizeSubscribe
     this.authorizeForward = opts.authorizeForward

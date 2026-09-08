@@ -3,12 +3,14 @@ import { Socket } from 'node:net'
 import type {
   Brokers,
   AuthenticateError,
+  EnhancedAuthError,
+  EnhancedAuthResult,
   Client,
   Connection
 } from '../../aedes.js'
 import { Aedes } from '../../aedes.js'
 import type { AedesPublishPacket, ConnackPacket, ConnectPacket, PingreqPacket, PublishPacket, PubrelPacket, Subscription, SubscribePacket, UnsubscribePacket } from '../../types/packet.js'
-import { expectType } from 'tsd'
+import { expectType, expectError, expectAssignable } from 'tsd'
 
 // Aedes server
 expectType<Promise<Aedes>>(Aedes.createBroker())
@@ -18,6 +20,7 @@ const broker = new Aedes({
   concurrency: 100,
   heartbeatInterval: 60000,
   connectTimeout: 30000,
+  maxAuthRounds: 8,
   maxClientsIdLength: 23,
   keepaliveLimit: 0,
   trustProxy: true,
@@ -56,6 +59,22 @@ const broker = new Aedes({
       error.returnCode = 1
 
       callback(error, false)
+    }
+  },
+  authenticateEnhanced: (
+    client: Client,
+    method: Readonly<string>,
+    data: Readonly<Buffer | undefined>,
+    done
+  ) => {
+    if (method !== 'SCRAM-SHA-256') {
+      const error = new Error('bad method') as EnhancedAuthError
+      error.reasonCode = 0x8c
+      done(error)
+    } else if (data?.toString() === 'client-final') {
+      done(null, { status: 'accept', data: Buffer.from('server-final') })
+    } else {
+      done(null, { status: 'challenge', data: Buffer.from('server-challenge'), properties: { reasonString: 'continue' } })
     }
   },
   authorizePublish: (
@@ -116,6 +135,10 @@ expectType<Aedes>(new Aedes({ responseInformation: 'resp/base' }))
 expectType<Aedes>(new Aedes({ responseInformation: null }))
 
 expectType<Readonly<Brokers>>(broker.brokers)
+
+// [#833] maxAuthRounds is a public constructor option (not re-exposed as a mutable
+// instance property, matching connectTimeout / maximumPacketSize / etc.).
+expectType<Aedes>(new Aedes({ maxAuthRounds: 32 }))
 
 expectType<Aedes>(broker.on('closed', () => {}))
 expectType<Aedes>(broker.on('client', (client: Client) => {}))
@@ -256,3 +279,14 @@ expectType<void>(
     () => {}
   )
 )
+
+// [#833] EnhancedAuthResult shape checks: a well-formed result is assignable...
+expectAssignable<EnhancedAuthResult>({ status: 'accept' })
+expectAssignable<EnhancedAuthResult>({ status: 'challenge', data: Buffer.from('x'), properties: { reasonString: 'go' } })
+// ...but malformed ones are rejected.
+expectError<EnhancedAuthResult>({ status: 'yes' }) // status must be 'accept' | 'challenge'
+expectError<EnhancedAuthResult>({ status: 'accept', data: 'not-a-buffer' }) // data must be a Buffer
+expectError<EnhancedAuthResult>({ data: Buffer.from('x') }) // status is required (discriminator)
+// AUTH allows only Reason String / User Property — Authentication Method / Data
+// are owned by aedes and not accepted on the hook result properties.
+expectError<EnhancedAuthResult>({ status: 'challenge', properties: { authenticationMethod: 'X' } })

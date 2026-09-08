@@ -31,6 +31,7 @@
   - [aedes.close (\[callback\])](#aedesclose-callback)
   - [Handler: preConnect (client, packet, callback)](#handler-preconnect-client-packet-callback)
   - [Handler: authenticate (client, username, password, callback)](#handler-authenticate-client-username-password-callback)
+  - [Handler: authenticateEnhanced (client, method, data, callback)](#handler-authenticateenhanced-client-method-data-callback)
   - [Handler: authorizePublish (client, packet, callback)](#handler-authorizepublish-client-packet-callback)
   - [Handler: authorizeSubscribe (client, subscription, callback)](#handler-authorizesubscribe-client-subscription-callback)
   - [Handler: authorizeForward (client, packet)](#handler-authorizeforward-client-packet)
@@ -51,6 +52,7 @@
   - `heartbeatInterval` `<number>` an interval in millisconds at which server beats its health signal in `$SYS/<aedes.id>/heartbeat` topic. __Default__: `60000`
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
+  - `maxAuthRounds` `<number>` MQTT 5.0 only. Maximum number of Enhanced Authentication (§4.12) challenge/response rounds — i.e. [`authenticateEnhanced`](#handler-authenticateenhanced-client-method-data-callback) invocations — allowed per connection before the exchange is rejected with CONNACK `0x97` (Quota exceeded). Bounds the pre-auth work an unauthenticated client can force; raise it for a mechanism that legitimately needs more steps. __Default__: `8`
   - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. For MQTT 5.0 clients exceeding this, the broker sends a `Server Keep Alive` in the CONNACK and uses it instead of rejecting the connection. __Default__: `0`
   - `topicAliasMaximum` `<number>` MQTT 5.0 only. Maximum inbound Topic Alias value the broker accepts from a client, advertised in the CONNACK. `0` disables inbound topic aliases. __Default__: `0`
   - `maximumPacketSize` `<number>` MQTT 5.0 only. Maximum size in bytes of a packet the broker accepts, advertised in the CONNACK. Enforced: an oversized inbound frame is rejected as soon as its declared length is known — before the rest of its payload is buffered — with a `DISCONNECT` (reason code `0x95`, Packet too large) for connected v5 clients, or a dropped connection with a `connectionError`/`clientError` for pre-auth or v3/v4 clients. `0` means no limit. __Default__: `0`
@@ -394,6 +396,69 @@ aedes.authenticate = function (client, username, password, callback) {
 ```
 
 Please refer to [Connect Return Code](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Table_3.1_-) to see their meanings.
+
+## Handler: authenticateEnhanced (client, method, data, callback)
+
+- client: [`<Client>`](./Client.md)
+- method: `<string>` the client's Authentication Method (constant for the whole exchange)
+- data: `<Buffer>` | `undefined` the client's latest Authentication Data
+- callback: `<Function>` `(error, result) => void`
+  - error `<Error>` | `null`
+  - result `<object>` | `null`
+    - status `<string>` the discriminator: `'accept'` accepts the connection; `'challenge'` sends the client another `AUTH` challenge. Any other value (or a missing `status`) fails closed as a rejection.
+    - data `<Buffer>` (optional) Authentication Data — the challenge on `status: 'challenge'`, the final data (returned on the `CONNACK`) on `status: 'accept'`. Must be a `Buffer` (not a `Uint8Array`/`TypedArray`). __The final `status: 'accept'` data is best-effort:__ if the CONNACK would exceed the client's Maximum Packet Size it is dropped, so a mutual-auth mechanism must not depend on the client receiving the server-final proof — keep it small, or use a challenge round for the proof instead.
+    - properties `<object>` (optional) extra MQTT 5.0 properties for the challenge `AUTH` (e.g. `reasonString`)
+
+__MQTT 5.0 only__ ([§4.12 Enhanced Authentication](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901256)). This handler drives a multi-round `AUTH`-packet challenge/response for a `CONNECT` that carries an Authentication Method. It is invoked once per round with the client's most recent Authentication Data.
+
+By default `authenticateEnhanced` is `null` (unset): a `CONNECT` that asks for enhanced authentication is rejected with reason code `0x8C` (Bad authentication method). Set the handler to enable it.
+
+> __Hook order with [`authenticate`](#handler-authenticate-client-username-password-callback):__ the two hooks __chain__. For a `CONNECT` carrying an Authentication Method the order is `preConnect` → `authenticateEnhanced` (the AUTH exchange) → __`authenticate`__ → CONNACK: once the exchange succeeds, the standard username/password hook runs too, with `packet.username` / `packet.password` still passed. So policy that lives in `authenticate` (allow-lists, per-IP counters, setting `client.user`) applies to enhanced-auth clients without duplication — do __not__ replicate it inside `authenticateEnhanced`. Either hook rejecting rejects the connection; `authenticate` still sets `client._authorized`, so `authorizePublish` / `authorizeSubscribe` see the same state as a username/password client.
+
+Each round, return:
+
+- `callback(null, { status: 'challenge', data })` to challenge the client — the broker sends an `AUTH` with reason code `0x18` (Continue authentication) and waits for the client's next `AUTH`.
+- `callback(null, { status: 'accept', data })` to accept — the broker resumes the connect flow and sends the `CONNACK` (any `data` becomes its Authentication Data).
+- `callback(error)` to reject — the broker sends a failing `CONNACK`. Set `error.reasonCode` (default `0x87` Not authorized; any code that is not a valid CONNACK Connect Reason Code — a success/`< 0x80` code, or a real reason code not in Table 3-1 such as `0x8E`/`0x93` — is clamped to `0x87`) and optionally `error.reasonString`. Set `error.serverReference` to redirect a v5 client (CONNACK `0x9C`, or `0x9D` via `error.reasonCode`), as with the [`authenticate`](#handler-authenticate-client-username-password-callback) hook.
+- `callback(null)` (or `callback(null, null)`) — a missing result is treated as a __rejection__ (`0x87`), not a challenge, so a hook that forgets its result fails closed.
+
+A rejection surfaces on the `clientError`/`connectionError` broker event with `error.reasonCode` (the resolved CONNACK code) and `error.errorCode` (the v3/v4 return code), matching `preConnect`/`authenticate`.
+
+A `result.properties` object may carry a `reasonString` / `userProperties` for the challenge `AUTH` only — the Authentication Method and Data are set by the broker, and no other property is forwarded ([§3.15.2.2]). These optional properties are dropped when the client disabled Request Problem Information, or to fit the client's Maximum Packet Size.
+
+The Authentication Method must not change during the exchange (a changed method is a `0x8C` Bad Authentication Method); a continuation `AUTH` must carry reason code `0x18` (Continue authentication), else a `0x82` Protocol Error. A stalled exchange (the client never answers a challenge) is closed after `connectTimeout`, and the exchange is capped at [`maxAuthRounds`](#new-aedesoptions) rounds (default `8`) — a mechanism that needs more is rejected with CONNACK `0x97` (Quota exceeded). An `AUTH` from a client that negotiated no Authentication Method is a `0x82` Protocol Error ([MQTT-4.12.0-7]).
+
+> __⚠️ Re-authentication is not yet supported.__ §4.12.1 lets a client that negotiated an Authentication Method re-authenticate mid-session by sending `AUTH 0x19` (Re-authenticate). aedes does not implement this yet: such an `AUTH` is answered with a `0x83` (Implementation specific error) DISCONNECT and the connection is closed. A SCRAM/Kerberos client that refreshes credentials mid-session will therefore lose its session. Tracked in [#1134](https://github.com/moscajs/aedes/issues/1134).
+>
+> __Note:__ the hook receives only `(client, method, data)`. A mechanism that needs other CONNECT fields — a SCRAM `authzid`, OAuth details in CONNECT User Properties, the username — must capture them from a [`preConnect`](#handler-preconnect-client-packet-callback) hook (which gets the full CONNECT packet) and stash them on `client` for the exchange; the CONNECT packet is not retained past connect.
+>
+> __Security:__ `data` is attacker-controlled. Compare authenticator/proof bytes with `crypto.timingSafeEqual` (a byte-wise `===` / `Buffer.equals` is a timing oracle), and keep `error.reasonString` generic — it is copied verbatim onto the rejection CONNACK and reaches the unauthenticated client, so it must not leak which check failed.
+
+```js
+import { timingSafeEqual } from 'node:crypto'
+
+aedes.authenticateEnhanced = function (client, method, data, callback) {
+  if (method !== 'SCRAM-SHA-256') {
+    const error = new Error('unsupported method')
+    error.reasonCode = 0x8C
+    return callback(error)
+  }
+  if (client._scramExpectedFinal &&
+      data?.length === client._scramExpectedFinal.length &&
+      timingSafeEqual(data, client._scramExpectedFinal)) {
+    callback(null, { status: 'accept', data: Buffer.from('server-final') })
+  } else if (!client._scramExpectedFinal) {
+    // First round: stash the expected client-final proof for the next round to
+    // compare (see the preConnect-stash note above for other CONNECT fields).
+    client._scramExpectedFinal = computeExpectedFinal(client, data)
+    callback(null, { status: 'challenge', data: Buffer.from('server-challenge') })
+  } else {
+    const error = new Error('authentication failed') // generic; reaches the client
+    error.reasonCode = 0x87
+    callback(error)
+  }
+}
+```
 
 ## Handler: authorizePublish (client, packet, callback)
 
