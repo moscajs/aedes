@@ -24,6 +24,7 @@
   - [Event: willDropped](#event-willdropped)
   - [Event: sessionExpired](#event-sessionexpired)
   - [Event: sessionLimitReached](#event-sessionlimitreached)
+  - [Event: outboundTopicAliasExhausted](#event-outboundtopicaliasexhausted)
   - [aedes.handle (stream)](#aedeshandle-stream)
   - [aedes.subscribe (topic, deliverfunc, callback)](#aedessubscribe-topic-deliverfunc-callback)
   - [aedes.unsubscribe (topic, deliverfunc, callback)](#aedesunsubscribe-topic-deliverfunc-callback)
@@ -52,7 +53,8 @@
   - `id` `<string>` aedes broker unique identifier. __Default__: `uuidv4()`
   - `connectTimeout` `<number>` maximum waiting time in milliseconds waiting for a [`CONNECT`][CONNECT] packet. __Default__: `30000`
   - `keepaliveLimit` `<number>` maximum client keep alive time allowed, 0 means no limit. For MQTT 5.0 clients exceeding this, the broker sends a `Server Keep Alive` in the CONNACK and uses it instead of rejecting the connection. __Default__: `0`
-  - `topicAliasMaximum` `<number>` MQTT 5.0 only. Maximum inbound Topic Alias value the broker accepts from a client, advertised in the CONNACK. `0` disables inbound topic aliases. __Default__: `0`
+  - `topicAliasMaximum` `<number>` MQTT 5.0 only. Maximum __inbound__ Topic Alias value the broker accepts from a client, advertised in the CONNACK. `0` disables inbound topic aliases. A non-integer or negative value coerces to `0` (disabled) and a value above `65535` clamps to `65535` (the Two Byte Integer ceiling), so a bad value never silently enables a broken maximum. __Default__: `0`. (See also `outboundTopicAliasMaximum` for the reverse direction, and the callout under [`Event: connackSent`](#event-connacksent).)
+  - `outboundTopicAliasMaximum` `<number>` MQTT 5.0 only. Broker-side ceiling on how many Topic Aliases the broker assigns per connection on the __outbound__ PUBLISHes it sends to a v5 client. The effective per-connection maximum is `min(this, the client's advertised Topic Alias Maximum)`. Bounds the never-evicting per-connection alias table (keyed by full topic strings), so an untrusted client can't drive it toward 65535 entries. Opt-in (like `topicAliasMaximum`): `0` disables the broker's alias __assignment__ entirely. Set it (e.g. `64`) to enable — enabling it changes wire behaviour (clients start receiving empty-topic PUBLISHes) and adds per-connection memory. A non-integer or negative value (e.g. the string `'64'` arriving from env/JSON config) coerces to `0` (disabled — a bad value must never mean "silently enabled") and a value above `65535` clamps to `65535`. __Default__: `0`. Note that whatever this is set to, a caller-supplied `topicAlias` on an outbound PUBLISH (via `client.publish()`) and on a Will is always stripped — the broker owns the outbound alias namespace (see the callout under [`Event: connackSent`](#event-connacksent)).
   - `maximumPacketSize` `<number>` MQTT 5.0 only. Maximum size in bytes of a packet the broker accepts, advertised in the CONNACK. Enforced: an oversized inbound frame is rejected as soon as its declared length is known — before the rest of its payload is buffered — with a `DISCONNECT` (reason code `0x95`, Packet too large) for connected v5 clients, or a dropped connection with a `connectionError`/`clientError` for pre-auth or v3/v4 clients. `0` means no limit. __Default__: `0`
   - `receiveMaximum` `<number>` MQTT 5.0 only. Maximum number of in-flight QoS 1/2 PUBLISH packets advertised to the client in the CONNACK. __Advisory only__: the value is advertised but the broker does not currently enforce an inbound in-flight window (existing `drainTimeout` transport backpressure applies instead); enforcement is planned for a follow-up. `0` means it is not advertised (clients assume the protocol default of `65535`). __Default__: `0`
   - `sessionExpiryIntervalLimit` `<number>` MQTT 5.0 only. Upper bound in seconds on the Session Expiry Interval a client may request. A larger requested value — including `0xFFFFFFFF` ("never expires") — is clamped to this, both in CONNECT and in a DISCONNECT that updates the interval. Bounds how long per-client session-expiry and will-delay timers (and their persisted session state) live, limiting memory accumulation from a single source cycling client identities. `0` means no cap. __Default__: `0`
@@ -233,6 +235,10 @@ Emitted when server sends an acknowledge to `client`. Please refer to the MQTT s
 
 For MQTT 3.1/3.1.1 the packet carries a `returnCode` (`0` = success). For MQTT 5.0 it instead carries a `reasonCode` (`0x00` = success; the v3/v4 return codes map to the equivalent v5 reason codes) and may carry a `properties` object advertising negotiated capabilities (e.g. `topicAliasMaximum`, `maximumPacketSize`, `receiveMaximum`, `serverKeepAlive`, `assignedClientIdentifier`, `sharedSubscriptionAvailable`).
 
+> __MQTT 5.0 outbound Topic Alias:__ the broker's alias __assignment__ is opt-in via the [`outboundTopicAliasMaximum`](#new-aedesoptions) broker option (default `0` = off). When it is set __and__ a v5 client advertises its own `Topic Alias Maximum` in CONNECT, the broker assigns Topic Aliases on the PUBLISHes it sends to that client — full topic + alias on first use of a topic, empty topic + the same alias thereafter — to save bandwidth. Mappings are per Network Connection (reset on reconnect, never carried across, per §3.3.2.3.4) and the per-connection table never evicts. The number of aliases assigned is `min(client's advertised maximum, outboundTopicAliasMaximum)`. Full documentation is under the [`outboundTopicAliasMaximum`](#new-aedesoptions) option.
+>
+> One thing is __not__ gated by the option: a caller-supplied `topicAlias` — set on an outbound PUBLISH passed to `client.publish()`, or carried on a client's Will — is always stripped before the packet reaches another client, even when `outboundTopicAliasMaximum` is `0`. The outbound alias namespace is broker-owned; forwarding a caller value verbatim would emit an alias the receiving client never negotiated ([MQTT-3.1.2-27]) or one that disagrees with the broker's own table. So enabling the option adds broker-assigned aliasing; it does not turn on (or off) that scrub.
+
 ## Event: closed
 
 Emitted when server is closed.
@@ -256,6 +262,13 @@ MQTT 5.0 only. Emitted when a session that outlived its connection reaches its S
 - `info` `<object>` `{ reason: 'sessionExpiry' | 'willDelay', limit: number }` — which guard tripped and the configured `pendingSessionsLimit`
 
 MQTT 5.0 only. Emitted when the [`pendingSessionsLimit`](#new-aedesoptions) DoS guard trips: a disconnecting session that would otherwise be retained (including a never-expiring one) is instead expired immediately (`reason: 'sessionExpiry'`), or a delayed Will is published immediately instead of being held (`reason: 'willDelay'`). Listen for this to detect identity-cycling abuse — without it the guard would degrade behavior silently.
+
+## Event: outboundTopicAliasExhausted
+
+- `client` [`<Client>`](./Client.md)
+- `info` `<object>` `{ max: number }` — the effective per-connection alias maximum (`min(client's advertised Topic Alias Maximum, outboundTopicAliasMaximum)`) that has been filled
+
+MQTT 5.0 only. Emitted once per connection, the first time the broker sends a PUBLISH for a __new__ topic that can no longer be aliased because that connection's [`outboundTopicAliasMaximum`](#new-aedesoptions) table is full. The broker keeps working — it falls back to sending the full topic name (the table never evicts) — but throughput for further distinct topics loses the alias saving. Listen for this to detect a `outboundTopicAliasMaximum` set too low for a client's topic cardinality; without it the degradation is silent.
 
 ## aedes.handle (stream)
 

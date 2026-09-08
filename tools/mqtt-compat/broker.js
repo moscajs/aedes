@@ -15,7 +15,11 @@ const port = Number(process.env.MQTT_PORT) || 1883
 const broker = await Aedes.createBroker({
   // Enable inbound topic aliases, off by default, so test_client_topic_alias
   // reflects real broker ability rather than a disabled feature.
-  topicAliasMaximum: 65535
+  topicAliasMaximum: 65535,
+  // Enable broker-assigned OUTBOUND topic aliases, likewise off (opt-in) by
+  // default, so test_server_topic_alias measures real broker ability rather than a
+  // disabled feature. This is the EXPECTED_PASSES-gated case in run_compat.py.
+  outboundTopicAliasMaximum: 65535
   // NOTE: deliberately NOT setting keepaliveLimit. It would let the v5
   // test_server_keep_alive pass, but it currently makes every MQTT 3.1.1 CONNECT
   // fail with reason code 6 (aedes tries to apply a Server Keep Alive that 3.1.1

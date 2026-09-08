@@ -89,7 +89,8 @@ export interface AedesOptions {
   trustProxy?: boolean;
   trustedProxies?: string[];
   // MQTT 5.0 broker limits, advertised in CONNACK.
-  topicAliasMaximum?: number; // max inbound topic alias; 0 disables (default: 0)
+  topicAliasMaximum?: number; // max inbound topic alias; 0 disables (default: 0). A non-integer/negative value coerces to 0 (disabled), a value above 65535 clamps to 65535.
+  outboundTopicAliasMaximum?: number; // broker-side cap on outbound topic aliases per connection; opt-in, 0 disables (default: 0). A non-integer/negative value (e.g. the string '64') coerces to 0 (disabled, never silently enabled), a value above 65535 clamps to 65535.
   maximumPacketSize?: number; // max accepted packet size in bytes; 0 = no limit (default: 0)
   receiveMaximum?: number; // advertised max in-flight QoS 1/2; 0 = not advertised (default: 0)
   sessionExpiryIntervalLimit?: number; // clamp (seconds) on requested Session Expiry Interval; 0 = no cap (default: 0)
@@ -124,6 +125,11 @@ export class Aedes extends EventEmitter {
       client: Client,
       info: { reason: 'sessionExpiry' | 'willDelay'; limit: number }
     ) => void
+  ): this
+
+  on (
+    event: 'outboundTopicAliasExhausted',
+    listener: (client: Client, info: { max: number }) => void
   ): this
 
   on (

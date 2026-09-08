@@ -30,6 +30,14 @@ const defaultOptions = {
   // MQTT 5.0: maximum Topic Alias value the broker accepts from a client.
   // 0 disables inbound topic aliases (the value advertised in CONNACK).
   topicAliasMaximum: 0,
+  // MQTT 5.0: broker-side ceiling on how many Topic Aliases the broker assigns per
+  // connection on OUTBOUND PUBLISHes (the effective max is min(this, the client's
+  // advertised Topic Alias Maximum)). Bounds the never-evicting per-connection
+  // table. Defaults to 0 (disabled, OPT-IN) to match the inbound `topicAliasMaximum`
+  // sibling: enabling it changes wire behaviour (clients start receiving empty-topic
+  // PUBLISHes) and adds per-connection memory, so it should not turn on silently on
+  // upgrade. Set it (e.g. 64) to enable. [#840]
+  outboundTopicAliasMaximum: 0,
   // MQTT 5.0: maximum size (bytes) of a packet the broker accepts. 0 = no
   // limit (and nothing advertised in CONNACK).
   maximumPacketSize: 0,
@@ -83,7 +91,23 @@ export class Aedes extends EventEmitter {
     this.maxClientsIdLength = opts.maxClientsIdLength
     // clamp to a safe [1, 100] range; see MAX_TOPIC_LEVELS
     this.maxTopicLevels = Math.min(Math.max(opts.maxTopicLevels, 1), MAX_TOPIC_LEVELS)
-    this.topicAliasMaximum = opts.topicAliasMaximum
+    // Clamp like its outbound sibling below: it is advertised as an int16 CONNACK
+    // property, so a non-integer / out-of-range value (65536, Infinity, a JSON-config
+    // string) would make mqtt-packet stream.destroy() every v5 CONNACK — a
+    // self-inflicted v5 outage — and Infinity would also lift the `alias > max` bound
+    // in resolveTopicAlias. A bad value disables inbound aliasing (0).
+    this.topicAliasMaximum = Number.isInteger(opts.topicAliasMaximum) && opts.topicAliasMaximum > 0
+      ? Math.min(opts.topicAliasMaximum, 65535)
+      : 0
+    // Coerce a non-integer / negative value to 0 (disabled), not to the default:
+    // "bad value" must never mean "silently enabled". A string '0' from env/JSON
+    // config, -1, or 0.5 all disable outbound aliasing rather than turning it on.
+    // Clamp the top to 65535 — Topic Alias is a Two Byte Integer, so a larger value
+    // (e.g. via a preConnect hook raising the client's advertised max) would make
+    // Math.min yield an out-of-range alias mqtt-packet's int16 writer can't encode.
+    this.outboundTopicAliasMaximum = Number.isInteger(opts.outboundTopicAliasMaximum) && opts.outboundTopicAliasMaximum > 0
+      ? Math.min(opts.outboundTopicAliasMaximum, 65535)
+      : 0
     this.maximumPacketSize = opts.maximumPacketSize
     this.receiveMaximum = opts.receiveMaximum
     this.sessionExpiryIntervalLimit = opts.sessionExpiryIntervalLimit

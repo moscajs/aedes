@@ -47,7 +47,7 @@ case where the broker never sends an expected packet would otherwise hang the
 whole run, and a hung test would corrupt the class-level shared clients later
 tests reuse. A timed-out test is recorded as a bounded failure.
 
-The percentage is the raw pass rate (`passed / evaluated`). Two categories are
+The percentage is the raw pass rate (`passed / evaluated`). Three categories are
 handled specially:
 
 - **Expected gaps** (`EXPECTED_GAPS` in `run_compat.py`) — features aedes
@@ -56,8 +56,16 @@ handled specially:
   failures; they are only annotated with the reason so the table is readable.
   Because v5 is a work in progress, the harness also detects the reverse: when an
   `EXPECTED_GAPS` test starts **passing** (the feature got implemented), the report
-  highlights it with a 🎉 banner and the workflow emits a CI warning, prompting you
-  to remove the now-stale entry from `EXPECTED_GAPS`.
+  highlights it with a 🎉 banner and the run **fails the build** (`run_compat.py`
+  exits non-zero), prompting you to remove the now-stale entry from `EXPECTED_GAPS`.
+- **Expected passes** (`EXPECTED_PASSES`) — the CI hard gate. Features aedes *does*
+  implement whose Paho case is their only automated interop evidence (currently
+  `test_server_topic_alias`, moved here out of `EXPECTED_GAPS` when broker-assigned
+  Topic Alias landed). If one of these ever regresses to non-`pass`, `run_compat.py`
+  exits non-zero and the job turns **red** — so a regression can't slip through as
+  merely a lower percentage. (An unexpected pass also fails the build.) The broad
+  set of not-yet-implemented features stays a work-in-progress denominator, not a
+  gate.
 - **Harness-limited** (`HARNESS_LIMITED`) — tests that cannot be evaluated under
   per-test isolation against *any* broker (currently only `test_flow_control2`,
   which depends on the persistent client the suite sets up only in single-process
@@ -66,12 +74,15 @@ handled specially:
 
 ### Adding or moving a test category
 
-Both lists in `run_compat.py` are keyed `protocol -> exact Paho method name ->
-reason string`. Pick the dict by what the failure *means*:
+The lists in `run_compat.py` are keyed `protocol -> exact Paho method name`
+(`EXPECTED_GAPS`/`HARNESS_LIMITED` map to a reason string; `EXPECTED_PASSES` is a
+set). Pick by what the failure *means*:
 
 - A genuine aedes gap that should drag the score down → **`EXPECTED_GAPS`**. It
   still runs and counts as a failure; when aedes later implements it the harness
   flags the 🎉 xpass so you remove the entry.
+- A feature aedes implements that must not regress → **`EXPECTED_PASSES`**. Move a
+  test here (out of `EXPECTED_GAPS`) once it passes and you want CI to gate on it.
 - A test the harness can't fairly evaluate against *any* broker → **`HARNESS_LIMITED`**.
   It is skipped before the gap logic and excluded from the denominator. A method
   must live in **exactly one** list (`HARNESS_LIMITED` is checked first, so a
@@ -83,8 +94,9 @@ The percentage is **"% of the Paho functional suite that passes"**, not
 "% MQTT-5.0-compliant". The Paho suite is a third-party **happy-path functional**
 test: it exercises the user-facing v5 features well (session expiry, will + will
 delay, message expiry, RH/RAP/NL, request/response, payload format, assigned client
-id, server keep alive, inbound topic aliases, max-packet-size rejection, PUBLISH
-user properties), but it touches only 5 reason codes and deliberately omits large
+id, server keep alive, inbound and broker-assigned outbound topic aliases,
+max-packet-size rejection, PUBLISH user properties), but it touches only 5 reason
+codes and deliberately omits large
 parts of the spec:
 
 - **Error / negative paths** — most of aedes's reason codes (`lib/constants.js`):

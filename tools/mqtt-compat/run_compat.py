@@ -49,9 +49,6 @@ EXPECTED_GAPS = {
         # below (skipped before the gap logic runs), so a duplicate entry here would
         # be unreachable. The receiveMaximum gap it probes is tracked via
         # test_flow_control1 above.
-        "test_server_topic_alias":
-            "broker-assigned (outbound) topic aliases are not implemented; inbound "
-            "aliases work (#840 — spec-optional/MAY, deferred per #821)",
         "test_subscribe_identifiers":
             "a delivery matching multiple overlapping subscriptions echoes only one "
             "Subscription Identifier (#828 [MQTT-3.3.4-4] — deferred per #821)",
@@ -63,6 +60,17 @@ EXPECTED_GAPS = {
         # applied to the pinned checkout before the suite runs, so the test passes.
     },
     "v3": {},
+}
+
+# Tests that MUST pass — features aedes implements whose Paho coverage is the only
+# automated interop evidence (e.g. broker-assigned Topic Alias, removed from
+# EXPECTED_GAPS in #840). A regression in one of these turns the CI check red. The
+# broad set of not-yet-implemented features (test_maximum_packet_size,
+# test_offline_message_queueing, …) stays counted in the percentage only — they are
+# a work-in-progress denominator, not a red-check gate; a removed-gap regression is.
+EXPECTED_PASSES = {
+    "v5": {"test_server_topic_alias"},
+    "v3": set(),
 }
 
 PROTOCOL_LABEL = {"v5": "MQTT 5.0", "v3": "MQTT 3.1.1"}
@@ -358,6 +366,53 @@ def main():
         print(f"UNEXPECTED_PASS: {listed}", file=sys.stderr)
         print("These tests are in EXPECTED_GAPS but now pass; update "
               "tools/mqtt-compat/run_compat.py.", file=sys.stderr)
+
+    # Give the CI job a meaningful exit code. A regression in an EXPECTED_PASSES
+    # test — a feature aedes implements, whose Paho case is its only interop
+    # evidence (e.g. test_server_topic_alias, removed from EXPECTED_GAPS in #840) —
+    # must turn the check red, not merely lower the percentage. (The broad set of
+    # not-yet-implemented features stays a work-in-progress denominator.) A stale
+    # gap list — an unexpected pass — fails too.
+    #
+    # Membership isn't enough: an EXPECTED_PASSES test that VANISHES from the results
+    # (a Paho rename on a PAHO_REF bump, a load failure) would leave `regressions`
+    # empty and the job green — silently dropping the one hard gate. So also fail
+    # when an expected-pass name never appeared in the evaluated set, and when a name
+    # is simultaneously listed as a gap/harness-limited (the README requires exactly
+    # one list; nothing else enforces it).
+    regressions = []
+    for r in reports:
+        proto = r["protocol"]
+        evaluated = {t["name"] for t in r["results"]}
+        for t in r["results"]:
+            if t["name"] in EXPECTED_PASSES.get(proto, set()) and t["status"] != "pass":
+                regressions.append((r["label"], t["name"], t["status"]))
+        for name in EXPECTED_PASSES.get(proto, set()):
+            if name not in evaluated:
+                regressions.append((r["label"], name, "absent"))
+            if name in EXPECTED_GAPS.get(proto, {}) or name in HARNESS_LIMITED.get(proto, {}):
+                regressions.append((r["label"], name, "also-in-gaps/harness-limited"))
+    # A whole PROTOCOL can vanish too: the loops above only visit protocols that
+    # produced a report, so a protocol that carries EXPECTED_PASSES gates but never
+    # ran (a `--protocols` subset, a run_protocol crash) has every one of its gates
+    # checked zero times and the job stays green. Diff the gated protocols against the
+    # ones actually present and fail on any that are missing entirely.
+    present_protocols = {r["protocol"] for r in reports}
+    for proto in EXPECTED_PASSES:
+        if proto not in present_protocols:
+            regressions.append((proto, "<all expected-pass tests>", "protocol-absent"))
+    if regressions:
+        listed = ", ".join(f"{name} [{status}] ({label})"
+                           for label, name, status in regressions)
+        print(f"REGRESSION (expected-pass gate): {listed}", file=sys.stderr)
+        # Surface it as a GitHub Actions error annotation too, matching the
+        # unexpected-pass step in .github/workflows/mqtt-compat.yml — a plain stderr
+        # line renders in the log as an indistinguishable failure marker, so an
+        # operator can't tell a hard-gated regression from an ordinary WIP gap
+        # without digging. (No-op prefix in a plain terminal.)
+        print(f"::error title=MQTT compat: expected-pass regression::{listed}")
+    if regressions or xpass:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

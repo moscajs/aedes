@@ -100,7 +100,7 @@ jobs:
         if: always()
         run: kill "${BROKER_PID}" 2>/dev/null || true
 
-      - name: Warn on unexpected passes
+      - name: Fail on unexpected passes
         if: always()
         run: |
           [ -f result.json ] || exit 0
@@ -112,10 +112,13 @@ jobs:
                    if t.get("unexpected_pass")]
           if xpass:
               names = ", ".join(xpass)
-              print(f"::warning title=MQTT compat: update EXPECTED_GAPS::"
+              print(f"::error title=MQTT compat: update EXPECTED_GAPS::"
                     f"{len(xpass)} expected-gap test(s) now pass: {names}. "
                     f"Remove them from EXPECTED_GAPS in "
                     f"tools/mqtt-compat/run_compat.py.")
+              # Fail the job: a stale gap list (a now-implemented feature still
+              # marked as an expected gap) must not slip through on a green check.
+              raise SystemExit(1)
           PY
 
       - name: Job summary

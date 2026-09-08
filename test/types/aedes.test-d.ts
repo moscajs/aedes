@@ -24,6 +24,7 @@ const broker = new Aedes({
   trustedProxies: ['127.0.0.1'],
   decodeProtocol: (client: Client, buffer: Buffer) => buffer,
   topicAliasMaximum: 10,
+  outboundTopicAliasMaximum: 64,
   maximumPacketSize: 1048576,
   receiveMaximum: 20,
   sessionExpiryIntervalLimit: 86400,
@@ -156,6 +157,12 @@ expectType<Aedes>(
   broker.on(
     'sessionLimitReached',
     (client: Client, info: { reason: 'sessionExpiry' | 'willDelay'; limit: number }) => {}
+  )
+)
+expectType<Aedes>(
+  broker.on(
+    'outboundTopicAliasExhausted',
+    (client: Client, info: { max: number }) => {}
   )
 )
 expectType<Aedes>(
