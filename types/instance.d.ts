@@ -13,7 +13,7 @@ import type {
 } from './packet.js'
 import { EventEmitter } from 'node:events'
 
-type LastHearthbeatTimestamp = Date
+type LastHearthbeatTimestamp = number
 
 export interface Brokers {
   [brokerId: string]: LastHearthbeatTimestamp;
