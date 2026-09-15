@@ -23,6 +23,12 @@ const defaultOptions = {
   trustProxy: false,
   trustedProxies: [],
   queueLimit: 42,
+  // Hard cap on concurrent inbound in-flight QoS 2 PUBLISH per client (packets
+  // stored awaiting PUBREL). Bounds the per-client incoming persistence map so
+  // half-open QoS 2 handshakes cannot grow it toward its 16-bit messageId
+  // ceiling. Well above what a pipelining publisher reaches, because MQTT
+  // 3.1.1 has no way to advertise the window to the client. 0 = unlimited.
+  maxInflightInbound: 1000,
   maxClientsIdLength: 23,
   maxTopicLevels: 100,
   keepaliveLimit: 0
@@ -47,6 +53,11 @@ export class Aedes extends EventEmitter {
     // internal track for last brokerCounter
     this.counter = 0
     this.queueLimit = opts.queueLimit
+    // clamp: a negative/NaN value must not silently disable the bound. Only an
+    // explicit 0 opts out.
+    this.maxInflightInbound = Number.isInteger(opts.maxInflightInbound) && opts.maxInflightInbound >= 0
+      ? opts.maxInflightInbound
+      : defaultOptions.maxInflightInbound
     this.connectTimeout = opts.connectTimeout
     this.keepaliveLimit = opts.keepaliveLimit
     this.maxClientsIdLength = opts.maxClientsIdLength

@@ -770,3 +770,149 @@ test('clean session discards its QoS 2 dedup store on disconnect', async (t) => 
     'the dedup entry is gone with the session'
   )
 })
+
+test('QoS 2 inbound: broker drops a client that floods fresh messageIds past maxInflightInbound', async (t) => {
+  t.plan(5)
+
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: 3 } })
+  const broker = s.broker
+
+  // Fill the inbound window: 3 fresh QoS 2 PUBLISH, each answered with PUBREC,
+  // none followed by PUBREL, so all three stay stored awaiting completion.
+  for (let messageId = 1; messageId <= 3; messageId++) {
+    s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId })
+    const pubrec = await nextPacket(s)
+    t.assert.equal(pubrec.cmd, 'pubrec', `PUBREC for messageId ${messageId}`)
+  }
+
+  // A 4th fresh QoS 2 PUBLISH exceeds the cap: the connection is dropped with a
+  // clientError instead of retaining another attacker-controlled packet body.
+  s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId: 4 })
+  const [client, err] = await once(broker, 'clientError')
+  t.assert.ok(client)
+  t.assert.match(err.message, /^maxInflightInbound exceeded: 3 /)
+})
+
+test('QoS 2 inbound: completing PUBREL frees a slot in the receive window', async (t) => {
+  t.plan(3)
+
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: 1 } })
+
+  // One inbound QoS 2 PUBLISH fills the window (cap 1).
+  s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId: 1 })
+  t.assert.equal((await nextPacket(s)).cmd, 'pubrec', 'PUBREC for first packet')
+
+  // Completing the handshake releases the slot.
+  s.inStream.write({ cmd: 'pubrel', messageId: 1 })
+  t.assert.equal((await nextPacket(s)).cmd, 'pubcomp', 'PUBCOMP frees the slot')
+
+  // A second fresh QoS 2 PUBLISH is now accepted rather than dropped — proving
+  // the slot was released. If the decrement were missing this would hang.
+  s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId: 2 })
+  t.assert.equal((await nextPacket(s)).cmd, 'pubrec', 'PUBREC for second packet')
+})
+
+// The guard has to reserve its slot synchronously. enqueue in lib/client.js
+// dispatches every packet of a socket read chunk concurrently, so a check that
+// happens before `await incomingStorePacket` and an increment that happens
+// after lets the whole chunk past — which is the exact flood being bounded.
+test('QoS 2 inbound: the cap holds against a pipelined flood in one chunk', async (t) => {
+  t.plan(2)
+
+  const LIMIT = 3
+  const FLOOD = 40
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: LIMIT } })
+  const client = s.broker.clients['my-client']
+
+  const errored = once(s.broker, 'clientError')
+
+  // one write, so mqtt-packet emits them all into the same parser batch
+  for (let messageId = 1; messageId <= FLOOD; messageId++) {
+    s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId })
+  }
+
+  const [, err] = await errored
+  t.assert.match(err.message, /^maxInflightInbound exceeded: 3 /)
+  t.assert.ok(client._inboundInflight.size <= LIMIT,
+    `at most ${LIMIT} reserved, got ${client._inboundInflight.size}`)
+})
+
+// A DUP retransmission of a packet already awaiting PUBREL must re-reserve its
+// own slot, not consume a second one — otherwise a legitimate retransmitting
+// client drifts up to the cap and gets dropped.
+test('QoS 2 inbound: a DUP retransmission does not consume a second slot', async (t) => {
+  t.plan(3)
+
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: 2 } })
+  const client = s.broker.clients['my-client']
+
+  const publish = { cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId: 1 }
+  s.inStream.write(publish)
+  t.assert.equal((await nextPacket(s)).cmd, 'pubrec')
+
+  s.inStream.write({ ...publish, dup: true })
+  t.assert.equal((await nextPacket(s)).cmd, 'pubrec')
+
+  t.assert.equal(client._inboundInflight.size, 1, 'the retransmission reused its slot')
+})
+
+test('QoS 2 inbound: completing PUBREL frees the slot', async (t) => {
+  t.plan(4)
+
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: 1 } })
+  const client = s.broker.clients['my-client']
+
+  for (let messageId = 1; messageId <= 3; messageId++) {
+    s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId })
+    await nextPacket(s) // pubrec
+    s.inStream.write({ cmd: 'pubrel', messageId })
+    const pubcomp = await nextPacket(s)
+    t.assert.equal(pubcomp.cmd, 'pubcomp', `PUBCOMP for messageId ${messageId}`)
+  }
+
+  t.assert.equal(client._inboundInflight.size, 0, 'a well-behaved client is never throttled')
+})
+
+// The rejection used to ride out of .finally() uncaught and kill the process.
+test('QoS 2 inbound: a duplicate PUBREL does not crash and does not free a slot twice', async (t) => {
+  t.plan(3)
+
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: 2 } })
+  const client = s.broker.clients['my-client']
+
+  s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId: 1 })
+  await nextPacket(s)
+
+  s.inStream.write({ cmd: 'pubrel', messageId: 1 })
+  t.assert.equal((await nextPacket(s)).cmd, 'pubcomp')
+
+  s.inStream.write({ cmd: 'pubrel', messageId: 1 })
+  t.assert.equal((await nextPacket(s)).cmd, 'pubcomp', 'PUBCOMP is still owed')
+
+  t.assert.equal(client._inboundInflight.size, 0)
+})
+
+test('QoS 2 inbound: maxInflightInbound 0 disables the cap', async (t) => {
+  t.plan(2)
+
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: 0 } })
+  const client = s.broker.clients['my-client']
+
+  for (let messageId = 1; messageId <= 150; messageId++) {
+    s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId })
+    await nextPacket(s)
+  }
+
+  t.assert.equal(client._inboundInflight.size, 150)
+  t.assert.equal(client.connected, true, 'never dropped')
+})
+
+test('QoS 2 inbound: a bad maxInflightInbound falls back to the default, it does not disable the cap', async (t) => {
+  t.plan(4)
+
+  for (const bad of [-1, NaN, 'lots', 1.5]) {
+    const broker = await Aedes.createBroker({ maxInflightInbound: bad })
+    t.assert.equal(broker.maxInflightInbound, 1000, `${String(bad)} -> default`)
+    await broker.close()
+  }
+})
