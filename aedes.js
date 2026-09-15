@@ -74,8 +74,10 @@ export class Aedes extends EventEmitter {
     this.trustProxy = opts.trustProxy
     this.trustedProxies = opts.trustedProxies
 
-    this.clients = {}
-    this.brokers = {}
+    // GHSA-52qw-whmv-87c5: keyed by Client ID / broker id from the wire, so an
+    // inherited name ('constructor', '__proto__', ...) must read back as absent
+    this.clients = Object.create(null)
+    this.brokers = Object.create(null)
     this.closed = true
   }
 
