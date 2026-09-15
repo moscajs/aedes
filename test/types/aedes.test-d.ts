@@ -105,6 +105,7 @@ const broker = new Aedes({
 expectType<Aedes>(broker)
 
 expectType<Readonly<Brokers>>(broker.brokers)
+expectType<number>(broker.brokers['broker-id'])
 
 expectType<Aedes>(broker.on('closed', () => {}))
 expectType<Aedes>(broker.on('client', (client: Client) => {}))
