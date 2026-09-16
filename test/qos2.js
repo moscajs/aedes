@@ -874,6 +874,28 @@ test('QoS 2 inbound: completing PUBREL frees the slot', async (t) => {
 })
 
 // The rejection used to ride out of .finally() uncaught and kill the process.
+test('QoS 2 inbound: a failed incomingDelPacket keeps the slot and still owes PUBCOMP', async (t) => {
+  t.plan(3)
+
+  const s = await createAndConnect(t, { broker: { maxInflightInbound: 2 } })
+  const client = s.broker.clients['my-client']
+
+  s.inStream.write({ cmd: 'publish', topic: 'hello', payload: 'world', qos: 2, messageId: 1 })
+  await nextPacket(s)
+  t.assert.equal(client._inboundInflight.size, 1)
+
+  // a concurrent duplicate PUBREL loses the race and rejects here; the packet is
+  // still stored, so the slot must not be freed
+  const persistence = s.broker.persistence
+  const original = persistence.incomingDelPacket.bind(persistence)
+  persistence.incomingDelPacket = () => Promise.reject(new Error('no such packet'))
+  t.after(() => { persistence.incomingDelPacket = original })
+
+  s.inStream.write({ cmd: 'pubrel', messageId: 1 })
+  t.assert.equal((await nextPacket(s)).cmd, 'pubcomp', 'PUBCOMP is still owed')
+  t.assert.equal(client._inboundInflight.size, 1, 'slot stays while the packet is still stored')
+})
+
 test('QoS 2 inbound: a duplicate PUBREL does not crash and does not free a slot twice', async (t) => {
   t.plan(3)
 
