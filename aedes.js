@@ -399,6 +399,10 @@ function defaultPreConnect (client, packet, callback) {
 }
 
 function defaultAuthenticate (client, username, password, callback) {
+  process.emitWarning(
+    'Aedes broker is running with the default authenticate handler, which grants access to all clients without checking credentials. Set the "authenticate" option to restrict access.',
+    { code: 'AEDES_NO_AUTH' }
+  )
   callback(null, true)
 }
 
