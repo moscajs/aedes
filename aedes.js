@@ -88,6 +88,11 @@ export class Aedes extends EventEmitter {
     // GHSA-52qw-whmv-87c5: keyed by Client ID / broker id from the wire, so an
     // inherited name ('constructor', '__proto__', ...) must read back as absent
     this.clients = Object.create(null)
+    // clientId -> Set(messageId): inbound QoS2 packets retained in persistence
+    // but not yet acknowledged (no PUBREL received). Used to compute the
+    // CONNACK Session Present bit, which MQTT requires to be 1 when the broker
+    // still holds any session state for the client (including inbound QoS2).
+    this._inboundQos2 = new Map()
     this.brokers = Object.create(null)
     this.closed = true
   }
