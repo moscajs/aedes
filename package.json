@@ -10,6 +10,12 @@
 	},
 	"type": "module",
 	"types": "aedes.d.ts",
+	"files": [
+		"aedes.js",
+		"aedes.d.ts",
+		"lib/",
+		"types/"
+	],
 	"scripts": {
 		"lint": "npm run lint:code && npm run lint:markdown",
 		"lint:fix": "eslint --fix",
