@@ -106,7 +106,7 @@
 		"c8": "^12.0.0",
 		"eslint": "^9.39.5",
 		"license-checker": "^25.0.1",
-		"markdownlint-cli": "^0.49.1",
+		"markdownlint-cli": "^0.50.0",
 		"mqtt": "^5.15.2",
 		"neostandard": "^0.13.0",
 		"release-it": "^21.0.2",
