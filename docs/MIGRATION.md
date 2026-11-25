@@ -2,13 +2,21 @@
 
 ## From 1.x to 2.x
 
-- Node.js 22.19.0 or later is required. aedes 2.x depends on mqtt-packet 10,
-  which is ESM-only and relies on `require(esm)`.
+- Node.js 22.19.0 or later is required, because that is the floor of
+  mqtt-packet 10. CommonJS keeps working through `require(esm)`; use the
+  named export as shown in the 0.x to 1.x section below.
 - The default export is gone. In 1.x it was a stub that threw a migration
-  error; in 2.x it does not exist. Use the named export, as shown below for
-  0.x to 1.x.
-- CommonJS keeps working through `require(esm)`:
-  `const { Aedes } = require('aedes')`.
+  error. Now `import aedes from 'aedes'` fails with
+  `SyntaxError: The requested module 'aedes' does not provide an export named 'default'`,
+  and `require('aedes')(opts)` fails with `TypeError: ... is not a function`.
+  Use `const { Aedes } = ...` and `await Aedes.createBroker(opts)`.
+- mqtt-packet 10 changes which CONNECT packets reach `authenticate`:
+  - MQTT 3.1 / 3.1.1: a CONNECT with the Password Flag set and no User Name
+    is now rejected by the parser as [MQTT-3.1.2-22] requires. The client
+    gets no CONNACK and `authenticate` is not called. Clients that send only
+    a password (e.g. a token) must also send a user name.
+  - MQTT 5: a password without a user name is allowed, so `authenticate`
+    can be called with `username === undefined` and a password set.
 
 ## From 0.x to 1.x
 
