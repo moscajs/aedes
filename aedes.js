@@ -428,13 +428,3 @@ class PublishState {
     this.packet = packet
   }
 }
-
-function warnMigrate () {
-  throw new Error(
-    ` Aedes default export has been removed.
- Use 'const aedes = await Aedes.createBroker()' instead.
- See: https://github.com/moscajs/aedes/docs/MIGRATION.MD
- `)
-}
-
-export default warnMigrate

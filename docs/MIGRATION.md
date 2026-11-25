@@ -1,5 +1,23 @@
 # Migration
 
+## From 1.x to 2.x
+
+- Node.js 22.19.0 or later is required, because that is the floor of
+  mqtt-packet 10. npm only warns on older versions; aedes then fails at
+  runtime.
+- The default export is gone. In 1.x it was a stub that threw a migration
+  error; now `import aedes from 'aedes'` throws a `SyntaxError` and
+  `require('aedes')(opts)` a `TypeError`. Use the named export as shown in
+  the 0.x to 1.x section below; CommonJS keeps working through
+  `require(esm)`.
+- An MQTT 3.1 / 3.1.1 CONNECT with the Password Flag set and no User Name
+  is now rejected by mqtt-packet as [MQTT-3.1.2-22] requires. The client
+  gets no CONNACK and neither `preConnect` nor `authenticate` is called.
+  Clients that send only a password (e.g. a token) must also send a user
+  name.
+- mqtt-packet 10 adds `@platformatic/dynamic-buffer`, licensed Apache-2.0, as
+  a production dependency.
+
 ## From 0.x to 1.x
 
 Version 1.x changes the persistence interface from callback to async/await.

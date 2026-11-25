@@ -14,7 +14,7 @@ jobs:
     name: Benchmark
     runs-on: ubuntu-latest
     env: 
-      nodeVersion: 20
+      nodeVersion: 22
       mainRef: "main"
     steps:
       - name: Set up Node.js

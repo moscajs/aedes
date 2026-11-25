@@ -13,18 +13,13 @@ import {
   subscribeMultiple,
   withTimeout
 } from './helper.js'
-import defaultExport, { Aedes } from '../aedes.js'
+import { Aedes } from '../aedes.js'
 import write from '../lib/write.js'
 
 test('test Aedes constructor', (t) => {
   t.plan(1)
   const aedes = new Aedes()
   t.assert.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
-})
-
-test('test warning on default export', (t) => {
-  t.plan(1)
-  t.assert.throws(defaultExport, 'received expected error')
 })
 
 test('test aedes.createBroker', async (t) => {
