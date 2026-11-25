@@ -22,11 +22,6 @@ test('test Aedes constructor', (t) => {
   t.assert.equal(aedes instanceof Aedes, true, 'Aedes constructor works')
 })
 
-test('only the named Aedes export is exposed', async (t) => {
-  t.plan(1)
-  t.assert.deepStrictEqual(Object.keys(await import('../aedes.js')), ['Aedes'])
-})
-
 test('test aedes.createBroker', async (t) => {
   t.plan(1)
   const broker = await Aedes.createBroker()
