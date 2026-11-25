@@ -1,5 +1,15 @@
 # Migration
 
+## From 1.x to 2.x
+
+- Node.js 22.19.0 or later is required. aedes 2.x depends on mqtt-packet 10,
+  which is ESM-only and relies on `require(esm)`.
+- The default export is gone. In 1.x it was a stub that threw a migration
+  error; in 2.x it does not exist. Use the named export, as shown below for
+  0.x to 1.x.
+- CommonJS keeps working through `require(esm)`:
+  `const { Aedes } = require('aedes')`.
+
 ## From 0.x to 1.x
 
 Version 1.x changes the persistence interface from callback to async/await.
