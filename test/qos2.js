@@ -379,7 +379,7 @@ test('resend publish on non-clean reconnect QoS 2', async (t) => {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 2,
-    dup: false,
+    dup: true,
     length: 14,
     messageId: 42,
     retain: false
@@ -406,7 +406,7 @@ test('resend pubrel on non-clean reconnect QoS 2', async (t) => {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 2,
-    dup: false,
+    dup: true,
     length: 14,
     messageId: 42,
     retain: false

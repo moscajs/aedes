@@ -417,7 +417,7 @@ test('offline message support for direct publish', async (t) => {
     cmd: 'publish',
     topic: 'hello',
     payload: Buffer.from('world'),
-    dup: false,
+    dup: true,
     length: 14,
     qos: 1,
     retain: false

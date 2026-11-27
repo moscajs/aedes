@@ -423,7 +423,7 @@ test('resend publish on non-clean reconnect QoS 1', async (t) => {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 1,
-    dup: false,
+    dup: true,
     length: 14,
     retain: false
   }
@@ -518,7 +518,7 @@ test('do not resend QoS 1 packets at each reconnect', async (t) => {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 1,
-    dup: false,
+    dup: true,
     length: 14,
     retain: false
   }
@@ -787,4 +787,41 @@ test('subscribe and publish QoS 1 in parallel', async (t) => {
       break
     }
   }
+})
+
+test('redeliver unacked in-flight QoS 1 publish with DUP on reconnect', async (t) => {
+  const opts = { clean: false, clientId: 'aedes-ua-q1' }
+  const { broker, publisher, subscriber } = await createPubSub(t, {
+    publisher: { clientId: 'pub-ua-q1' },
+    subscriber: opts
+  })
+
+  await subscribe(t, subscriber, 'sensor/unacked', 1)
+
+  // Publish QoS 1; the subscriber receives it but does NOT acknowledge.
+  publisher.inStream.write({
+    cmd: 'publish',
+    topic: 'sensor/unacked',
+    payload: 'world',
+    qos: 1,
+    messageId: 42
+  })
+  await nextPacket(publisher) // puback
+  const first = await nextPacket(subscriber)
+  t.assert.equal(first.dup, false, 'first delivery is not a redelivery (DUP=0)')
+
+  // Disconnect without acknowledging the in-flight publish.
+  subscriber.inStream.end()
+
+  const subscriber2 = setup(broker)
+  await connect(subscriber2, { connect: opts })
+
+  const redelivered = await nextPacket(subscriber2)
+  t.assert.equal(redelivered.dup, true, '[MQTT-3.3.1-1] redelivery sets DUP=1')
+  t.assert.ok(redelivered.messageId !== 42, 'messageId is reassigned by the broker')
+  subscriber2.inStream.write({
+    cmd: 'puback',
+    messageId: redelivered.messageId
+  })
+  await checkNoPacket(t, subscriber2, 10)
 })

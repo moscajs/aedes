@@ -209,7 +209,6 @@ test('Overlapped topics with same QoS', async (t) => {
 })
 
 // [MQTT-3.3.5-1]
-// FIXME: The broker currently delivers at first subscription's QoS (0), not max QoS (2)
 test('deliver overlapped topics respecting the maximum QoS of all the matching subscriptions - QoS 0 publish', async (t) => {
   t.plan(4)
 
@@ -232,7 +231,6 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
 })
 
 // [MQTT-3.3.5-1]
-// FIXME: The broker currently delivers at first subscription's QoS (0), not max QoS (2)
 test('deliver overlapped topics respecting the maximum QoS of all the matching subscriptions - QoS 2 publish', async (t) => {
   t.plan(8)
 
@@ -242,13 +240,12 @@ test('deliver overlapped topics respecting the maximum QoS of all the matching s
     { topic: 'hello/#', qos: 2 }]
   const { messageId, ...pubPacket } = await subscribeMultipleAndPublish(t, publisher, subscriber, 2, sub)
 
-  // Broker currently delivers at first subscription's QoS (0), not max QoS (2)
   const expected = {
     ...pubPacket,
     payload: Buffer.from(pubPacket.payload),
-    qos: 0,
+    qos: 2,
     dup: false,
-    length: 18,
+    length: 20,
     retain: false
   }
 
@@ -293,6 +290,45 @@ test('Overlapped topics with QoS downgrade', async (t) => {
   }
   const packet = await nextPacket(subscriber)
   t.assert.deepEqual(structuredClone(packet), expected, 'packet must match')
+})
+
+// [MQTT-3.3.5-1] a high-QoS wildcard subscription must not be downgraded
+// because of an overlapping lower-QoS exact subscription.
+test('overlapping wildcard delivers at the maximum subscription QoS', async (t) => {
+  const { publisher, subscriber } = await createPubSub(t)
+  subscriber.inStream.write({
+    cmd: 'subscribe',
+    messageId: 24,
+    subscriptions: [
+      { topic: 'sensor/ov/#', qos: 1 },
+      { topic: 'sensor/ov/a/b', qos: 0 }
+    ]
+  })
+  const suback = await nextPacket(subscriber)
+  t.assert.equal(suback.cmd, 'suback')
+  t.assert.deepEqual(structuredClone(suback).granted, [1, 0])
+
+  publisher.inStream.write({
+    cmd: 'publish',
+    topic: 'sensor/ov/a/b',
+    payload: 'world',
+    qos: 1,
+    messageId: 42
+  })
+  const puback = await nextPacket(publisher)
+  t.assert.equal(puback.cmd, 'puback')
+
+  const packet = await nextPacket(subscriber)
+  delete packet.messageId
+  t.assert.deepEqual(structuredClone(packet), {
+    cmd: 'publish',
+    topic: 'sensor/ov/a/b',
+    payload: Buffer.from('world'),
+    qos: 1,
+    dup: false,
+    length: 22,
+    retain: false
+  }, 'delivered at the maximum QoS of the matching subscriptions')
 })
 
 // GHSA-xxqp-5qx8-gj5q: a remote client could crash the broker by sending a

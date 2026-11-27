@@ -560,7 +560,7 @@ test('disconnect and retain messages with QoS 1 [clean=false]', async (t) => {
     topic: 'hello',
     payload: Buffer.from('world'),
     qos: 1,
-    dup: false,
+    dup: true,
     length: 14,
     retain: true
   }
@@ -643,6 +643,7 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', async (t) =>
   delete packet.messageId
   packet.length = 14
   expected.payload = Buffer.from('world')
+  expected.dup = true // [MQTT-3.3.1-1] redelivered on reconnect
   t.assert.deepEqual(structuredClone(packet), expected, 'packet must match')
 
   // receive any queued messages (included retained messages) at the disconnected time
@@ -651,6 +652,7 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', async (t) =>
   delete packet2.messageId
   packet2.length = 14
   expected.payload = Buffer.from('world2')
+  expected.dup = false // queued offline, first delivery
   t.assert.deepEqual(structuredClone(packet2), expected, 'packet must match')
 
   // should get the last retained message when we do a subscribe
@@ -660,5 +662,6 @@ test('disconnect and two retain messages with QoS 1 [clean=false]', async (t) =>
   delete packet3.messageId
   packet3.length = 14
   expected.payload = Buffer.from('world2')
+  expected.dup = false // fresh retained delivery on subscribe, not a redelivery
   t.assert.deepEqual(structuredClone(packet3), expected, 'packet must match')
 })
